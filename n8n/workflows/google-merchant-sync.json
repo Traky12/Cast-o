@@ -1,0 +1,71 @@
+{
+  "name": "Google Merchant Product Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        }
+      },
+      "id": "Cron",
+      "name": "Cron Hourly",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 260]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.WC_BASE_URL}}/wp-json/wc/store/v1/products?per_page=100"
+      },
+      "id": "GetProducts",
+      "name": "Get Woo Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [490, 260]
+    },
+    {
+      "parameters": {
+        "functionCode": "const products = Array.isArray($json) ? $json : [];\nreturn products.map(p => ({\n  id: p.id,\n  title: p.name,\n  price: p.prices?.price || '0',\n  currency: p.prices?.currency_code || 'EUR',\n  link: p.permalink || '',\n  image_link: p.images?.[0]?.src || '',\n  availability: 'in stock'\n}));"
+      },
+      "id": "MapMerchant",
+      "name": "Map For Merchant",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [740, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.MERCHANT_SYNC_ENDPOINT}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}"
+      },
+      "id": "PushMerchant",
+      "name": "Push Merchant Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 260]
+    }
+  ],
+  "connections": {
+    "Cron Hourly": {
+      "main": [[{"node":"Get Woo Products","type":"main","index":0}]]
+    },
+    "Get Woo Products": {
+      "main": [[{"node":"Map For Merchant","type":"main","index":0}]]
+    },
+    "Map For Merchant": {
+      "main": [[{"node":"Push Merchant Feed","type":"main","index":0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
