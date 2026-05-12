@@ -1,0 +1,17 @@
+{
+  "name": "castuo-system",
+  "version": "2.0.0",
+  "description": "CASTÚO-SYSTEM platform",
+  "type": "module",
+  "scripts": {
+    "test": "node --test core.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "axios": "^1.14.0"
+  },
+  "license": "AGPL-3.0"
+}
+}

@@ -1,0 +1,12 @@
+{
+  "explotacion_rega": "ES123456789",
+  "nombre_explotacion": "Finca Smoke Test",
+  "animales": {
+    "especie": "bovino",
+    "raza": "Retinta",
+    "cantidad": 10
+  },
+  "tipo_movimiento": "EXPORT",
+  "destino_pais": "DE",
+  "destino_explotacion": "DE987654321"
+}
