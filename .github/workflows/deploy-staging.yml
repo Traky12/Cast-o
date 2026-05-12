@@ -1,0 +1,46 @@
+name: Deploy to Staging (Hetzner)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Hetzner staging via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_STAGING_HOST }}
+          username: ${{ secrets.HETZNER_STAGING_USER }}
+          key: ${{ secrets.HETZNER_STAGING_SSH_KEY }}
+          port: ${{ secrets.HETZNER_STAGING_PORT || 22 }}
+          script: |
+            set -e
+            cd ${{ secrets.HETZNER_STAGING_PATH || '/opt/castuo-system' }}
+
+            echo "📥 Pulling latest code..."
+            git pull origin main
+
+            echo "🐳 Restarting services..."
+            docker compose pull
+            docker compose up -d --build --remove-orphans
+
+            echo "⏳ Waiting for API to be healthy..."
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost:8000/health > /dev/null; then
+                echo "✅ API is up"
+                break
+              fi
+              echo "  Attempt $i/12 – waiting 5s..."
+              sleep 5
+            done
+
+            echo "🚀 Staging deployment complete"

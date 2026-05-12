@@ -1,0 +1,104 @@
+name: E2E Smoke Tests – TRACES Endpoints
+
+on:
+  workflow_run:
+    workflows: [ "Deploy to Staging (Hetzner)" ]
+    types: [ completed ]
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: "Base URL of the API to test"
+        required: false
+        default: "http://localhost:8000"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+
+    env:
+      API_BASE_URL: ${{ github.event.inputs.api_base_url || 'http://localhost:8000' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install fastapi uvicorn pydantic httpx jsonschema pytest -q
+
+      - name: Start API locally (if testing against localhost)
+        if: ${{ env.API_BASE_URL == 'http://localhost:8000' }}
+        run: |
+          cd api
+          pip install -r requirements.txt -q
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          echo "⏳ Waiting for API to start..."
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:8000/health > /dev/null; then
+              echo "✅ API ready"
+              break
+            fi
+            sleep 2
+          done
+        env:
+          SCHEMAS_DIR: ${{ github.workspace }}/config/schemas
+
+      - name: Smoke test – /health
+        run: |
+          echo "🔍 Checking /health..."
+          RESP=$(curl -sf "$API_BASE_URL/health")
+          echo "$RESP"
+          echo "$RESP" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          assert d['status'] == 'ok', f'Unexpected status: {d}'
+          print('✅ /health OK')
+          "
+
+      - name: Smoke test – TRACES /api/v1/traces/certificado
+        run: |
+          echo "🔍 Checking TRACES certificado endpoint..."
+          PAYLOAD=$(cat <<'EOF'
+          {
+            "explotacion_rega": "ES100600000001",
+            "nombre_explotacion": "Finca Dehesa Smoke Test",
+            "direccion_explotacion": "Calle Test 1, Badajoz",
+            "animales": {"especie": "porcino", "raza": "Ibérico", "cantidad": 50},
+            "tipo_movimiento": "EXPORT",
+            "destino_pais": "PT",
+            "destino_explotacion": "PT500100000042"
+          }
+          EOF
+          )
+          RESP=$(curl -sf -X POST "$API_BASE_URL/api/v1/traces/certificado" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+          echo "$RESP"
+          echo "$RESP" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          assert d['payload']['firma']['pendiente_firma'] is True, 'Missing pendiente_firma'
+          assert d['payload']['certificado']['numero'].startswith('TRACES-ES-'), 'Invalid certificate number'
+          print('✅ TRACES certificado OK')
+          "
+
+      - name: Smoke test – TRACES schema validation
+        run: |
+          echo "🔍 Validating TRACES schema endpoint..."
+          RESP=$(curl -sf "$API_BASE_URL/api/v1/schemas/traces")
+          echo "$RESP" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          assert '\$schema' in d or 'properties' in d, 'Response does not look like a JSON schema'
+          print('✅ TRACES schema endpoint OK')
+          "
+
+      - name: Summary
+        if: always()
+        run: echo "🏁 E2E smoke tests completed for TRACES endpoints against $API_BASE_URL"
