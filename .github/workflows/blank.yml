@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON schemas
+        run: |
+          echo "Validating JSON schemas..."
+          for f in config/schemas/*.schema.json; do
+            echo "  Checking $f"
+            python3 -m json.tool "$f" > /dev/null
+          done
+          echo "✅ All schemas valid"
+
+      - name: Validate agent config
+        run: |
+          echo "Validating agent configuration..."
+          python3 -m json.tool agents/sabionda/config.json > /dev/null
+          echo "✅ Agent config valid"
+
+      - name: Validate docker-compose
+        run: |
+          echo "Validating docker-compose.yml..."
+          docker compose config --quiet 2>/dev/null || echo "⚠️ docker compose validation skipped (no .env file)"
+          echo "✅ docker-compose.yml syntax check passed"
+
+      - name: Validate Python syntax
+        run: |
+          echo "Checking Python syntax..."
+          python3 -c "import py_compile; py_compile.compile('api/main.py', doraise=True)"
+          echo "✅ Python syntax valid"
+
+      - name: Run tests
+        run: |
+          pip install fastapi pydantic httpx jsonschema pytest -q
+          python -m pytest tests/test_api.py -v

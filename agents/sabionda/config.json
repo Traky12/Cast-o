@@ -1,0 +1,84 @@
+{
+  "agent": {
+    "name": "SABIONDA",
+    "version": "2.0",
+    "description": "Agente de Inteligencia Autónoma para gestión integral de explotaciones agroindustriales",
+    "organization": "CASTÚO 360 S.L.",
+    "model": "openclaw-rag",
+    "system_prompt": "system-prompt.md"
+  },
+  "capabilities": {
+    "livestock_management": {
+      "enabled": true,
+      "breeds": {
+        "vacuno": ["Retinta", "Avileña"],
+        "porcino": ["Duroc", "Ibérico"],
+        "ovino": ["Manchega", "Churra"],
+        "caprino": ["Manchega", "Churra"],
+        "aves": ["GRASP"],
+        "apicultura": ["GRASP"]
+      },
+      "nutrition": {
+        "retinta_ms_kg_day": 6.5,
+        "retinta_live_weight_kg": 500
+      },
+      "alerts": {
+        "fever_threshold_celsius": 39.4,
+        "protocol": "veterinary_sms"
+      }
+    },
+    "crop_management": {
+      "enabled": true,
+      "secano": ["trigo", "olivo", "viñedo"],
+      "regadio": ["tomate", "pimiento"],
+      "invernadero": {
+        "co2_ppm_range": [700, 1000],
+        "vpd_kpa_range": [0.8, 1.2],
+        "ph_range": [5.8, 6.2]
+      },
+      "frutas": ["manzana", "pera", "cítricos"],
+      "certification": "GlobalGAP 5.4"
+    },
+    "irrigation_management": {
+      "enabled": true,
+      "tensiometer_range_cb": [-20, -50],
+      "flow_meters": true,
+      "fertigation": true
+    },
+    "document_generation": {
+      "enabled": true,
+      "formats": ["JSON", "PDF", "XML"],
+      "documents": [
+        "SIEX",
+        "SIGPAC",
+        "TRACES",
+        "REGEPA",
+        "PAC",
+        "GlobalGAP",
+        "GRASP",
+        "ISO14001",
+        "libro_fitosanitario"
+      ]
+    }
+  },
+  "compliance": {
+    "pac_2023_2027": true,
+    "ai_act_eu": true,
+    "rgpd": true,
+    "rd_285_2023": true,
+    "rd_1311_2012": true,
+    "siex_digital_2027": true,
+    "globalgap_5_4": true
+  },
+  "security": {
+    "data_sovereignty": "hetzner_eu",
+    "gdpr_compliant": true,
+    "digital_signature": true,
+    "sensor_error_policy": "ERROR_DE_CORRELACION"
+  },
+  "integrations": {
+    "iot": ["kafka", "mqtt", "lorawan_ttn"],
+    "apis": ["siex", "traces", "sigpac", "regepa"],
+    "backend": ["n8n", "fastapi", "postgresql"]
+  }
+}

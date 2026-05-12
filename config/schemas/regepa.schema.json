@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "REGEPA Explotaciones",
+  "description": "Schema para registro de explotaciones ganaderas REGEPA (Registro General de Explotaciones Ganaderas)",
+  "type": "object",
+  "required": ["explotacion", "titular", "especies"],
+  "properties": {
+    "explotacion": {
+      "type": "object",
+      "required": ["rega", "tipo", "clasificacion_zootecnica"],
+      "properties": {
+        "rega": {
+          "type": "string",
+          "description": "Código REGA de la explotación"
+        },
+        "tipo": {
+          "type": "string",
+          "enum": ["produccion", "reproduccion", "cebo", "mixta", "autoconsumo"]
+        },
+        "clasificacion_zootecnica": {
+          "type": "string"
+        },
+        "capacidad_maxima": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sistema_explotacion": {
+          "type": "string",
+          "enum": ["extensivo", "intensivo", "mixto", "ecologico"]
+        },
+        "coordenadas": {
+          "type": "object",
+          "properties": {
+            "latitud": {
+              "type": "number"
+            },
+            "longitud": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "titular": {
+      "type": "object",
+      "required": ["nif", "nombre"],
+      "properties": {
+        "nif": {
+          "type": "string"
+        },
+        "nombre": {
+          "type": "string"
+        },
+        "direccion": {
+          "type": "string"
+        },
+        "comunidad_autonoma": {
+          "type": "string"
+        }
+      }
+    },
+    "especies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["especie", "censo"],
+        "properties": {
+          "especie": {
+            "type": "string",
+            "enum": ["vacuno", "porcino", "ovino", "caprino", "equino", "aves", "apicultura"]
+          },
+          "raza": {
+            "type": "string"
+          },
+          "censo": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "orientacion_productiva": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "bienestar_animal": {
+      "type": "object",
+      "properties": {
+        "grasp_compliant": {
+          "type": "boolean"
+        },
+        "densidad_m2_cabeza": {
+          "type": "number"
+        },
+        "acceso_exterior": {
+          "type": "boolean"
+        }
+      }
+    },
+    "firma": {
+      "type": "object",
+      "properties": {
+        "pendiente_firma": {
+          "type": "boolean",
+          "default": true
+        },
+        "aviso": {
+          "type": "string",
+          "default": "Documento generado para REVISIÓN y FIRMA del productor"
+        }
+      }
+    }
+  }
+}
