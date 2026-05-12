@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agroedu-platform
+  namespace: education
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: agroedu
+  template:
+    metadata:
+      labels:
+        app: agroedu
+    spec:
+      containers:
+      - name: agroedu
+        image: ghcr.io/castuo-system/agroedu-platform:latest
+        ports:
+        - name: http
+          containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: agroedu-secrets
+              key: database-url
+        - name: ACTIVITYPUB_DOMAIN
+          value: "agroedu.yourdomain.eu"
+        - name: ACTIVITYPUB_ENABLED
+          value: "true"
+        - name: BLOCKCHAIN_NETWORK
+          value: "gaia_testnet"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agroedu-service
+  namespace: education
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+  selector:
+    app: agroedu

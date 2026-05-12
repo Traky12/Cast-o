@@ -1,0 +1,131 @@
+name: E2E - Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: e2e-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HETZNER_PROD_HOST: ${{ secrets.HETZNER_PROD_HOST }}
+      HETZNER_PROD_USER: ${{ secrets.HETZNER_PROD_USER }}
+      HETZNER_PROD_SSH_KEY: ${{ secrets.HETZNER_PROD_SSH_KEY }}
+      HETZNER_PROD_APP_DIR: ${{ secrets.HETZNER_PROD_APP_DIR }}
+      HETZNER_PROD_PORT: ${{ secrets.HETZNER_PROD_PORT }}
+      PROD_HEALTHCHECK_URL: ${{ secrets.PROD_HEALTHCHECK_URL }}
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PDF dependency
+        run: python -m pip install reportlab
+
+      - name: Fix script permissions
+        run: chmod +x scripts/generate-release-notes.sh scripts/generate-pdf.sh scripts/notify-slack.sh
+
+      - name: Validate production uptime before deploy (E2E-REL-001)
+        if: ${{ env.PROD_HEALTHCHECK_URL != '' }}
+        run: |
+          set -euo pipefail
+          echo "📊 Verificando uptime en producción antes de desplegar..."
+          RESPONSE=$(curl -sSf "$PROD_HEALTHCHECK_URL" 2>/dev/null || echo '{}')
+          STATUS=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unreachable")
+          echo "Estado actual producción: $STATUS"
+          if [ "$STATUS" != "healthy" ] && [ "$STATUS" != "ok" ]; then
+            echo "⚠️ Producción en estado '$STATUS' — continuando despliegue (puede ser primer deploy)"
+          else
+            echo "✅ Producción healthy antes del deploy"
+          fi
+
+      - name: Deploy to production over SSH
+        if: ${{ env.HETZNER_PROD_HOST != '' && env.HETZNER_PROD_USER != '' && env.HETZNER_PROD_SSH_KEY != '' && env.HETZNER_PROD_APP_DIR != '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.HETZNER_PROD_HOST }}
+          username: ${{ env.HETZNER_PROD_USER }}
+          key: ${{ env.HETZNER_PROD_SSH_KEY }}
+          port: ${{ env.HETZNER_PROD_PORT || '22' }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="$HETZNER_PROD_APP_DIR"
+            cd "$APP_DIR"
+            git fetch --all --prune
+            git checkout main
+            git reset --hard origin/main
+            docker compose pull || true
+            docker compose up -d --build
+            docker compose ps
+
+      - name: Skip production deploy when secrets are missing
+        if: ${{ !(env.HETZNER_PROD_HOST != '' && env.HETZNER_PROD_USER != '' && env.HETZNER_PROD_SSH_KEY != '' && env.HETZNER_PROD_APP_DIR != '') }}
+        run: |
+          echo "Production deploy skipped: missing Hetzner production secrets"
+
+      - name: Validate production healthcheck
+        if: ${{ env.PROD_HEALTHCHECK_URL != '' }}
+        run: curl -fsS "$PROD_HEALTHCHECK_URL" > /dev/null
+
+      - name: Generate release notes markdown
+        run: ./scripts/generate-release-notes.sh "${{ github.event.release.tag_name }}" docs/RELEASE-NOTES.md
+
+      - name: Generate release notes PDF
+        run: ./scripts/generate-pdf.sh docs/RELEASE-NOTES.md release-notes-${{ github.event.release.tag_name }}.pdf
+
+      - name: Commit updated release notes to main
+        run: |
+          if git diff --quiet -- docs/RELEASE-NOTES.md; then
+            echo "No release notes changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/RELEASE-NOTES.md
+          git commit -m "docs: actualizar release notes para ${{ github.event.release.tag_name }}"
+          git push origin HEAD:main
+
+      - name: Upload PDF to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: release-notes-${{ github.event.release.tag_name }}.pdf
+
+      - name: Notify Slack
+        if: ${{ always() }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          ./scripts/notify-slack.sh "🎊 Release ${{ github.event.release.tag_name }} procesada\n\n🏭 Produccion evaluada\n📄 Release notes actualizadas\n✅ Artefactos publicados"
+
+      - name: Notify board by email
+        if: ${{ env.SMTP_SERVER != '' && env.SMTP_USER != '' && env.SMTP_PASS != '' }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ env.SMTP_SERVER }}
+          server_port: ${{ env.SMTP_PORT || '587' }}
+          username: ${{ env.SMTP_USER }}
+          password: ${{ env.SMTP_PASS }}
+          subject: Release ${{ github.event.release.tag_name }} desplegada
+          to: cto@castuo.es,ceo@castuo.es,board@castuo.es
+          from: ${{ env.SMTP_USER }}
+          body: La release se ha procesado y las notas se han actualizado.
+          attachments: release-notes-${{ github.event.release.tag_name }}.pdf

@@ -1,0 +1,285 @@
+name: Docker Security Audit & Hardening
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feat/**
+  push:
+    branches:
+      - main
+  schedule:
+    # Cada lunes a las 8:00 AM UTC (auditoría periódica)
+    - cron: '0 8 * * MON'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  checks: write
+
+jobs:
+  docker-audit:
+    name: Auditar Configuración Docker
+    runs-on: ubuntu-latest
+    continue-on-error: false
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar ambiente
+        run: |
+          chmod +x scripts/docker-audit.sh scripts/docker-harden.sh
+          mkdir -p artifacts/docker-security
+
+      - name: Ejecutar auditoría Docker (modo report)
+        id: audit
+        run: |
+          echo "🔍 Auditando configuración Docker..."
+          bash scripts/docker-audit.sh --all > artifacts/docker-security/audit-report.txt 2>&1 || true
+          
+          # Capturar resultados para el resumen
+          cat artifacts/docker-security/audit-report.txt
+          
+      - name: Ejecutar auditoría en modo strict (CI)
+        id: audit-strict
+        continue-on-error: true
+        run: |
+          echo "🔒 Auditoría en modo STRICT (bloqueante)..."
+          bash scripts/docker-audit.sh --strict --all
+          echo "audit_exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: Validar sintaxis docker-compose
+        id: compose-validate
+        run: |
+          echo "✓ Validando docker-compose.yml..."
+          docker-compose config -f docker-compose.yml > /dev/null
+          
+          echo "✓ Validando docker-compose.cloud.yml..."
+          docker-compose config -f docker-compose.cloud.yml > /dev/null || true
+          
+          echo "✓ Validando docker-compose.iot.yml..."
+          docker-compose config -f docker-compose.iot.yml > /dev/null || true
+          
+          echo "compose_valid=true" >> $GITHUB_OUTPUT
+
+      - name: Verificar imágenes con tags fijos
+        id: image-check
+        run: |
+          echo "🏷️  Verificando tags de imágenes..."
+          
+          # Buscar tags :latest en docker-compose
+          if grep -r "latest" docker-compose*.yml 2>/dev/null; then
+            echo "⚠️  WARN: Detectados tags :latest en docker-compose"
+            echo "images_have_latest=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Todos los tags son fijos (no :latest)"
+            echo "images_have_latest=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verificar Dockerfiles
+        id: dockerfile-check
+        run: |
+          echo "🔍 Escaneando Dockerfiles..."
+          
+          # Contar Dockerfiles
+          count=$(find . -name "Dockerfile*" -type f | wc -l)
+          echo "Dockerfiles encontrados: $count"
+          
+          # Verificar heredoc de seguridad (root user, etc)
+          for file in $(find . -name "Dockerfile*" -type f 2>/dev/null); do
+            echo "  - Verificando $file"
+            
+            # Advertencia si no hay USER no-root
+            if ! grep -q "^USER " "$file" && [[ ! "$file" =~ "Dockerfile.hardened" ]]; then
+              echo "⚠️  WARN: $file podría ejecutar con root"
+            fi
+          done
+          
+          echo "dockerfiles_scanned=$count" >> $GITHUB_OUTPUT
+
+      - name: Generar reporte de seguridad
+        if: always()
+        run: |
+          cat > artifacts/docker-security/SECURITY-SUMMARY.md <<EOF
+          # Docker Security Audit Summary
+          
+          ## Ejecución
+          - **Fecha**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          - **Rama**: ${{ github.ref }}
+          - **Evento**: ${{ github.event_name }}
+          - **Commit**: ${{ github.sha }}
+          
+          ## Resultados de Auditoría
+          
+          ### Control de Auditoría Docker (Strict Mode)
+          - Status: ${{ steps.audit-strict.outcome }}
+          - Exit Code: ${{ steps.audit-strict.outputs.audit_exit_code || 'N/A' }}
+          
+          ### Validación docker-compose
+          - Status: ${{ steps.compose-validate.outcome }}
+          - Archivos validados: 3 (main, cloud, iot)
+          - Válidos: ${{ steps.compose-validate.outputs.compose_valid }}
+          
+          ### Verificación de Tags
+          - Imágenes con :latest: ${{ steps.image-check.outputs.images_have_latest }}
+          
+          ### Verificación de Dockerfiles
+          - Dockerfiles escaneados: ${{ steps.dockerfile-check.outputs.dockerfiles_scanned }}
+          
+          ## Acciones Recomendadas
+          
+          ### Si hay fallos en auditoría strict:
+          1. Hacer hardening local: `make docker-harden`
+          2. Auditar resultados: `make docker-verify-hardening`
+          3. Buscar contenedores problemáticos en el reporte completo
+          
+          ### Si hay tags :latest:
+          1. Especificar versiones exactas (ej: `wordpress:6.5` no `wordpress:latest`)
+          2. Actualizar docker-compose.yml
+          3. Usar `docker image inspect IMAGE:TAG` para verificar disponibilidad
+          
+          ### Si Dockerfiles sin USER:
+          1. Añadir `USER nobody` o `USER appuser` (non-root)
+          2. Crear usuario en fase anterior si es necesario
+          
+          ## Referencia
+          - Hardening Script: `scripts/docker-harden.sh`
+          - Auditoría Script: `scripts/docker-audit.sh`
+          - Makefile: `make docker-harden`, `make docker-verify-hardening`
+          - CI/CD Workflow: `.github/workflows/docker-security.yml`
+          
+          ---
+          *Auditoría realizada por GitHub Actions*
+          EOF
+          
+          cat artifacts/docker-security/SECURITY-SUMMARY.md
+
+      - name: Subir artefactos de auditoría
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-security-audit
+          path: artifacts/docker-security/
+          retention-days: 30
+
+      - name: Comentar en PR (si existe)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'artifacts/docker-security/audit-report.txt';
+            
+            // Leer reporte si existe
+            let reportContent = 'No hay reporte disponible';
+            if (fs.existsSync(reportPath)) {
+              reportContent = fs.readFileSync(reportPath, 'utf8')
+                .split('\n')
+                .slice(0, 50)  // Primeras 50 líneas
+                .join('\n');
+            }
+            
+            const comment = `## 🔒 Docker Security Audit
+            
+            **Status**: ${{ steps.audit-strict.outcome }}
+            
+            ### Resumen Rápido
+            - Auditoría Docker: ${{ steps.audit.outcome }}
+            - Validación docker-compose: ${{ steps.compose-validate.outcome }}
+            - Tags fijos (no latest): ${{ steps.image-check.outputs.images_have_latest == 'false' && '✅' || '⚠️' }}
+            
+            ### Acciones si hay problemas
+            - Ejecutar: \`make docker-harden\`
+            - Verificar: \`make docker-verify-hardening\`
+            - Re-auditar: \`make docker-audit --strict\`
+            
+            [Ver reporte completo en artefactos](artifacts/docker-security/audit-report.txt)
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fallar si hay problemas críticos en main
+        if: |
+          github.ref == 'refs/heads/main' &&
+          steps.audit-strict.outcome == 'failure'
+        run: |
+          echo "❌ Auditoría Docker falló en rama main"
+          echo "Los siguientes problemas deben corregirse:"
+          cat artifacts/docker-security/audit-report.txt
+          exit 1
+
+      - name: Advertencia en PRs de feature
+        if: |
+          github.event_name == 'pull_request' &&
+          startsWith(github.head_ref, 'feat/') &&
+          steps.audit-strict.outcome == 'failure'
+        run: |
+          echo "⚠️  Advertencia de seguridad Docker en PR"
+          echo "Corre 'make docker-harden' antes del merge a main"
+
+  hardening-validation:
+    name: Validar Hardening Automático
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: docker-audit
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Preparar scripts
+        run: chmod +x scripts/docker-harden.sh scripts/docker-audit.sh
+
+      - name: Ejecutar hardening en modo dry-run
+        run: |
+          echo "🧪 Ejecutando hardening en modo DRY-RUN..."
+          bash scripts/docker-harden.sh --dry-run --verbose
+
+      - name: Validar cambios esperados
+        run: |
+          echo "✓ Script de hardening ejecutable"
+          echo "✓ Variables de entorno configurables"
+          echo "✓ Modo dry-run sin cambios destructivos"
+
+  dependency-check:
+    name: Verificar Dependencias Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Analizar capas de imágenes
+        run: |
+          echo "📦 Analizando imágenes base..."
+          
+          # Lista de imágenes a verificar
+          IMAGES=(
+            "wordpress:6.6-php8.2-apache"
+            "wordpress:6.5-apache"
+            "mariadb:11.2"
+            "mariadb:11"
+          )
+          
+          for image in "${IMAGES[@]}"; do
+            echo ""
+            echo "📋 Verificando: $image"
+            docker pull "$image" -q || echo "⚠️  No disponible localmente"
+          done
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write

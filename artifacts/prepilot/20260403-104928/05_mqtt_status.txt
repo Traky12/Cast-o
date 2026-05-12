@@ -1,0 +1,5 @@
+# MQTT publica y consume mensaje de prueba
+# CMD: docker exec 'castuo-mqtt-bridge' sh -lc "mosquitto_pub -h localhost -t castuo/prepilot/ping -m '{\"status\":\"ok\"}' -q 1 && mosquitto_sub -h localhost -t castuo/prepilot/ping -C 1 -W 3"
+# UTC: 2026-04-03T10:49:38Z
+
+Error response from daemon: Container 06c7d5ba5475dba86833d6ef1f76fd95712d88ef048e0fa009ba7c1e060a5b51 is restarting, wait until the container is running

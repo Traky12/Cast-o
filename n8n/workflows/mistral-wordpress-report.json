@@ -1,0 +1,374 @@
+{
+  "name": "Mistral + Sabionda → WordPress Report",
+  "description": "Procesar datos agrícolas con IA (Mistral + Sabionda) y publicar informe en WordPress",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST"
+      },
+      "id": "webhook_trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        50,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": []
+        },
+        "options": {}
+      },
+      "id": "validate_input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "temperature",
+              "value": "={{$node[\"webhook_trigger\"].json[\"temperature\"]}}"
+            },
+            {
+              "name": "humidity",
+              "value": "={{$node[\"webhook_trigger\"].json[\"humidity\"]}}"
+            },
+            {
+              "name": "soil_ph",
+              "value": "={{$node[\"webhook_trigger\"].json[\"soil_ph\"]}}"
+            },
+            {
+              "name": "crop",
+              "value": "={{$node[\"webhook_trigger\"].json[\"crop\"] || 'desconocido'}}"
+            },
+            {
+              "name": "location",
+              "value": "={{$node[\"webhook_trigger\"].json[\"location\"] || 'sin especificar'}}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{$now.toISOString()}}"
+            },
+            {
+              "name": "historical_yield",
+              "value": "={{$node[\"webhook_trigger\"].json[\"historical_yield\"] || []}}"
+            }
+          ]
+        }
+      },
+      "id": "prepare_data",
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.mistralApi.apiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"mistral-small-latest\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analiza los siguientes datos agrícolas y genera un informe técnico detallado:\\nTemperatura: \" + $json.temperature + \"°C\\nHumedad: \" + $json.humidity + \"%\\npH del suelo: \" + $json.soil_ph + \"\\nCultivo: \" + $json.crop + \"\\nUbicación: \" + $json.location + \"\\n\\nIncluye: diagnóstico, riesgos, recomendaciones de acción.\"\n    }\n  ],\n  \"max_tokens\": 2000,\n  \"temperature\": 0.7\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "mistral_analysis",
+      "name": "Mistral AI Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "position": [
+        650,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{$env.SABIONDA_API_ENDPOINT || 'https://api.sabionda.ai/predict'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.sabiondaApi.apiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"humidity\": $json.humidity,\n  \"temperature\": $json.temperature,\n  \"soil_ph\": $json.soil_ph,\n  \"crop\": $json.crop,\n  \"historical_yield\": $json.historical_yield || []\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "sabionda_prediction",
+      "name": "Sabionda Yield Prediction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "position": [
+        650,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sintetizar análisis de Mistral y Sabionda\nconst mistralContent = $node['mistral_analysis'].json.choices[0].message.content;\nconst yieldData = $node['sabionda_prediction'].json;\n\nconst reportContent = `\n<h2>Informe Agrícola de Excelencia Operativa</h2>\n\n<h3>📊 Datos de Entrada</h3>\n<ul>\n  <li><strong>Cultivo:</strong> ${$json.crop}</li>\n  <li><strong>Ubicación:</strong> ${$json.location}</li>\n  <li><strong>Temperatura:</strong> ${$json.temperature}°C</li>\n  <li><strong>Humedad:</strong> ${$json.humidity}%</li>\n  <li><strong>pH del suelo:</strong> ${$json.soil_ph}</li>\n  <li><strong>Fecha/Hora:</strong> ${$json.timestamp}</li>\n</ul>\n\n<h3>🤖 Análisis IA (Mistral)</h3>\n<p>${mistralContent}</p>\n\n<h3>📈 Predicción de Rendimiento (Sabionda)</h3>\n<ul>\n  <li><strong>Rendimiento Predicho:</strong> ${yieldData.predicted_yield || 'N/A'} kg/ha</li>\n  <li><strong>Confianza:</strong> ${(yieldData.confidence * 100 || 0).toFixed(1)}%</li>\n  <li><strong>Recomendación:</strong> ${yieldData.recommendation || 'Monitorear'}</li>\n  <li><strong>Factores de Riesgo:</strong> ${(yieldData.risk_factors || []).join(', ') || 'Ninguno identificado'}</li>\n</ul>\n\n<h3>✅ Acciones Recomendadas</h3>\n<ol>\n  <li>Implementar recomendaciones de IA de forma inmediata</li>\n  <li>Aumentar frecuencia de monitoreo si hay factores de riesgo</li>\n  <li>Documentar acciones en blockchain (GaiaChain) para trazabilidad</li>\n  <li>Revisar informe cada 48 horas o ante cambios significativos</li>\n</ol>\n\n<p style=\"color: #666; font-size: 0.9em;\">Informe generado automáticamente por CASTUO-SYSTEM v2.0 | ${new Date().toLocaleString()}</p>\n`;\n\nreturn [{\n  json: {\n    report_content: reportContent,\n    report_title: `Informe Agrícola - ${$json.crop} - ${new Date().toLocaleDateString()}`,\n    status: 'success',\n    mistral_analysis: mistralContent,\n    sabionda_prediction: yieldData,\n    data_hash: Buffer.from(JSON.stringify($json)).toString('base64')\n  }\n}];"
+      },
+      "id": "synthesize_report",
+      "name": "Synthesize Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "post",
+        "operation": "create",
+        "title": "={{$json.report_title}}",
+        "additionalFields": {
+          "content": "={{$json.report_content}}",
+          "status": "publish",
+          "categories": [
+            3
+          ]
+        }
+      },
+      "id": "wordpress_publish",
+      "name": "Publish to WordPress",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{$env.GAIACHAIN_API_ENDPOINT || 'https://gaiachain.eu/api/register'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.GAIACHAIN_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"operation\": \"agricultural_analysis\",\n  \"crop\": $json.crop,\n  \"location\": $json.location,\n  \"data_hash\": $node['synthesize_report'].json.data_hash,\n  \"wordpress_post_id\": $node['wordpress_publish'].json.id,\n  \"timestamp\": $json.timestamp,\n  \"confidence\": $node['sabionda_prediction'].json.confidence || 0\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "register_on_blockchain",
+      "name": "Register on GaiaChain",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "position": [
+        1150,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "entries": {
+          "string": {
+            "workflow_name": "Mistral + Sabionda → WordPress",
+            "trigger_source": "{{$node['webhook_trigger'].json.source || 'webhook'}}",
+            "crop": "={{$json.crop}}",
+            "status": "{{$json | json}}",
+            "wordpress_url": "={{$node['wordpress_publish'].json.link}}",
+            "blockchain_ref": "={{$node['register_on_blockchain'].json.blockchain_id}}"
+          }
+        }
+      },
+      "id": "log_execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "webhook_trigger": {
+      "main": [
+        [
+          {
+            "node": "validate_input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validate_input": {
+      "main": [
+        [
+          {
+            "node": "prepare_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare_data": {
+      "main": [
+        [
+          {
+            "node": "mistral_analysis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "sabionda_prediction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mistral_analysis": {
+      "main": [
+        [
+          {
+            "node": "synthesize_report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sabionda_prediction": {
+      "main": [
+        [
+          {
+            "node": "synthesize_report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "synthesize_report": {
+      "main": [
+        [
+          {
+            "node": "wordpress_publish",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "register_on_blockchain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wordpress_publish": {
+      "main": [
+        [
+          {
+            "node": "log_execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "register_on_blockchain": {
+      "main": [
+        [
+          {
+            "node": "log_execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "errorHandler": "retry",
+    "retryAttempts": 3,
+    "concurrency": 1
+  },
+  "triggerData": {
+    "manual": true,
+    "webhook": true
+  },
+  "credentials": {
+    "mistralApi": {
+      "id": "mistral-credentials",
+      "name": "Mistral API",
+      "type": "mistralApi"
+    },
+    "sabiondaApi": {
+      "id": "sabionda-credentials",
+      "name": "Sabionda API",
+      "type": "sabiondaApi"
+    },
+    "wordpressApi": {
+      "id": "wordpress-credentials",
+      "name": "WordPress API",
+      "type": "wordPressApi"
+    }
+  }
+}

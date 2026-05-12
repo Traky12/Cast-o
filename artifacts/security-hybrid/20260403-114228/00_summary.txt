@@ -1,0 +1,5 @@
+PASS: 1
+WARN: 6
+FAIL: 0
+GO_NO_GO: GO
+EVIDENCE_DIR: /workspaces/Castuo-system/artifacts/security-hybrid/20260403-114228

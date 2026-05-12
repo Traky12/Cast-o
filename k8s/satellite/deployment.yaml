@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stac-ingestion
+  namespace: castuo-system
+  labels:
+    app: stac-ingestion
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: stac-ingestion
+  template:
+    metadata:
+      labels:
+        app: stac-ingestion
+    spec:
+      containers:
+        - name: stac-ingestion
+          image: registry.castuo-system.cloud/stac-ingestion:latest
+          command: ["python", "ingestion/stac_worker.py"]
+          envFrom:
+            - configMapRef:
+                name: castuo-satellite-config
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ndvi-worker
+  namespace: castuo-system
+  labels:
+    app: ndvi-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ndvi-worker
+  template:
+    metadata:
+      labels:
+        app: ndvi-worker
+    spec:
+      containers:
+        - name: ndvi-worker
+          image: registry.castuo-system.cloud/ndvi-worker:latest
+          command:
+            ["python", "analytics/ndvi_worker.py", "/data/raw/sample.tif", "/data/ndvi/sample_ndvi.tif"]
+          envFrom:
+            - configMapRef:
+                name: castuo-satellite-config
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ndmi-worker
+  namespace: castuo-system
+  labels:
+    app: ndmi-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ndmi-worker
+  template:
+    metadata:
+      labels:
+        app: ndmi-worker
+    spec:
+      containers:
+        - name: ndmi-worker
+          image: registry.castuo-system.cloud/ndmi-worker:latest
+          command:
+            ["python", "analytics/ndmi_worker.py", "/data/raw/sample.tif", "/data/ndmi/sample_ndmi.tif"]
+          envFrom:
+            - configMapRef:
+                name: castuo-satellite-config
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ndvi-api
+  namespace: castuo-system
+  labels:
+    app: ndvi-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ndvi-api
+  template:
+    metadata:
+      labels:
+        app: ndvi-api
+    spec:
+      containers:
+        - name: ndvi-api
+          image: registry.castuo-system.cloud/ndvi-api:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: castuo-satellite-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "300m"
+              memory: "512Mi"

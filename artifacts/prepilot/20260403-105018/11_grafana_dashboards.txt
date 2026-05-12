@@ -1,0 +1,5 @@
+# Grafana dashboards visibles
+# CMD: code=000; cat /tmp/grafana_dash.json; [[ "$code" == "200" || "$code" == "401" || "$code" == "403" ]]
+# UTC: 2026-04-03T10:51:32Z
+
+cat: /tmp/grafana_dash.json: No such file or directory

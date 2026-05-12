@@ -1,0 +1,5 @@
+# Prometheus healthy
+# CMD: curl -fsS 'http://localhost:9090/-/healthy'
+# UTC: 2026-04-03T10:39:00Z
+
+curl: (7) Failed to connect to localhost port 9090 after 0 ms: Couldn't connect to server
