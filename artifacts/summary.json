@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-04-02T09:34:55.823314+00:00",
+  "source_branch": "HEAD",
+  "target_branch": "origin/main",
+  "dry_run": true,
+  "drift_detected": true,
+  "report": "artifacts/reconcile-20260402-093452.log",
+  "patch_file": "artifacts/reconcile-20260402-093452.patch",
+  "status": {
+    "code": 1,
+    "message": "Drift detectado en dry-run"
+  },
+  "status_code": 1,
+  "message": "Drift detectado en dry-run"
+}

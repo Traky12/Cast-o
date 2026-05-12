@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-old-data
+  namespace: castuo-system
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: cleanup
+              image: influxdb:2.7
+              env:
+                - name: RETENTION_DAYS
+                  value: "90"
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  echo "GDPR cleanup placeholder: define INFLUX_TOKEN, ORG y BUCKET para purge real"
+                  date -u
+          restartPolicy: OnFailure

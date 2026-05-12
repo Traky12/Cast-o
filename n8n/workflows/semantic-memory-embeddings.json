@@ -1,0 +1,88 @@
+{
+  "name": "semantic-memory-embeddings",
+  "nodes": [
+    {
+      "parameters": {
+        "topic": "notes_to_process",
+        "operation": "subscribe",
+        "options": {}
+      },
+      "name": "Kafka: Escuchar Notas",
+      "type": "n8n-nodes-base.kafkaTrigger",
+      "position": [240, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sabionda-backend:8000/api/v1/embeddings/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "name": "Generar Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [500, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sabionda-backend:8000/api/v1/neo4j/update",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ note_id: $json.note_id, limit: 3 }) }}"
+      },
+      "name": "Actualizar Grafo",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [760, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "topic": "graph_updated",
+        "operation": "publish",
+        "message": "={{ JSON.stringify($json) }}"
+      },
+      "name": "Publicar Actualizacion",
+      "type": "n8n-nodes-base.kafka",
+      "position": [1020, 300],
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "Kafka: Escuchar Notas": {
+      "main": [
+        [
+          {
+            "node": "Generar Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Embedding": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Grafo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Grafo": {
+      "main": [
+        [
+          {
+            "node": "Publicar Actualizacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

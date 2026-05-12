@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-holo-api
+  namespace: castuo-system
+  labels:
+    app: castuo-holo-api
+    app.kubernetes.io/component: holography
+    app.kubernetes.io/part-of: castuo-system
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: castuo-holo-api
+  template:
+    metadata:
+      labels:
+        app: castuo-holo-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: castuo-holo-api
+          image: registry.castuo-system.cloud/castuo-api:3.1.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: castuo-config
+            - secretRef:
+                name: castuo-secrets
+          env:
+            - name: ENABLE_HOLOPY_INTEGRATION
+              value: "true"
+            - name: ENABLE_ULTRALEAP_INTEGRATION
+              value: "true"
+            - name: ENABLE_MISTRAL_INTEGRATION
+              value: "true"
+            - name: CASTUO_SOVEREIGN_REGION
+              value: "EU"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "384Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1024Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/holo/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/holo/health
+              port: 8000
+            initialDelaySeconds: 8
+            periodSeconds: 8
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL

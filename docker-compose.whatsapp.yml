@@ -1,0 +1,90 @@
+version: '3.8'
+
+networks:
+  castuo-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  n8n_data:
+
+services:
+  # PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: castuo-postgres-whatsapp
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=castuo_db
+      - POSTGRES_USER=castuo
+      - POSTGRES_PASSWORD=changeme_use_strong_password
+    command: >
+      postgres
+        -c log_min_duration_statement=1000
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c work_mem=4MB
+        -c max_connections=100
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U castuo -d castuo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - castuo-network
+
+  # n8n
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: castuo-n8n-whatsapp
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows:ro
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=demo_only_dev
+      - WEBHOOK_URL=http://localhost:5678
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=castuo_db
+      - DB_POSTGRESDB_USER=castuo
+      - DB_POSTGRESDB_PASSWORD=changeme_use_strong_password
+      - N8N_ENCRYPTION_KEY=encryption_key_for_dev_only_replace_in_prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network
+
+  # FastAPI
+  fastapi:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: castuo-fastapi-whatsapp
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://castuo:changeme_use_strong_password@postgres:5432/castuo_db
+      - JWT_SECRET_KEY=dev_secret_key_replace_in_production
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-PLACEHOLDER}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-PLACEHOLDER}
+      - TWILIO_WHATSAPP_FROM=${TWILIO_WHATSAPP_FROM:-PLACEHOLDER}
+      - SYSTEM_ADMIN_PHONE=+34693443825
+      - ENABLE_WHATSAPP_ALERTS=true
+      - POSTGRES_IOT_URL=postgresql://castuo:changeme_use_strong_password@postgres:5432/castuo_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network

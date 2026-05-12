@@ -1,0 +1,106 @@
+automation:
+  events:
+    main_bootstrap:
+      trigger: push
+      branches:
+        - main
+      workflow: .github/workflows/e2e-first-commit.yml
+      detection: scripts/validate-first-commit.sh
+      artifacts:
+        - docs/QUICK-REFERENCE.md
+        - trivy-results.sarif
+
+    pull_request_main:
+      trigger: pull_request
+      types:
+        - opened
+        - synchronize
+        - reopened
+        - ready_for_review
+      branches:
+        - main
+      workflow: .github/workflows/e2e-first-pr.yml
+      artifacts:
+        - CHANGELOG.md
+
+    merge_to_main:
+      trigger: workflow_run
+      source_workflow: Deploy Hetzner Staging
+      workflow: .github/workflows/e2e-merge.yml
+      artifacts:
+        - docs/RELEASE-NOTES.md
+        - release-notes-v*.pdf
+
+    release:
+      trigger: release
+      types:
+        - published
+      workflow: .github/workflows/e2e-release.yml
+      artifacts:
+        - release-notes-*.pdf
+
+    docs_validation:
+      trigger: push_pull_request
+      workflow: .github/workflows/validate-all.yml
+      paths:
+        - docs/**
+        - api/**
+        - config/**
+        - scripts/**
+
+    visual_summary:
+      trigger: schedule
+      cron: '0 8 * * 1'
+      workflow: .github/workflows/generate-visual-summary.yml
+      artifacts:
+        - docs/RESUMEN-VISUAL-ESTADO.md
+        - visual-summary.pdf
+
+  notifications:
+    # GITG-001: notificaciones sólo en fallos para eliminar spam
+    email:
+      preference: failure_only
+      # Aplicar con: gh api -X PATCH /repos/Traky12/Castuo-system -f email_notification_preference=failure_only
+      smtp_server_secret: SMTP_SERVER
+      smtp_port_secret: SMTP_PORT
+      smtp_user_secret: SMTP_USER
+      smtp_pass_secret: SMTP_PASS
+      recipients:
+        - devops@castuo.es
+        - cto@castuo.es
+        - ceo@castuo.es
+        - board@castuo.es
+    slack:
+      webhook_secret: SLACK_WEBHOOK_URL
+      channels:
+        - castuo-alerts
+        - castuo-dev
+      mode: failure_only
+
+  retention:
+    artifacts_days: 30
+
+  compliance:
+    # GITG-002: workflows consolidados activos
+    consolidated_workflows:
+      - validate-all.yml       # Tests + Seguridad + Docs
+      - e2e-first-commit.yml
+      - e2e-first-pr.yml
+      - e2e-merge.yml
+      - e2e-release.yml
+      - e2e-smoke-traces.yml
+      - thingsdata-integration.yml
+      - generate-visual-summary.yml
+      - notify-workflow-failure.yml
+    deprecated_workflows:
+      - security-scan.yml      # Consolidado en validate-all.yml
+      - ci-python.yml          # Consolidado en validate-all.yml
+      - ci-js.yml              # Consolidado en test-js.yml
+      - pr-validation.yml      # Consolidado en e2e-first-pr.yml
+    required_checks:
+      - package.json valida
+      - tests Python verdes
+      - tests JS verdes
+      - make validate exitoso
+      - Trivy sin vulnerabilidades criticas
+      - documentacion minima validada

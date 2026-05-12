@@ -1,0 +1,48 @@
+# Environment files
+.env
+.env.cloud
+.env.local
+
+# Terraform — estado y secretos locales (NUNCA commitear)
+hetzner_infra/terraform.tfvars
+hetzner_infra/*.tfstate
+hetzner_infra/*.tfstate.backup
+hetzner_infra/.terraform/
+hetzner_infra/.terraform.lock.hcl
+
+# Secrets and TLS certs — never commit
+secrets/
+certs/
+
+# Kubernetes secrets reales — usar secrets.example.yaml como plantilla
+k8s/secrets.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+.pytest_cache/
+
+# Docker volumes
+postgres_data/
+n8n_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cursor sensitive provider config
+.cursor/provider-api.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if applicable)
+node_modules/
+logs/

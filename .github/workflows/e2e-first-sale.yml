@@ -1,0 +1,107 @@
+name: E2E First Sale Digital
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_run:
+    workflows: ["Deploy Hetzner Staging"]
+    types: [completed]
+
+jobs:
+  e2e-sale:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      STAGING_API_BASE_URL: ${{ secrets.STAGING_API_BASE_URL }}
+      N8N_ORDER_PAID_WEBHOOK: ${{ secrets.N8N_ORDER_PAID_WEBHOOK }}
+      EMAIL_TEST_ENDPOINT: ${{ secrets.EMAIL_TEST_ENDPOINT }}
+    steps:
+      - name: Install jq and curl
+        run: sudo apt-get update && sudo apt-get install -y jq curl
+
+      - name: Skip when workflow_run source failed
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success' }}
+        run: |
+          echo "ℹ️ workflow_run recibido con conclusion=${{ github.event.workflow_run.conclusion }}. E2E no aplica y se omite sin error."
+
+      - name: Skip E2E if STAGING_API_BASE_URL is not configured
+        if: ${{ env.STAGING_API_BASE_URL == '' && !(github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success') }}
+        run: |
+          echo "ℹ️ STAGING_API_BASE_URL no está configurado. Se omite E2E sin error para evitar alertas falsas."
+
+      - name: Health + TRACES smoke test
+        if: ${{ env.STAGING_API_BASE_URL != '' && !(github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success') }}
+        run: |
+          set -euo pipefail
+          BASE="$STAGING_API_BASE_URL"
+          HEALTH_URL="${BASE%/}/health"
+          TRACES_URL="${BASE%/}/api/v1/traces/certificado"
+
+          echo "🔍 Verificando healthcheck..."
+          curl -fsS "$HEALTH_URL" > /dev/null
+
+          echo "🔍 Probando endpoint TRACES..."
+          curl -fsS -X POST "$TRACES_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "explotacion_rega": "ES120340000001",
+              "nombre_explotacion": "Finca Demo",
+              "direccion_explotacion": "Calle Campo 1",
+              "animales": {
+                "especie": "bovino",
+                "raza": "retinta",
+                "cantidad": 5
+              },
+              "tipo_movimiento": "EXPORT",
+              "destino_pais": "PT",
+              "destino_explotacion": "PT-DEST-009"
+            }' \
+            -o traces-response.json
+
+          echo "✅ Validando respuesta TRACES..."
+          jq -e '.tipo_documento == "TRACES Certificado Sanitario"' traces-response.json > /dev/null
+          jq -e '.estado | contains("Compliant")' traces-response.json > /dev/null
+
+      - name: Optional webhook ping to n8n
+        if: ${{ env.N8N_ORDER_PAID_WEBHOOK != '' }}
+        run: |
+          set -euo pipefail
+          echo "🔍 Probando webhook n8n..."
+          curl -fsS -X POST "$N8N_ORDER_PAID_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "event": "order.paid",
+              "order_id": 99999,
+              "line_items": [{
+                "name": "Certificacion Agricola"
+              }],
+              "billing": {
+                "email": "cliente@example.com"
+              }
+            }' \
+            -o n8n-response.json
+
+      - name: Optional email endpoint check
+        if: ${{ env.EMAIL_TEST_ENDPOINT != '' }}
+        run: |
+          set -euo pipefail
+          echo "🔍 Probando endpoint de email..."
+          curl -fsS -X POST "$EMAIL_TEST_ENDPOINT" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "to": "cliente@example.com",
+              "subject": "TRACES PDF",
+              "template": "traces_delivery"
+            }' \
+            -o email-response.json
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-first-sale-artifacts
+          path: |
+            traces-response.json
+            n8n-response.json
+            email-response.json

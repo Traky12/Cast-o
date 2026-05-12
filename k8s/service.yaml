@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: castuo-api-service
+  namespace: castuo-system
+  labels:
+    app: castuo-api
+spec:
+  selector:
+    app: castuo-api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: castuo-n8n-service
+  namespace: castuo-system
+  labels:
+    app: castuo-n8n
+spec:
+  selector:
+    app: castuo-n8n
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 5678
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: castuo-prometheus
+  namespace: castuo-system
+  labels:
+    app: castuo-prometheus
+spec:
+  selector:
+    app: castuo-prometheus
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9090
+      targetPort: 9090
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: castuo-grafana
+  namespace: castuo-system
+  labels:
+    app: castuo-grafana
+spec:
+  selector:
+    app: castuo-grafana
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP

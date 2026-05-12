@@ -1,0 +1,325 @@
+{
+  "name": "Thingsdata - Ejecución de Comandos",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thingsdata/commands",
+        "options": {}
+      },
+      "id": "9a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "WebHook - Recibir Comando",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "thingsdata-commands"
+    },
+    {
+      "parameters": {
+        "js": "// Validar estructura de comando\nconst { sensor_id, command_type, parameters } = $json.body;\n\nif (!sensor_id) throw new Error('sensor_id requerido');\nif (!command_type) throw new Error('command_type requerido');\n\nreturn {\n  sensor_id,\n  command_type,\n  parameters: parameters || {},\n  timestamp: new Date().toISOString(),\n  status: 'pending'\n};"
+      },
+      "id": "a3b4c5d6-e7f8-9a0b-1c2d-3e4f5a6b7c8d",
+      "name": "Validar Comando",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "SELECT * FROM sensors WHERE sensor_id = $1 AND status = 'online';",
+        "options": [
+          "$json.sensor_id"
+        ]
+      },
+      "id": "b4c5d6e7-f8a9-0b1c-2d3e-4f5a6b7c8d9e",
+      "name": "PostgreSQL - Verificar Sensor Online",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "$json.length",
+              "operation": ">",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "c5d6e7f8-a9b0-1c2d-3e4f-5a6b7c8d9e0f",
+      "name": "¿Sensor Online?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "topic": "castuo/iot/commands/$json.sensor_id",
+        "message": "={{ JSON.stringify({command_type: $json.command_type, parameters: $json.parameters, timestamp: $json.timestamp}) }}",
+        "qos": 1,
+        "retain": false
+      },
+      "id": "d6e7f8a9-b0c1-2d3e-4f5a-6b7c8d9e0f1g",
+      "name": "MQTT Publish - Enviar Comando",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [1250, 150]
+    },
+    {
+      "parameters": {
+        "url": "http://thingsdata:8080/api/v1/commands/execute",
+        "authentication": "genericCredentialType",
+        "genericCredentials": "thingsdata_api",
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sensor_id",
+              "value": "$json.sensor_id"
+            },
+            {
+              "name": "command_type",
+              "value": "$json.command_type"
+            },
+            {
+              "name": "parameters",
+              "value": "$json.parameters"
+            }
+          ]
+        }
+      },
+      "id": "e7f8a9b0-c1d2-3e4f-5a6b-7c8d9e0f1a2b",
+      "name": "HTTP - Enviar a Thingsdata API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [1500, 150]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "INSERT INTO commands (sensor_id, command_type, parameters, status, created_at, sent_at)\nVALUES ($1, $2, $3, 'sent', NOW(), NOW())\nRETURNING id;",
+        "options": [
+          "$json.sensor_id",
+          "$json.command_type",
+          "$json.parameters"
+        ]
+      },
+      "id": "f8a9b0c1-d2e3-4f5a-6b7c-8d9e0f1a2b3c",
+      "name": "PostgreSQL - Registrar Comando Enviado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1750, 150]
+    },
+    {
+      "parameters": {
+        "topic": "castuo/iot/commands/ack/$json.sensor_id",
+        "jsonParse": true,
+        "options": {
+          "timeout": 30
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "MQTT Subscribe - Esperar ACK",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [2000, 150],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "UPDATE commands SET status = $1, acknowledged_at = NOW(), result = $2\nWHERE sensor_id = $3 AND command_type = $4 AND created_at > NOW() - INTERVAL '5 minutes';",
+        "options": [
+          "{{ $json.body.status || 'acknowledged' }}",
+          "$json.body.result",
+          "$json.sensor_id",
+          "$json.command_type"
+        ]
+      },
+      "id": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "name": "PostgreSQL - Registrar ACK",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [2250, 150]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "INSERT INTO alerts (sensor_id, alert_type, message, severity, created_at)\nVALUES ($1, 'COMMAND_OFFLINE', 'Sensor offline - comando no procesado', 'MEDIUM', NOW());",
+        "options": [
+          "$json.sensor_id"
+        ]
+      },
+      "id": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
+      "name": "PostgreSQL - Registrar Sensor Offline",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1250, 450]
+    },
+    {
+      "parameters": {
+        "js": "// Retornar error de sensor offline\nreturn {\n  status: 'error',\n  message: 'Sensor offline - comando no enviado',\n  sensor_id: $json.sensor_id,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a",
+      "name": "Respuesta - Sensor Offline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1500, 450]
+    },
+    {
+      "parameters": {
+        "js": "// Retornar éxito\nreturn {\n  status: 'success',\n  message: 'Comando ejecutado',\n  sensor_id: $json.sensor_id,\n  command_type: $json.command_type,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
+      "name": "Respuesta - Éxito",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2500, 150]
+    }
+  ],
+  "connections": {
+    "WebHook - Recibir Comando": {
+      "main": [
+        [
+          {
+            "node": "Validar Comando",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Validar Comando": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Verificar Sensor Online",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Verificar Sensor Online": {
+      "main": [
+        [
+          {
+            "node": "¿Sensor Online?",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "¿Sensor Online?": {
+      "main": [
+        [
+          {
+            "node": "MQTT Publish - Enviar Comando",
+            "index": 0,
+            "output": 0
+          },
+          {
+            "node": "HTTP - Enviar a Thingsdata API",
+            "index": 0,
+            "output": 0
+          }
+        ],
+        [
+          {
+            "node": "PostgreSQL - Registrar Sensor Offline",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "MQTT Publish - Enviar Comando": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Registrar Comando Enviado",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Enviar a Thingsdata API": {
+      "main": [
+        []
+      ]
+    },
+    "PostgreSQL - Registrar Comando Enviado": {
+      "main": [
+        [
+          {
+            "node": "MQTT Subscribe - Esperar ACK",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "MQTT Subscribe - Esperar ACK": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Registrar ACK",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Registrar ACK": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - Éxito",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Registrar Sensor Offline": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - Sensor Offline",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta - Sensor Offline": {
+      "main": [
+        []
+      ]
+    },
+    "Respuesta - Éxito": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  }
+}

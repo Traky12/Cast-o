@@ -1,0 +1,10 @@
+name: CI (deprecated)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deprecated. Use validate-all.yml as the primary CI workflow."

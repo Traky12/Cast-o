@@ -1,0 +1,10 @@
+name: Test JS (deprecated)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-js:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deprecated. Use validate-all.yml for JavaScript validation and tests."

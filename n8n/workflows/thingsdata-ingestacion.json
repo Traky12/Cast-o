@@ -1,0 +1,327 @@
+{
+  "name": "Thingsdata IoT Ingestión",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "82e56a8e-d3f9-45f8-b8f1-2b3c4d5e6f7g",
+      "name": "MQTT Trigger - Telemetría",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "credentials": {
+        "mqtt": "thingsdata_mqtt"
+      },
+      "CredentialOAuth2": {
+        "authenticate": "automatic"
+      }
+    },
+    {
+      "parameters": {
+        "topic": "castuo/iot/telemetry",
+        "jsonParse": true
+      },
+      "id": "c4d6e8f0-a1b2-4c5d-8e9f-0a1b2c3d4e5f",
+      "name": "MQTT Subscribe",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "js": "// Validar y enriquecer datos IoT\nreturn {\n  sensor_id: $json.sensor_id,\n  value: parseFloat($json.value),\n  unit: $json.unit || 'unknown',\n  timestamp: $json.timestamp || new Date().toISOString(),\n  metadata: $json.metadata || {},\n  ingestion_time: new Date().toISOString(),\n  quality_flag: $json.value ? 'good' : 'error'\n};"
+      },
+      "id": "9f0a1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
+      "name": "Transform - Enriquecer Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "INSERT INTO sensor_telemetry (sensor_id, value, unit, timestamp, metadata, quality_flag)\nVALUES ($1, $2, $3, $4, $5, $6)\nRETURNING id;",
+        "options": [
+          "$json.sensor_id",
+          "$json.value",
+          "$json.unit",
+          "$json.timestamp",
+          "$json.metadata",
+          "$json.quality_flag"
+        ]
+      },
+      "id": "a2b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d",
+      "name": "PostgreSQL - Guardar Telemetría",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://timescaledb-iot:5434",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "INSERT INTO sensor_telemetry (time, sensor_id, value, unit, metadata)\nVALUES (NOW(), $1, $2, $3, $4)\nON CONFLICT DO NOTHING;",
+        "options": [
+          "$json.sensor_id",
+          "$json.value",
+          "$json.unit",
+          "$json.metadata"
+        ]
+      },
+      "id": "d8e9f0a1-b2c3-4d5e-6f7a-8b9c0d1e2f3a",
+      "name": "TimescaleDB - Guardar Telemetría Temporal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://thingsdata:8080/api/v1/telemetry/ingest",
+        "authentication": "genericCredentialType",
+        "genericCredentials": "thingsdata_api",
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sensor_id",
+              "value": "$json.sensor_id"
+            },
+            {
+              "name": "value",
+              "value": "$json.value"
+            },
+            {
+              "name": "unit",
+              "value": "$json.unit"
+            },
+            {
+              "name": "timestamp",
+              "value": "$json.timestamp"
+            }
+          ]
+        }
+      },
+      "id": "e6f7a8b9-c0d1-2e3f-4a5b-6c7d8e9f0a1b",
+      "name": "HTTP - Confirmar a Thingsdata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "js": "// Detección de anomalías (simple sigma)\nconst value = $json.value;\nconst threshold = 30; // Rango válido\n\nif (value < 0 || value > threshold) {\n  return {\n    ...($json),\n    alert: true,\n    alert_type: 'ANOMALY',\n    alert_message: `Valor ${value} fuera de rango [0, ${threshold}]`\n  };\n}\n\nreturn { ...($json), alert: false };"
+      },
+      "id": "f7a8b9c0-d1e2-3f4a-5b6c-7d8e9f0a1b2c",
+      "name": "Detectar Anomalías",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1750, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "$json.alert",
+              "operation": "equals",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "08b1c2d3-e4f5-6a7b-8c9d-0e1f2a3b4c5d",
+      "name": "Si Hay Anomalía",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "INSERT INTO alerts (sensor_id, alert_type, message, severity, created_at)\nVALUES ($1, $2, $3, 'HIGH', NOW());",
+        "options": [
+          "$json.sensor_id",
+          "$json.alert_type",
+          "$json.alert_message"
+        ]
+      },
+      "id": "1f2a3b4c-5d6e-7f8a-9b0c-1d2e3f4a5b6c",
+      "name": "PostgreSQL - Registrar Alerta",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [2250, 150]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/webhook/thingsdata-alert",
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sensor_id",
+              "value": "$json.sensor_id"
+            },
+            {
+              "name": "value",
+              "value": "$json.value"
+            },
+            {
+              "name": "alert_message",
+              "value": "$json.alert_message"
+            }
+          ]
+        }
+      },
+      "id": "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
+      "name": "WebHook - Trigger Alert Management",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [2250, 450]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log de éxito de ingestión\nreturn {\n  status: 'success',\n  telemetry_count: 1,\n  timestamp: new Date().toISOString(),\n  sensor_id: $json.sensor_id\n};"
+      },
+      "id": "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+      "name": "Éxito - Ingestión Completa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2500, 300]
+    }
+  ],
+  "connections": {
+    "MQTT Trigger - Telemetría": {
+      "main": [
+        [
+          {
+            "node": "MQTT Subscribe",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "MQTT Subscribe": {
+      "main": [
+        [
+          {
+            "node": "Transform - Enriquecer Datos",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Transform - Enriquecer Datos": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Guardar Telemetría",
+            "index": 0,
+            "output": 0
+          },
+          {
+            "node": "TimescaleDB - Guardar Telemetría Temporal",
+            "index": 0,
+            "output": 0
+          },
+          {
+            "node": "Detectar Anomalías",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Guardar Telemetría": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Confirmar a Thingsdata",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "TimescaleDB - Guardar Telemetría Temporal": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP - Confirmar a Thingsdata": {
+      "main": [
+        [
+          {
+            "node": "Éxito - Ingestión Completa",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Detectar Anomalías": {
+      "main": [
+        [
+          {
+            "node": "Si Hay Anomalía",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Si Hay Anomalía": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Registrar Alerta",
+            "index": 0,
+            "output": 0
+          }
+        ],
+        [
+          {
+            "node": "Éxito - Ingestión Completa",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Registrar Alerta": {
+      "main": [
+        [
+          {
+            "node": "WebHook - Trigger Alert Management",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "WebHook - Trigger Alert Management": {
+      "main": [
+        [
+          {
+            "node": "Éxito - Ingestión Completa",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromAnyPublicWorkflow"
+  }
+}

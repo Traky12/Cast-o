@@ -1,0 +1,51 @@
+services:
+  stac-ingestion:
+    build:
+      context: .
+      dockerfile: services/satellite/Dockerfile
+    command: ["python", "ingestion/stac_worker.py"]
+    environment:
+      COPERNICUS_STAC_URL: https://catalogue.dataspace.copernicus.eu/stac
+      EUMETSAT_API_URL: https://api.eumetsat.int
+      SIGPAC_API_URL: ${SIGPAC_API_URL:-https://sigpac.mapa.gob.es/api}
+      SIEX_API_URL: ${SIEX_API_URL:-https://siex.mapa.gob.es/api}
+      SATELLITE_CATALOG_OUTPUT: /data/satellite/catalog
+    volumes:
+      - satellite_data:/data
+    restart: unless-stopped
+
+  ndvi-worker:
+    build:
+      context: .
+      dockerfile: services/satellite/Dockerfile
+    command: ["python", "analytics/ndvi_worker.py", "/data/raw/sample.tif", "/data/ndvi/sample_ndvi.tif"]
+    volumes:
+      - satellite_data:/data
+    restart: "no"
+
+  ndmi-worker:
+    build:
+      context: .
+      dockerfile: services/satellite/Dockerfile
+    command: ["python", "analytics/ndmi_worker.py", "/data/raw/sample.tif", "/data/ndmi/sample_ndmi.tif"]
+    volumes:
+      - satellite_data:/data
+    restart: "no"
+
+  ndvi-api:
+    build:
+      context: .
+      dockerfile: services/satellite/Dockerfile
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      NDVI_DATA_DIR: /data/ndvi
+      NDMI_DATA_DIR: /data/ndmi
+      EVIDENCE_INDEX_PATH: /data/evidence/index.json
+    ports:
+      - "8010:8000"
+    volumes:
+      - satellite_data:/data
+    restart: unless-stopped
+
+volumes:
+  satellite_data:
