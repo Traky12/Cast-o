@@ -1,0 +1,386 @@
+{
+  "name": "Thingsdata - Gestión de Alertas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thingsdata/alerts",
+        "options": {}
+      },
+      "id": "01a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6",
+      "name": "WebHook - Recibir Alerta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "thingsdata-alerts"
+    },
+    {
+      "parameters": {
+        "js": "// Clasificar y enriquecer alerta\nconst { sensor_id, alert_type, value, threshold } = $json.body;\n\nlet severity = 'LOW';\nlet escalation = false;\n\nif (alert_type === 'ANOMALY' && Math.abs(value - threshold) > 50) {\n  severity = 'CRITICAL';\n  escalation = true;\n} else if (alert_type === 'ANOMALY') {\n  severity = 'HIGH';\n}\n\nreturn {\n  sensor_id,\n  alert_type,\n  value,\n  threshold,\n  severity,\n  escalation,\n  timestamp: new Date().toISOString(),\n  status: 'open'\n};"
+      },
+      "id": "1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+      "name": "Clasificar Alerta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "SELECT email FROM alerts_subscriptions\nWHERE sensor_id = $1 OR sensor_id = 'all'\nAND severity_threshold <= $2\nAND enabled = true;",
+        "options": [
+          "$json.sensor_id",
+          "$json.severity"
+        ]
+      },
+      "id": "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
+      "name": "PostgreSQL - Obtener Suscriptores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "INSERT INTO alerts (sensor_id, alert_type, message, severity, status, created_at)\nVALUES ($1, $2, $3, $4, 'open', NOW())\nRETURNING id;",
+        "options": [
+          "$json.sensor_id",
+          "$json.alert_type",
+          "{{ 'Alerta: ' + $json.alert_type + ' en sensor ' + $json.sensor_id + ' - Valor: ' + $json.value }}",
+          "$json.severity"
+        ]
+      },
+      "id": "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+      "name": "PostgreSQL - Registrar Alerta",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "$json.escalation",
+              "operation": "equals",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
+      "name": "¿Requiere Escalada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "email": "devops@castuo.es",
+        "subject": "🚨 ALERTA CRÍTICA IoT - {{ $json.sensor_id }}",
+        "text": "Alerta crítica recibida:\n\nSensor: {{ $json.sensor_id }}\nTipo: {{ $json.alert_type }}\nSeveridad: {{ $json.severity }}\nValor: {{ $json.value }}\nUmbral: {{ $json.threshold }}\nTimestamp: {{ $json.timestamp }}\n\nAcción requerida inmediatamente.",
+        "html": "<h2>🚨 ALERTA CRÍTICA IoT</h2><p><strong>Sensor:</strong> {{ $json.sensor_id }}</p><p><strong>Tipo:</strong> {{ $json.alert_type }}</p><p><strong>Severidad:</strong> <span style='color:red'>{{ $json.severity }}</span></p><p><strong>Valor:</strong> {{ $json.value }}</p><p><strong>Timestamp:</strong> {{ $json.timestamp }}</p>"
+      },
+      "id": "5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c",
+      "name": "Email - Escalada Crítica",
+      "type": "n8n-nodes-base.emailSendSmtp",
+      "typeVersion": 2,
+      "position": [1500, 150]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "channelId": "C123456", 
+        "text": "🚨 *ALERTA CRÍTICA IoT*\n*Sensor:* {{ $json.sensor_id }}\n*Tipo:* {{ $json.alert_type }}\n*Severidad:* {{ $json.severity }}\n*Valor:* {{ $json.value }}\n*Acción:* Escalación inmediata requerida"
+      },
+      "id": "6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d",
+      "name": "Slack - Notificación Crítica",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1750, 150]
+    },
+    {
+      "parameters": {
+        "js": "// Generar incident summary para PagerDuty\nreturn {\n  title: 'CRITICAL: IoT Anomaly - ' + $json.sensor_id,\n  description: `Alert Type: ${$json.alert_type}\\nValue: ${$json.value}\\nThreshold: ${$json.threshold}\\nSeverity: ${$json.severity}`,\n  urgency: 'high',\n  service_id: 'castuo-iot-prod'\n};"
+      },
+      "id": "7b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e",
+      "name": "Transform - PagerDuty Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2000, 150]
+    },
+    {
+      "parameters": {
+        "url": "https://events.pagerduty.com/v2/enqueue",
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "routing_key",
+              "value": "{{ $credentials.pagerduty_integration_key }}"
+            },
+            {
+              "name": "event_action",
+              "value": "trigger"
+            },
+            {
+              "name": "dedup_key",
+              "value": "{{ $json.sensor_id }}-{{ $json.alert_type }}"
+            },
+            {
+              "name": "payload",
+              "value": "$json"
+            }
+          ]
+        }
+      },
+      "id": "8c9d0e1f-2a3b-4c5d-6e7f-8a9b0c1d2e3f",
+      "name": "HTTP - Crear Incident PagerDuty",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [2250, 150]
+    },
+    {
+      "parameters": {
+        "topic": "castuo/iot/alerts/broadcast",
+        "message": "={{ JSON.stringify({sensor_id: $json.sensor_id, alert_type: $json.alert_type, severity: $json.severity, value: $json.value, timestamp: $json.timestamp}) }}",
+        "qos": 1,
+        "retain": true
+      },
+      "id": "9d0e1f2a-3b4c-5d6e-7f8a-9b0c1d2e3f4a",
+      "name": "MQTT Publish - Broadcast Alerta",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [1250, 450]
+    },
+    {
+      "parameters": {
+        "email": "{{ $item(0).email }}",
+        "subject": "⚠️ Alerta IoT - {{ $json.sensor_id }}",
+        "text": "Se ha generado una alerta:\n\nSensor: {{ $json.sensor_id }}\nTipo: {{ $json.alert_type }}\nSeveridad: {{ $json.severity }}\nValor: {{ $json.value }}\nTimestamp: {{ $json.timestamp }}\n\nRevisa el dashboard para más detalles."
+      },
+      "id": "0e1f2a3b-4c5d-6e7f-8a9b-0c1d2e3f4a5b",
+      "name": "Email - Notificar Suscriptores",
+      "type": "n8n-nodes-base.emailSendSmtp",
+      "typeVersion": 2,
+      "position": [1000, 450],
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "channelId": "C654321",
+        "text": "⚠️ *Alerta IoT*\\n*Sensor:* {{ $json.sensor_id }}\\n*Tipo:* {{ $json.alert_type }}\\n*Severidad:* {{ $json.severity }}\\n*Valor:* {{ $json.value }}"
+      },
+      "id": "1f2a3b4c-5d6e-7f8a-9b0c-1d2e3f4a5b6c",
+      "name": "Slack - Notificación Estándar",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1000, 600]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "UPDATE alerts SET status = 'notified', notified_at = NOW()\nWHERE sensor_id = $1 AND alert_type = $2 AND created_at > NOW() - INTERVAL '1 minute';",
+        "options": [
+          "$json.sensor_id",
+          "$json.alert_type"
+        ]
+      },
+      "id": "2a3b4c5d-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
+      "name": "PostgreSQL - Marcar Notificada",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [2500, 300]
+    },
+    {
+      "parameters": {
+        "js": "// Respuesta final\nreturn {\n  status: 'success',\n  message: 'Alert processed and notifications sent',\n  alert_id: $json.id,\n  severity: $json.severity,\n  escalated: $json.escalation,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "3b4c5d6e-7f8a-9b0c-1d2e-3f4a5b6c7d8e",
+      "name": "Respuesta - Alerta Procesada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2750, 300]
+    }
+  ],
+  "connections": {
+    "WebHook - Recibir Alerta": {
+      "main": [
+        [
+          {
+            "node": "Clasificar Alerta",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar Alerta": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Obtener Suscriptores",
+            "index": 0,
+            "output": 0
+          },
+          {
+            "node": "PostgreSQL - Registrar Alerta",
+            "index": 0,
+            "output": 0
+          },
+          {
+            "node": "MQTT Publish - Broadcast Alerta",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Obtener Suscriptores": {
+      "main": [
+        [
+          {
+            "node": "Email - Notificar Suscriptores",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Registrar Alerta": {
+      "main": [
+        [
+          {
+            "node": "¿Requiere Escalada?",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "¿Requiere Escalada?": {
+      "main": [
+        [
+          {
+            "node": "Email - Escalada Crítica",
+            "index": 0,
+            "output": 0
+          },
+          {
+            "node": "Slack - Notificación Crítica",
+            "index": 0,
+            "output": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Notificación Estándar",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Email - Escalada Crítica": {
+      "main": [
+        [
+          {
+            "node": "Transform - PagerDuty Payload",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Notificación Crítica": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Crear Incident PagerDuty",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Transform - PagerDuty Payload": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Crear Incident PagerDuty",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Crear Incident PagerDuty": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Marcar Notificada",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "MQTT Publish - Broadcast Alerta": {
+      "main": [
+        []
+      ]
+    },
+    "Email - Notificar Suscriptores": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Marcar Notificada",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Notificación Estándar": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Marcar Notificada",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Marcar Notificada": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - Alerta Procesada",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta - Alerta Procesada": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  }
+}

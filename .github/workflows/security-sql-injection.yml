@@ -1,0 +1,20 @@
+name: Security - SQL Injection Prevention (deprecated)
+on:
+  workflow_dispatch:
+jobs:
+  sql-injection-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate ORM usage and scan SQL injection risk
+        continue-on-error: true
+        run: |
+          grep -Er '(SELECT|INSERT|UPDATE|DELETE)' api/ --include='*.py' | \
+            grep -vE '^[[:space:]]*(#|"""|\x27)' || echo "No raw SQL found"
+
+          pip install -q semgrep
+          semgrep --config=p/owasp-top-ten api/ --json --quiet || true
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf .semgrep-cache

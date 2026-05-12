@@ -1,0 +1,43 @@
+{
+  "name": "Invernadero EC Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "topic": "invernadero/hidroponia/ec",
+        "operation": "subscribe"
+      },
+      "name": "MQTT EC",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.all()[0].json || {};\nconst ec = Number(payload.EC ?? payload.ec ?? 0);\nif (ec < 1.5) {\n  return [{ json: { alert: 'EC bajo', value: ec, action: 'anadir_nutrientes_A', timestamp: new Date().toISOString() } }];\n}\nif (ec > 3.0) {\n  return [{ json: { alert: 'EC alto', value: ec, action: 'diluir_solucion', timestamp: new Date().toISOString() } }];\n}\nreturn [];"
+      },
+      "name": "Check EC",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.castuo-system.eu/api/v1/alerts",
+        "jsonParameters": true,
+        "options": {}
+      },
+      "name": "Send Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "MQTT EC": {
+      "main": [[{ "node": "Check EC", "type": "main", "index": 0 }]]
+    },
+    "Check EC": {
+      "main": [[{ "node": "Send Alert", "type": "main", "index": 0 }]]
+    }
+  }
+}

@@ -1,0 +1,322 @@
+{
+  "name": "Thingsdata - WhatsApp Alertas IoT",
+  "description": "Envía alertas críticas par IoT por WhatsApp a través de Twilio",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thingsdata/alerts/whatsapp",
+        "options": {}
+      },
+      "id": "webhook-whatsapp-trigger",
+      "name": "WebHook - Recibir Alerta para WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "thingsdata-alerts-whatsapp"
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "SELECT t.phone, t.admin_phone, tnc.whatsapp_enabled\nFROM public.tenants t\nLEFT JOIN public.tenant_notification_config tnc ON t.id = tnc.tenant_id\nWHERE t.iot_topic_prefix = $1 AND tnc.whatsapp_enabled = true;",
+        "options": [
+          "$json.tenant_id || ':' || $json.sensor_id"
+        ]
+      },
+      "id": "postgres-get-phone",
+      "name": "PostgreSQL - Obtener Números de Teléfono",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [550, 300]
+    },
+    {
+      "parameters": {
+        "js": "// Obtener número del tenant, si no existe usar admin\nconst phone = $json[0]?.phone || $json[0]?.admin_phone || null;\nconst whatsappEnabled = $json[0]?.whatsapp_enabled === true;\n\nif (!phone || !whatsappEnabled) {\n  return { skipAlert: true, reason: 'No phone configured or WhatsApp disabled' };\n}\n\nreturn {\n  phone_number: phone,\n  sensor_id: $input.first().json.sensor_id,\n  alert_type: $input.first().json.alert_type,\n  severity: $input.first().json.severity,\n  value: $input.first().json.value,\n  threshold: $input.first().json.threshold,\n  tenant_id: $input.first().json.tenant_id,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "code-format-phone",
+      "name": "Code - Preparar Número de Teléfono",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "$json.skipAlert",
+              "operation": "equals",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "if-has-phone",
+      "name": "¿Tiene Número de Teléfono?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "js": "// Generar mensaje WhatsApp basado en severidad\nconst severity = $json.severity;\nlet emoji = '⚠️';\nlet urgency = 'Media';\n\nif (severity === 'CRITICAL') {\n  emoji = '🚨';\n  urgency = 'INMEDIATA';\n} else if (severity === 'HIGH') {\n  emoji = '⚠️';\n  urgency = 'Alta';\n}\n\nconst message = `${emoji} *ALERTA IoT CASTÚO*\n\n🌱 *Sensor:* ${$json.sensor_id}\n📊 *Tipo:* ${$json.alert_type}\n🔴 *Severidad:* ${severity}\n📈 *Valor Actual:* ${$json.value}\n🎯 *Umbral:* ${$json.threshold}\n⏰ *Hora:* ${new Date().toLocaleString('es-ES')}\n\n*Acción Requerida:* ${urgency}\n\nRevisa el dashboard: https://niwa.castuo.es/dashboard`;\n\nreturn {\n  phone_number: $json.phone_number,\n  message: message,\n  severity: severity,\n  sensor_id: $json.sensor_id,\n  tenant_id: $json.tenant_id,\n  timestamp: $json.timestamp\n};"
+      },
+      "id": "code-format-message",
+      "name": "Code - Generar Mensaje WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "credentials": {
+          "oauthType": "twilio",
+          "twilioApi": "{{ $env.TWILIO_ACCOUNT_SID }}:{{ $env.TWILIO_AUTH_TOKEN }}"
+        },
+        "from": "{{ $env.TWILIO_WHATSAPP_FROM }}",
+        "to": "{{ $json.phone_number }}",
+        "message": "{{ $json.message }}"
+      },
+      "id": "twilio-send-whatsapp",
+      "name": "Twilio - Enviar WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 2,
+      "position": [1550, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.whatsapp_alert_log (tenant_id, sensor_id, phone_number, alert_type, severity, message_text, twilio_message_sid, delivery_status)\nVALUES ($1, $2, $3, $4, $5, $6, $7, 'sent')\nRETURNING id;",
+        "options": [
+          "$json.tenant_id",
+          "$json.sensor_id",
+          "$json.phone_number",
+          "$json.alert_type",
+          "$json.severity",
+          "$json.message",
+          "$json.sid || 'pending'  "
+        ]
+      },
+      "id": "postgres-log-whatsapp",
+      "name": "PostgreSQL - Registrar Envío WhatsApp",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1800, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "channelId": "C123456",
+        "text": "✅ *WhatsApp Enviado*\\n*Sensor:* {{ $json.sensor_id }}\\n*Teléfono:* {{ $json.phone_number }}\\n*Mensaje ID:* {{ $json.sid }}"
+      },
+      "id": "slack-confirm-whatsapp",
+      "name": "Slack - Confirmar Envío WhatsApp",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [2050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "$json.severity",
+              "operation": "equals",
+              "value2": "CRITICAL"
+            }
+          ]
+        }
+      },
+      "id": "if-critical-alert",
+      "name": "¿Es Alerta Crítica?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1800, 450]
+    },
+    {
+      "parameters": {
+        "url": "http://postgres-iot:5432",
+        "resource": "query",
+        "operation": "executeQuery",
+        "query": "SELECT phone_number FROM public.system_emergency_contacts WHERE active = true AND role IN ('admin', 'technical');",
+        "options": []
+      },
+      "id": "postgres-get-admin",
+      "name": "PostgreSQL - Obtener Contacto Admin",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [2050, 450]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "credentials": {
+          "oauthType": "twilio",
+          "twilioApi": "{{ $env.TWILIO_ACCOUNT_SID }}:{{ $env.TWILIO_AUTH_TOKEN }}"
+        },
+        "from": "{{ $env.TWILIO_WHATSAPP_FROM }}",
+        "to": "{{ $json[0].phone_number }}",
+        "message": "🚨 *ALERTA CRÍTICA DEL SISTEMA*\\n\\n*Sensor:* {{ $input.first().json.sensor_id }}\\n*Tipo:* {{ $input.first().json.alert_type }}\\n*Severidad:* CRÍTICA\\n*Tenant:* {{ $input.first().json.tenant_id }}\\n\\n⚡ Acción inmediata requerida"
+      },
+      "id": "twilio-send-admin",
+      "name": "Twilio - Enviar WhatsApp a Admin",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 2,
+      "position": [2300, 450]
+    },
+    {
+      "parameters": {
+        "js": "return {\n  status: 'success',\n  message: 'WhatsApp alert processed',\n  phone_notified: $json.phone_number,\n  message_id: $json.sid,\n  severity: $json.severity,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "code-response",
+      "name": "Code - Respuesta Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2500, 300]
+    }
+  ],
+  "connections": {
+    "WebHook - Recibir Alerta para WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Obtener Números de Teléfono",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Obtener Números de Teléfono": {
+      "main": [
+        [
+          {
+            "node": "Code - Preparar Número de Teléfono",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Code - Preparar Número de Teléfono": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene Número de Teléfono?",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene Número de Teléfono?": {
+      "main": [
+        [
+          {
+            "node": "Code - Generar Mensaje WhatsApp",
+            "index": 0,
+            "output": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - Respuesta Final",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Code - Generar Mensaje WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Twilio - Enviar WhatsApp",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Twilio - Enviar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Registrar Envío WhatsApp",
+            "index": 0,
+            "output": 0
+          },
+          {
+            "node": "¿Es Alerta Crítica?",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Registrar Envío WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Slack - Confirmar Envío WhatsApp",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Confirmar Envío WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Code - Respuesta Final",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Alerta Crítica?": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Obtener Contacto Admin",
+            "index": 0,
+            "output": 0
+          }
+        ],
+        []
+      ]
+    },
+    "PostgreSQL - Obtener Contacto Admin": {
+      "main": [
+        [
+          {
+            "node": "Twilio - Enviar WhatsApp a Admin",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Twilio - Enviar WhatsApp a Admin": {
+      "main": [
+        [
+          {
+            "node": "Code - Respuesta Final",
+            "index": 0,
+            "output": 0
+          }
+        ]
+      ]
+    }
+  }
+}

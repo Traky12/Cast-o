@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "jurisdiction": "ES-EU",
+  "controller": "CASTUO 360 S.L.",
+  "last_updated": "2026-04-03",
+  "activities": [
+    {
+      "activity_id": "iot-telemetry-processing",
+      "purpose": "Operacion agronomica y seguridad de cultivo",
+      "data_categories": ["sensor_id", "timestamp", "telemetry_readings"],
+      "data_subjects": ["operadores autorizados", "dispositivos IoT"],
+      "retention": "5 years (operational records), logs minimizados por politicas activas",
+      "international_transfers": "none",
+      "legal_basis": "Art.6(1)(b) y Art.6(1)(f) GDPR"
+    },
+    {
+      "activity_id": "traceability-blockchain-hash",
+      "purpose": "Trazabilidad alimentaria y auditoria de integridad",
+      "data_categories": ["lote_id", "hash_nif", "event_hash", "timestamp"],
+      "data_subjects": ["operadores de explotacion"],
+      "retention": "Immutable record (hash-only), off-chain references under retention policy",
+      "international_transfers": "none",
+      "legal_basis": "Art.6(1)(c) y Art.6(1)(f) GDPR"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+name: E2E Smoke — TRACES API
+
+on:
+  push:
+    branches: [ "main", "feat/excelencia-operativa" ]
+    paths:
+      - "api/**"
+      - "tests/fixtures/traces-sample.json"
+      - ".github/workflows/e2e-smoke-traces.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "api/**"
+      - "tests/fixtures/traces-sample.json"
+      - ".github/workflows/e2e-smoke-traces.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-smoke-traces-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-smoke-traces:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r api/requirements.txt -q
+          pip install httpx jsonschema -q
+
+      - name: Start API server
+        run: |
+          PYTHONPATH=$GITHUB_WORKSPACE/api \
+          SCHEMAS_DIR=$GITHUB_WORKSPACE/config/schemas \
+            uvicorn main:app --app-dir api --host 127.0.0.1 --port 8000 >/tmp/uvicorn.log 2>&1 &
+          echo $! > /tmp/uvicorn.pid
+          # Wait for the server to be ready
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && break
+            sleep 1
+          done
+
+      - name: Smoke test — /health
+        run: |
+          RESPONSE=$(curl -sf http://127.0.0.1:8000/health)
+          echo "Health response: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d['status'] == 'ok', f'status not ok: {d}'
+          assert d['agent'] == 'SABIONDA', f'agent mismatch: {d}'
+          print('✅ /health OK')
+          "
+
+      - name: Smoke test — TRACES endpoint (.estado == Compliant)
+        run: |
+          RESPONSE=$(curl -sf -X POST http://127.0.0.1:8000/api/v1/traces/certificado \
+            -H "Content-Type: application/json" \
+            -d @tests/fixtures/traces-sample.json)
+          echo "TRACES response: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          estado = d.get('estado', '')
+          assert 'Compliant' in estado, f'.estado does not contain Compliant: {estado!r}'
+          assert d['payload']['firma']['pendiente_firma'] is True, 'pendiente_firma must be true'
+          assert d['aviso'] == 'Documento generado para REVISIÓN y FIRMA del productor', 'missing legal notice'
+          print(f'✅ TRACES .estado == {estado!r}')
+          "
+
+      - name: Stop API server
+        if: always()
+        run: |
+          if [ -f /tmp/uvicorn.pid ] && ! curl -sf http://127.0.0.1:8000/health >/dev/null 2>&1; then
+            echo "API no arranco correctamente, mostrando log de uvicorn"
+            cat /tmp/uvicorn.log 2>/dev/null || true
+          fi
+          if [ -f /tmp/uvicorn.pid ]; then
+            kill "$(cat /tmp/uvicorn.pid)" 2>/dev/null || true
+          fi

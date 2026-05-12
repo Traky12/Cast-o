@@ -1,0 +1,17 @@
+{
+  "dpia_id": "dpia-sensors-001",
+  "scope": "IoT telemetry processing (pH, EC, VPD)",
+  "risk_level": "medium",
+  "identified_risks": [
+    "Telemetry data quality drift",
+    "Unauthorized sensor impersonation",
+    "Excessive retention of operational metadata"
+  ],
+  "mitigations": [
+    "Server-side validation for pH/EC/VPD ranges",
+    "JWT validation and rate-limiting in API middleware",
+    "Data minimization and retention controls"
+  ],
+  "residual_risk": "low-to-medium",
+  "review_frequency": "quarterly"
+}

@@ -1,0 +1,33 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# terraform.tfvars.example — CASTUO-SYSTEM Hetzner Cloud
+#
+# Instrucciones:
+#   cp terraform.tfvars.example terraform.tfvars
+#   Rellenar hcloud_token y ssh_key_id con tus valores reales.
+#   NUNCA commitear terraform.tfvars (ya está en .gitignore).
+# ──────────────────────────────────────────────────────────────────────────────
+
+# API Token de Hetzner Cloud (panel → Security → API Tokens → Read+Write)
+hcloud_token = "CHANGE_ME"
+
+# ID de la clave SSH subida a Hetzner (panel → Security → SSH Keys)
+# Para obtenerlo: hcloud ssh-key list
+ssh_key_id = 0
+
+# Path a la clave publica SSH en tu maquina local
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Servidor en produccion actual (ubuntu-8gb-hel1-1)
+#   ID      : #118296333
+#   Tipo    : cax21  (ARM64 Ampere Altra, 4 vCPU / 8 GB RAM / 40 GB NVMe)
+#   IP v4   : 89.167.5.233
+#   IP v6   : 2a01:4f9:c013:8845::/64
+#   Location: hel1 (Helsinki)
+# ──────────────────────────────────────────────────────────────────────────────
+server_name = "ubuntu-8gb-hel1-1"
+server_type = "cax21"
+location    = "hel1"
+
+# Volumen de datos (actualmente NO hay volumen adjunto — usar almacenamiento local)
+volume_size = 50

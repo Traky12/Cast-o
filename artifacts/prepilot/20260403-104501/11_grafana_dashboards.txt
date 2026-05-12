@@ -1,0 +1,5 @@
+# Grafana dashboards visibles
+# CMD: curl -fsS 'http://localhost:3000/api/dashboards/db'
+# UTC: 2026-04-03T10:45:17Z
+
+curl: (56) Recv failure: Connection reset by peer

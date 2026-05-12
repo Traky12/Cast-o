@@ -1,0 +1,94 @@
+# Arranque de stack recomendado
+# CMD: bash '/workspaces/Castuo-system/scripts/start_all_services.sh'
+# UTC: 2026-04-03T10:48:31Z
+
+[INFO] Iniciando procesos críticos CASTUO-SYSTEM...
+[INFO] Frontend en puerto: 8083
+[INFO] 1/7 Iniciando frontend local hardened (WordPress + MariaDB)...
+Frontend disponible en: http://localhost:8083
+Admin en: http://localhost:8083/wp-admin
+[INFO] 2/7 Iniciando Redis...
+time="2026-04-03T10:48:34Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:34Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Container castuo-system-redis-1  Running
+[INFO] 3/7 Iniciando MQTT broker...
+time="2026-04-03T10:48:34Z" level=warning msg="The \"THINGSDATA_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:34Z" level=warning msg="The \"GF_ADMIN_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:34Z" level=warning msg="The \"THINGSDATA_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:34Z" level=warning msg="The \"THINGSDATA_SECRET\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:34Z" level=warning msg="/workspaces/Castuo-system/docker-compose.iot.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ mosquitto Pulling 
+ 1cc3d825d8b2 Pulling fs layer 
+ f0fe766d1a32 Pulling fs layer 
+ 01ee472cb177 Pulling fs layer 
+ f0fe766d1a32 Downloading  29.06kB/2.793MB
+ 1cc3d825d8b2 Downloading  34.59kB/3.416MB
+ 01ee472cb177 Download complete 
+ 1cc3d825d8b2 Verifying Checksum 
+ 1cc3d825d8b2 Download complete 
+ f0fe766d1a32 Verifying Checksum 
+ f0fe766d1a32 Download complete 
+ 1cc3d825d8b2 Extracting  65.54kB/3.416MB
+ 1cc3d825d8b2 Extracting  131.1kB/3.416MB
+ 1cc3d825d8b2 Extracting  1.835MB/3.416MB
+ 1cc3d825d8b2 Extracting  3.416MB/3.416MB
+ 1cc3d825d8b2 Pull complete 
+ f0fe766d1a32 Extracting  32.77kB/2.793MB
+ f0fe766d1a32 Extracting  1.835MB/2.793MB
+ f0fe766d1a32 Extracting  2.687MB/2.793MB
+ f0fe766d1a32 Extracting  2.793MB/2.793MB
+ f0fe766d1a32 Pull complete 
+ 01ee472cb177 Extracting     369B/369B
+ 01ee472cb177 Extracting     369B/369B
+ 01ee472cb177 Pull complete 
+ mosquitto Pulled 
+ Network castuo-system_iot_network  Creating
+ Network castuo-system_iot_network  Created
+ Volume castuo-system_mosquitto_logs  Creating
+ Volume castuo-system_mosquitto_logs  Created
+ Volume castuo-system_mosquitto_data  Creating
+ Volume castuo-system_mosquitto_data  Created
+time="2026-04-03T10:48:38Z" level=warning msg="Found orphan containers ([castuo-system-grafana-1 castuo-system-prometheus-1 castuo-system-api-1 castuo-system-postgres-1 castuo-system-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-mqtt-bridge  Creating
+ Container castuo-mqtt-bridge  Created
+ Container castuo-mqtt-bridge  Starting
+ Container castuo-mqtt-bridge  Started
+[INFO] 4/7 Iniciando backend API...
+time="2026-04-03T10:48:39Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:39Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:39Z" level=warning msg="Found orphan containers ([castuo-mqtt-bridge]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-system-redis-1  Running
+ Container castuo-system-postgres-1  Starting
+ Container castuo-system-postgres-1  Started
+ Container castuo-system-api-1  Starting
+ Container castuo-system-api-1  Started
+[INFO] 5/7 Iniciando Prometheus...
+time="2026-04-03T10:48:41Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:41Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:41Z" level=warning msg="Found orphan containers ([castuo-mqtt-bridge]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-system-prometheus-1  Running
+[INFO] 6/7 Iniciando Grafana...
+time="2026-04-03T10:48:41Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:41Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:48:41Z" level=warning msg="Found orphan containers ([castuo-mqtt-bridge]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-system-prometheus-1  Running
+ Container castuo-system-grafana-1  Running
+[INFO] 7/7 Inicializando persistencia castuo_system...
+[INFO] Inicializando persistencia en MariaDB (castuo-mariadb)...
+[INFO] Verificando bases de datos...
+Database
+castuo_system
+information_schema
+mysql
+performance_schema
+sys
+wordpress
+[INFO] Verificando tablas críticas...
+Tables_in_castuo_system
+farms
+logs
+transactions
+users
+[OK] Persistencia inicializada: users, farms, transactions, logs
+[OK] Arranque recomendado completado.
+Comando recomendado de verificación: bash /workspaces/Castuo-system/scripts/verify_operational_stack.sh

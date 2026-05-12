@@ -1,0 +1,20 @@
+name: Vault Integration Check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: vault-integration-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-vault-pattern:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate secrets files pattern
+        run: |
+          grep -R "_FILE" -n docker-compose.cloud.yml .env.cloud.example >/dev/null
+          echo "Vault/file-based secret pattern detected"

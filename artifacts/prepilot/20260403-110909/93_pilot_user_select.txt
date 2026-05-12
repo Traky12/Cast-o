@@ -1,0 +1,6 @@
+# Consulta usuario piloto
+# CMD: docker exec castuo-mariadb mariadb -uroot -p'castuo_root' -e "USE castuo_system; SELECT user_uid,email,role,full_name FROM users WHERE user_uid='pilot-user-001';"
+# UTC: 2026-04-03T11:10:27Z
+
+user_uid	email	role	full_name
+pilot-user-001	piloto@castuo-system.cloud	admin	Usuario Piloto

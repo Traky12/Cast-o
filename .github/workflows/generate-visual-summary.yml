@@ -1,0 +1,70 @@
+name: Generate Visual Summary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  generate-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PDF dependency (VIS-001)
+        run: python -m pip install --upgrade pip reportlab
+
+      - name: Fix script permissions
+        run: chmod +x scripts/generate-quick-reference.sh scripts/generate-pdf.sh scripts/notify-slack.sh
+
+      - name: Generate visual markdown summary
+        run: ./scripts/generate-quick-reference.sh --output docs/RESUMEN-VISUAL-ESTADO.md
+
+      - name: Generate visual PDF summary
+        run: ./scripts/generate-pdf.sh docs/RESUMEN-VISUAL-ESTADO.md visual-summary.pdf
+
+      - name: Commit summary markdown
+        run: |
+          if git diff --quiet -- docs/RESUMEN-VISUAL-ESTADO.md; then
+            echo "No visual summary changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/RESUMEN-VISUAL-ESTADO.md
+          git commit -m "docs: actualizar resumen visual automatizado"
+          git push origin HEAD:main
+
+      - name: Upload visual artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-summary-${{ github.run_number }}
+          path: |
+            docs/RESUMEN-VISUAL-ESTADO.md
+            visual-summary.pdf
+          retention-days: 30
+
+      - name: Publish rolling visual summary release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: visual-summary-latest
+          name: Visual Summary Latest
+          files: visual-summary.pdf
+          body: Resumen visual actualizado automaticamente.
+
+      - name: Notify Slack
+        if: ${{ always() }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          ./scripts/notify-slack.sh "📊 Resumen visual generado\n\n📄 docs/RESUMEN-VISUAL-ESTADO.md actualizado\n📎 visual-summary.pdf publicado"

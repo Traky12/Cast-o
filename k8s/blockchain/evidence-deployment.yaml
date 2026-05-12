@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evidence-registrar
+  namespace: castuo-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: evidence-registrar
+  template:
+    metadata:
+      labels:
+        app: evidence-registrar
+    spec:
+      containers:
+        - name: evidence-registrar
+          image: registry.castuo-system.cloud/evidence-registrar:latest
+          envFrom:
+            - secretRef:
+                name: gaiachain-secrets
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"

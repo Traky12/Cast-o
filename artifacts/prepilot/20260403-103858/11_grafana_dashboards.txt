@@ -1,0 +1,5 @@
+# Grafana dashboards visibles
+# CMD: curl -fsS 'http://localhost:3000/api/dashboards/db'
+# UTC: 2026-04-03T10:39:00Z
+
+curl: (7) Failed to connect to localhost port 3000 after 0 ms: Couldn't connect to server
