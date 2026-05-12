@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satellite-api
+  namespace: castuo-system
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: satellite-api
+  template:
+    metadata:
+      labels:
+        app: satellite-api
+    spec:
+      containers:
+        - name: satellite-api
+          image: registry.castuo-system.cloud/satellite-api:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: satellite-api-service
+  namespace: castuo-system
+spec:
+  selector:
+    app: satellite-api
+  ports:
+    - port: 80
+      targetPort: 8000
+  type: ClusterIP

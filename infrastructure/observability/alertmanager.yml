@@ -1,0 +1,136 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 24h
+  
+  routes:
+    # Critical alerts → PagerDuty + Slack
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 0s
+      group_interval: 5m
+      repeat_interval: 1h
+    
+    # High priority → Email + Slack
+    - match:
+        severity: high
+      receiver: 'slack-high'
+      group_wait: 5s
+      repeat_interval: 12h
+    
+    # Medium/Low → Slack only
+    - match:
+        severity: medium
+      receiver: 'slack-medium'
+      repeat_interval: 24h
+
+    # TRACES integration failures → integration-failures channel
+    - match:
+        alertname: traces_submit_failed
+      receiver: 'slack-integration-failures'
+      group_wait: 5s
+      repeat_interval: 6h
+
+    # IoT persistence failures → integration-failures channel
+    - match:
+        alertname: iot_persistence_failed
+      receiver: 'slack-integration-failures'
+      group_wait: 10s
+      repeat_interval: 6h
+
+    # Vault unreachable → critical channel (secrets unavailable = blocking)
+    - match:
+        alertname: vault_unreachable
+      receiver: 'slack-vault-critical'
+      group_wait: 0s
+      group_interval: 5m
+      repeat_interval: 30m
+
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}'
+        details:
+          firing: '{{ template "pagerduty.default.instances" .Alerts.Firing }}'
+    slack_configs:
+      - channel: '#critical-alerts'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        color: 'danger'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+
+  - name: 'slack-high'
+    slack_configs:
+      - channel: '#alerts'
+        title: '⚠️ HIGH: {{ .GroupLabels.alertname }}'
+        color: 'warning'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+
+  - name: 'slack-medium'
+    slack_configs:
+      - channel: '#alerts'
+        title: 'ℹ️ MEDIUM: {{ .GroupLabels.alertname }}'
+        color: '#0099ff'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+
+  # Receptor para fallos de integración TRACES e IoT
+  - name: 'slack-integration-failures'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#integration-failures'
+        title: '🔴 Integration Failure: {{ .GroupLabels.alertname }}'
+        color: 'danger'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+
+  # Receptor específico para Vault unreachable (bloqueo crítico de secretos)
+  - name: 'slack-vault-critical'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#critical-alerts'
+        title: '🔑 VAULT UNREACHABLE — Secretos no disponibles'
+        color: 'danger'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Severity:* CRITICAL — Vault inaccesible, secretos no disponibles
+          *Description:* {{ .Annotations.description }}
+          *Runbook:* https://github.com/Traky12/Castuo-system/blob/main/docs/ops/vault-recovery.md
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+
+inhibit_rules:
+  # Suppress low priority if high priority exists
+  - source_match:
+      severity: 'high'
+    target_match:
+      severity: 'low'
+    equal: ['alertname', 'cluster', 'service']
+  
+  # Suppress warning if critical exists
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster']

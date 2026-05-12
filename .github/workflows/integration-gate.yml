@@ -1,0 +1,131 @@
+name: Integration Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements/dev.txt ]; then
+            pip install -r requirements/dev.txt
+          elif [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Run API tests
+        run: |
+          python -m pytest tests/test_api.py tests/test_esp32_iot.py -v --tb=short
+
+  traces-smoke:
+    name: TRACES Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements/dev.txt ]; then
+            pip install -r requirements/dev.txt
+          elif [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Run TRACES smoke tests
+        run: |
+          python -m pytest tests/test_e2e_smoke_traces.py -v --tb=short
+
+  security-gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements/dev.txt ]; then
+            pip install -r requirements/dev.txt
+          elif [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Run security tests
+        run: |
+          python -m pytest tests/test_rbac_security.py tests/test_main_hardening.py -v --tb=short
+
+  integration-gate:
+    name: Integration Gate (All Must Pass)
+    runs-on: ubuntu-latest
+    needs: [api-tests, traces-smoke, security-gate]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          echo "api-tests: ${{ needs.api-tests.result }}"
+          echo "traces-smoke: ${{ needs.traces-smoke.result }}"
+          echo "security-gate: ${{ needs.security-gate.result }}"
+          if [[ "${{ needs.api-tests.result }}" != "success" || \
+                "${{ needs.traces-smoke.result }}" != "success" || \
+                "${{ needs.security-gate.result }}" != "success" ]]; then
+            echo "❌ Integration gate FAILED — one or more jobs did not pass."
+            exit 1
+          fi
+          echo "✅ Integration gate PASSED — all checks successful."
+
+      - name: Post status comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const allPassed =
+              '${{ needs.api-tests.result }}' === 'success' &&
+              '${{ needs.traces-smoke.result }}' === 'success' &&
+              '${{ needs.security-gate.result }}' === 'success';
+            const icon = allPassed ? '✅' : '❌';
+            const status = allPassed ? 'PASSED' : 'FAILED';
+            const body = `## ${icon} Integration Gate ${status}
+
+            | Job | Result |
+            |-----|--------|
+            | API Tests | ${{ needs.api-tests.result }} |
+            | TRACES Smoke | ${{ needs.traces-smoke.result }} |
+            | Security Gate | ${{ needs.security-gate.result }} |
+
+            *Supervisión Sabionda · Soberanía EU · CASTUO-SYSTEM v3.1.1*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
