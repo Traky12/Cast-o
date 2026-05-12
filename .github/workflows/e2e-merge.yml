@@ -1,0 +1,116 @@
+name: E2E - Merge to Main
+
+on:
+  workflow_run:
+    workflows: ["Deploy Hetzner Staging"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: e2e-merge-main
+  cancel-in-progress: true
+
+jobs:
+  post-staging-e2e:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      STAGING_API_BASE_URL: ${{ secrets.STAGING_API_BASE_URL }}
+      N8N_E2E_WEBHOOK: ${{ secrets.N8N_E2E_WEBHOOK }}
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PDF dependency
+        run: python -m pip install reportlab
+
+      - name: Fix script permissions
+        run: chmod +x scripts/generate-release-notes.sh scripts/generate-pdf.sh scripts/notify-slack.sh
+
+      - name: Staging health and TRACES smoke
+        if: ${{ env.STAGING_API_BASE_URL != '' }}
+        run: |
+          set -euo pipefail
+          BASE="$STAGING_API_BASE_URL"
+          curl -fsS "${BASE%/}/health" > /dev/null
+          curl -fsS -X POST "${BASE%/}/api/v1/traces/certificado" \
+            -H "Content-Type: application/json" \
+            -d '{"explotacion_rega":"ES120340000001","nombre_explotacion":"Finca Demo","direccion_explotacion":"Calle Campo 1","animales":{"especie":"bovino","raza":"retinta","cantidad":5},"tipo_movimiento":"EXPORT","destino_pais":"PT","destino_explotacion":"PT-DEST-009"}' \
+            -o traces-response.json
+          python3 -c "import json; data=json.load(open('traces-response.json', encoding='utf-8')); assert data['tipo_documento'] == 'TRACES Certificado Sanitario'; assert 'Compliant' in data['estado']; print('staging traces smoke OK')"
+
+      - name: Validate n8n workflow contract
+        run: |
+          python -m json.tool n8n/workflows/order-paid-traces-email.json > /dev/null
+          echo "n8n workflow contract OK"
+
+      - name: Trigger n8n webhook when configured
+        if: ${{ env.N8N_E2E_WEBHOOK != '' }}
+        run: |
+          curl -fsS -X POST "$N8N_E2E_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d '{"event":"order.paid","order_id":99999,"billing":{"email":"cliente@example.com"},"line_items":[{"name":"Certificacion Agricola"}]}' \
+            -o n8n-e2e-response.json
+
+      - name: Generate release notes markdown
+        run: ./scripts/generate-release-notes.sh "staging-${{ github.run_number }}" docs/RELEASE-NOTES.md
+
+      - name: Generate release notes PDF
+        run: ./scripts/generate-pdf.sh docs/RELEASE-NOTES.md release-notes-v${{ github.run_number }}.pdf
+
+      - name: Commit updated release notes
+        run: |
+          if git diff --quiet -- docs/RELEASE-NOTES.md; then
+            echo "No release-notes changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/RELEASE-NOTES.md
+          git commit -m "docs: actualizar release notes de staging automatizados"
+          git push origin HEAD:main
+
+      - name: Upload release note artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: merge-release-notes-${{ github.run_number }}
+          path: |
+            docs/RELEASE-NOTES.md
+            release-notes-v${{ github.run_number }}.pdf
+            traces-response.json
+            n8n-e2e-response.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Notify Slack
+        if: ${{ always() }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          ./scripts/notify-slack.sh "🚀 Merge a main validado\n\n🏗️ Staging verificado\n🧪 E2E n8n/TRACES ejecutado\n📄 Release notes PDF generado"
+
+      - name: Notify by email
+        if: ${{ env.SMTP_SERVER != '' && env.SMTP_USER != '' && env.SMTP_PASS != '' }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ env.SMTP_SERVER }}
+          server_port: ${{ env.SMTP_PORT || '587' }}
+          username: ${{ env.SMTP_USER }}
+          password: ${{ env.SMTP_PASS }}
+          subject: Merge a main validado - release notes listos
+          to: cto@castuo.es,ceo@castuo.es
+          from: ${{ env.SMTP_USER }}
+          body: Se ha validado staging y se han generado las release notes del merge.
+          attachments: release-notes-v${{ github.run_number }}.pdf

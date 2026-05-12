@@ -1,0 +1,21 @@
+name: Security - SQL Injection Prevention (deprecated)
+on:
+  workflow_dispatch:
+jobs:
+  sql-injection-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy for SQL injection patterns
+        run: |
+          docker run --rm -v $PWD:/workspace \
+            aquasec/trivy:latest config /workspace \
+            --exit-code 1 --severity HIGH,CRITICAL
+      - name: Validate ORM usage
+        run: |
+          grep -r "SELECT\|INSERT\|UPDATE\|DELETE" api/ | \
+          grep -v "^\s*#\|\"\"" && echo "Raw SQL without ORM detected!" && exit 1 || true
+      - name: Run SAST with semgrep
+        run: |
+          pip install semgrep && \
+          semgrep --config=p/owasp-top-ten api/ api/

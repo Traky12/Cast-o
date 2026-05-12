@@ -1,0 +1,41 @@
+name: Test Python
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  test-python:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install fastapi uvicorn pydantic httpx jsonschema pytest -q
+
+      - name: Validate JSON schemas
+        run: |
+          echo "Validating JSON schemas..."
+          for f in config/schemas/*.schema.json; do
+            echo "  Checking $f"
+            python3 -m json.tool "$f" > /dev/null
+          done
+          echo "✅ All schemas valid"
+
+      - name: Validate Python syntax
+        run: |
+          python3 -c "import py_compile; py_compile.compile('api/main.py', doraise=True)"
+          echo "✅ Python syntax valid"
+
+      - name: Run API tests
+        run: python -m pytest tests/test_api.py -v

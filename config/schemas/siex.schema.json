@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SIEX Cuaderno Campo Digital",
+  "description": "Schema para generación de Cuaderno de Campo Digital según SIEX (Sistema de Información de Explotaciones) - MAPA",
+  "type": "object",
+  "required": ["explotacion", "parcelas", "tratamientos", "fecha_generacion"],
+  "properties": {
+    "explotacion": {
+      "type": "object",
+      "required": ["rea", "titular", "nif"],
+      "properties": {
+        "rea": {
+          "type": "string",
+          "description": "Código REA de la explotación",
+          "pattern": "^[A-Z]{2}[0-9]{6,12}$"
+        },
+        "titular": {
+          "type": "string",
+          "description": "Nombre del titular de la explotación"
+        },
+        "nif": {
+          "type": "string",
+          "description": "NIF/CIF del titular"
+        },
+        "direccion": {
+          "type": "string"
+        },
+        "comunidad_autonoma": {
+          "type": "string",
+          "enum": ["Extremadura", "Andalucía", "Castilla-La Mancha", "Castilla y León", "Madrid", "Cataluña", "Aragón", "Navarra", "La Rioja", "País Vasco", "Galicia", "Asturias", "Cantabria", "Murcia", "Valencia", "Baleares", "Canarias"]
+        }
+      }
+    },
+    "parcelas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sigpac_ref", "superficie_ha", "cultivo"],
+        "properties": {
+          "sigpac_ref": {
+            "type": "string",
+            "description": "Referencia SIGPAC de la parcela"
+          },
+          "superficie_ha": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 10000
+          },
+          "cultivo": {
+            "type": "string"
+          },
+          "tipo_riego": {
+            "type": "string",
+            "enum": ["secano", "goteo", "aspersion", "gravedad", "pivot"]
+          },
+          "eco_esquema": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "tratamientos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fecha", "producto", "dosis", "parcela_ref"],
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "format": "date"
+          },
+          "producto": {
+            "type": "string",
+            "description": "Nombre comercial del fitosanitario"
+          },
+          "materia_activa": {
+            "type": "string"
+          },
+          "numero_registro": {
+            "type": "string",
+            "description": "Número de registro del producto en MAPA"
+          },
+          "dosis": {
+            "type": "string",
+            "description": "Dosis aplicada (ej. '2.5 L/ha')"
+          },
+          "parcela_ref": {
+            "type": "string"
+          },
+          "plazo_seguridad_dias": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "justificacion": {
+            "type": "string"
+          },
+          "aplicador_carnet": {
+            "type": "string",
+            "description": "Número de carnet de aplicador"
+          }
+        }
+      }
+    },
+    "fecha_generacion": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "estado_cumplimiento": {
+      "type": "object",
+      "properties": {
+        "pac_compliant": {
+          "type": "boolean"
+        },
+        "siex_interoperable": {
+          "type": "boolean"
+        },
+        "porcentaje_cumplimiento": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "firma": {
+      "type": "object",
+      "properties": {
+        "pendiente_firma": {
+          "type": "boolean",
+          "default": true
+        },
+        "aviso": {
+          "type": "string",
+          "default": "Documento generado para REVISIÓN y FIRMA del productor"
+        }
+      }
+    }
+  }
+}

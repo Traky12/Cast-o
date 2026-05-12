@@ -1,0 +1,37 @@
+# Environment files
+.env
+.env.cloud
+.env.local
+
+# Secrets and TLS certs — never commit
+secrets/
+certs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+.pytest_cache/
+
+# Docker volumes
+postgres_data/
+n8n_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cursor sensitive provider config
+.cursor/provider-api.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if applicable)
+node_modules/

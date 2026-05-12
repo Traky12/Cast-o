@@ -1,0 +1,215 @@
+services:
+  api:
+    image: ghcr.io/traky12/castuo-system:latest
+    restart: unless-stopped
+    profiles: ["core"]
+    ports:
+      - "${API_PORT:-8000}:${API_PORT:-8000}"
+    environment:
+      - ENV=${ENV:-staging}
+      - CASTUO_CLOUD_MODE=1
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://castuo-system.cloud,https://n8n.castuo-system.cloud}
+      - VAULT_ADDR=${VAULT_ADDR:-https://vault.castuo-system.cloud:8200}
+      - VAULT_TOKEN_FILE=${VAULT_TOKEN_FILE:-/run/secrets/vault_token}
+      - MISTRAL_API_KEY_FILE=/run/secrets/mistral_key
+      - SABIONDA_API_KEY_FILE=/run/secrets/sabionda_key
+      - GAIA_X_RPC=${GAIA_X_RPC:-https://rpc.gaia-x.cloud}
+      - AI_ENGINE=${AI_ENGINE:-mistral-large-latest}
+      - CASTUO_IOT_TELEMETRY_URL=${IOT_TELEMETRY_URL:-https://api.castuo-system.cloud/api/v1/iot/telemetry}
+      - CASTUO_IOT_DEVICE_CMD_URL=${IOT_DEVICE_CMD_URL:-https://api.castuo-system.cloud/api/v1/devices/command}
+      - CASTUO_IOT_BEARER_FILE=/run/secrets/iot_bearer
+      - TRACES_HYPERLEDGER_URL=${TRACES_HYPERLEDGER_URL:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-eu-central-1}
+      - AWS_S3_BUCKET=${S3_BUCKET_LOGS:-castuo-system-logs-staging}
+      - DATABASE_URL=postgresql://castuo:${POSTGRES_PASSWORD}@postgres:5432/castuo_db
+    secrets:
+      - vault_token
+      - iot_bearer
+      - mistral_key
+      - sabionda_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      iot-bridge:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT:-8000}${API_HEALTH_PATH:-/health}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: ${API_REPLICAS:-1}
+      resources:
+        limits:
+          cpus: "${API_CPU_LIMIT:-1.0}"
+          memory: ${API_MEM_LIMIT:-2G}
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    networks:
+      - iot_network_cloud
+      - monitoring_network_cloud
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    profiles: ["core"]
+    environment:
+      - POSTGRES_DB=castuo_db
+      - POSTGRES_USER=castuo
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U castuo -d castuo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - iot_network_cloud
+
+  iot-bridge:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    profiles: ["iot"]
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto.cloud.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./certs:/mosquitto/certs:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - iot_network_cloud
+
+  iot-processor:
+    build:
+      context: ./services/iot
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    profiles: ["iot"]
+    environment:
+      - MQTT_BROKER=iot-bridge
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_USERNAME=${MQTT_USERNAME:-castuo}
+      - MQTT_PASSWORD_FILE=/run/secrets/iot_bearer
+      - MQTT_TOPIC_PREFIX=${MQTT_TOPIC_PREFIX:-castuo/sensors}
+      - CASTUO_API_URL=http://api:${API_PORT:-8000}
+      - CASTUO_IOT_BEARER_FILE=/run/secrets/iot_bearer
+      - WIRELESS_LOGIC_MQTT_HOST=${WIRELESS_LOGIC_MQTT_HOST:-}
+      - WIRELESS_LOGIC_MQTT_PORT=${WIRELESS_LOGIC_MQTT_PORT:-8883}
+      - WIRELESS_LOGIC_API_TOKEN_FILE=/run/secrets/wireless_logic_token
+      - TRACES_HYPERLEDGER_URL=${TRACES_HYPERLEDGER_URL:-}
+    secrets:
+      - iot_bearer
+      - wireless_logic_token
+    depends_on:
+      - iot-bridge
+    networks:
+      - iot_network_cloud
+
+  openclaw-agente:
+    image: openclaw/openclaw:latest
+    restart: unless-stopped
+    profiles: ["ai"]
+    ports:
+      - "8080:8080"
+    environment:
+      - AGENT_NAME=SABIONDA
+      - AGENT_VERSION=4.0
+      - RAG_ENABLED=true
+      - FASTAPI_URL=http://api:${API_PORT:-8000}
+      - AI_ENGINE=${AI_ENGINE:-mistral-large-latest}
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - iot_network_cloud
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    profiles: ["core"]
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - WEBHOOK_URL=${WEBHOOK_URL:-https://n8n.castuo-system.cloud}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - iot_network_cloud
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    profiles: ["observability"]
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring_network_cloud
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    profiles: ["observability"]
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-changeme}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - monitoring_network_cloud
+
+  vault:
+    image: hashicorp/vault:1.18
+    restart: unless-stopped
+    profiles: ["local-vault"]
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=dev-root-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    command: vault server -dev
+    networks:
+      - iot_network_cloud
+
+secrets:
+  vault_token:
+    file: ./secrets/vault_token
+  iot_bearer:
+    file: ./secrets/iot_bearer
+  wireless_logic_token:
+    file: ./secrets/wireless_logic_token
+  mistral_key:
+    file: ./secrets/mistral_key
+  sabionda_key:
+    file: ./secrets/sabionda_key
+
+volumes:
+  postgres_data:
+  n8n_data:
+  mosquitto_data:
+  mosquitto_log:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  iot_network_cloud:
+    driver: bridge
+  monitoring_network_cloud:
+    driver: bridge

@@ -1,0 +1,86 @@
+automation:
+  events:
+    main_bootstrap:
+      trigger: push
+      branches:
+        - main
+      workflow: .github/workflows/e2e-first-commit.yml
+      detection: scripts/validate-first-commit.sh
+      artifacts:
+        - docs/QUICK-REFERENCE.md
+        - trivy-results.sarif
+
+    pull_request_main:
+      trigger: pull_request
+      types:
+        - opened
+        - synchronize
+        - reopened
+        - ready_for_review
+      branches:
+        - main
+      workflow: .github/workflows/e2e-first-pr.yml
+      artifacts:
+        - CHANGELOG.md
+
+    merge_to_main:
+      trigger: workflow_run
+      source_workflow: Deploy Hetzner Staging
+      workflow: .github/workflows/e2e-merge.yml
+      artifacts:
+        - docs/RELEASE-NOTES.md
+        - release-notes-v*.pdf
+
+    release:
+      trigger: release
+      types:
+        - published
+      workflow: .github/workflows/e2e-release.yml
+      artifacts:
+        - release-notes-*.pdf
+
+    docs_validation:
+      trigger: push_pull_request
+      workflow: .github/workflows/validate-all.yml
+      paths:
+        - docs/**
+        - api/**
+        - config/**
+        - scripts/**
+
+    visual_summary:
+      trigger: schedule
+      cron: '0 8 * * 1'
+      workflow: .github/workflows/generate-visual-summary.yml
+      artifacts:
+        - docs/RESUMEN-VISUAL-ESTADO.md
+        - visual-summary.pdf
+
+  notifications:
+    slack:
+      webhook_secret: SLACK_WEBHOOK_URL
+      channels:
+        - castuo-alerts
+        - castuo-dev
+      mode: failure_only
+    email:
+      smtp_server_secret: SMTP_SERVER
+      smtp_port_secret: SMTP_PORT
+      smtp_user_secret: SMTP_USER
+      smtp_pass_secret: SMTP_PASS
+      recipients:
+        - cto@castuo.es
+        - ceo@castuo.es
+        - board@castuo.es
+
+  retention:
+    artifacts_days: 30
+
+  compliance:
+    required_checks:
+      - package.json valida
+      - tests Python verdes
+      - tests JS verdes
+      - make validate exitoso
+      - Trivy sin vulnerabilidades criticas
+      - documentacion minima validada

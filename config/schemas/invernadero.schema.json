@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://castuo360.eu/schemas/invernadero.schema.json",
+  "title": "Invernadero Agrovoltaico Hidropónico — CASTÚO-SYSTEM™ v3.0",
+  "description": "Esquema de validación para registros de gestión de invernadero con trazabilidad QR",
+  "definitions": {
+    "lote_id": {
+      "type": "string",
+      "pattern": "^INVH-[A-Z0-9]+-[A-Z]+-[A-F0-9]{8}$",
+      "description": "Identificador único de lote. Formato: INVH-{REA}-{CULTIVO}-{UUID8}"
+    },
+    "cultivo_hidroponico": {
+      "type": "string",
+      "enum": ["tomate", "lechuga", "pimiento", "pepino", "fresa", "albahaca", "espinaca", "cilantro"]
+    },
+    "sistema_cultivo": {
+      "type": "string",
+      "enum": ["NFT", "DWC", "aeroponico", "goteo", "sustrato"]
+    },
+    "etapa_cultivo": {
+      "type": "string",
+      "enum": ["semilla", "germinacion", "plantula", "vegetativo", "floracion", "fructificacion", "maduracion", "cosecha", "post_cosecha"]
+    },
+    "nif_es": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][0-9]{7}[A-Z0-9]$",
+      "description": "NIF/CIF español"
+    }
+  },
+  "oneOf": [
+    {
+      "title": "Apertura de Lote",
+      "$ref": "#/definitions/apertura_lote"
+    },
+    {
+      "title": "Solución Nutritiva",
+      "$ref": "#/definitions/solucion_nutritiva"
+    },
+    {
+      "title": "Clima Invernadero",
+      "$ref": "#/definitions/clima_invernadero"
+    },
+    {
+      "title": "Lectura Agrovoltaica",
+      "$ref": "#/definitions/agrovoltaico"
+    },
+    {
+      "title": "Cosecha",
+      "$ref": "#/definitions/cosecha"
+    }
+  ],
+  "definitions": {
+    "apertura_lote": {
+      "type": "object",
+      "required": ["explotacion_rea", "operador_nif", "cultivo", "variedad", "sistema", "zona", "superficie_m2", "fecha_siembra", "semilla_origen", "semilla_certificada"],
+      "properties": {
+        "explotacion_rea": { "type": "string", "minLength": 1 },
+        "operador_nif": { "$ref": "#/definitions/nif_es" },
+        "cultivo": { "$ref": "#/definitions/cultivo_hidroponico" },
+        "variedad": { "type": "string", "minLength": 1 },
+        "sistema": { "$ref": "#/definitions/sistema_cultivo" },
+        "zona": { "type": "string" },
+        "superficie_m2": { "type": "number", "exclusiveMinimum": 0 },
+        "fecha_siembra": { "type": "string", "format": "date" },
+        "semilla_origen": { "type": "string" },
+        "semilla_certificada": { "type": "boolean" },
+        "sustrato": { "type": ["string", "null"] },
+        "eco_certificado": { "type": "boolean" },
+        "sigpac_ref": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "solucion_nutritiva": {
+      "type": "object",
+      "required": ["lote_id", "zona", "cultivo", "sistema", "ph", "ec_ms_cm", "temp_solucion_c", "o2_disuelto_mg_l"],
+      "properties": {
+        "lote_id": { "$ref": "#/definitions/lote_id" },
+        "zona": { "type": "string" },
+        "cultivo": { "$ref": "#/definitions/cultivo_hidroponico" },
+        "sistema": { "$ref": "#/definitions/sistema_cultivo" },
+        "ph": { "type": "number", "minimum": 4.0, "maximum": 8.5 },
+        "ec_ms_cm": { "type": "number", "minimum": 0.0, "maximum": 10.0 },
+        "temp_solucion_c": { "type": "number", "minimum": 10.0, "maximum": 35.0 },
+        "o2_disuelto_mg_l": { "type": "number", "minimum": 0.0, "maximum": 20.0 },
+        "nitrogeno_ppm": { "type": ["number", "null"], "minimum": 0 },
+        "fosforo_ppm": { "type": ["number", "null"], "minimum": 0 },
+        "potasio_ppm": { "type": ["number", "null"], "minimum": 0 },
+        "calcio_ppm": { "type": ["number", "null"], "minimum": 0 },
+        "magnesio_ppm": { "type": ["number", "null"], "minimum": 0 },
+        "caudal_l_h": { "type": ["number", "null"], "minimum": 0 },
+        "timestamp": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "clima_invernadero": {
+      "type": "object",
+      "required": ["lote_id", "zona", "cultivo", "etapa", "co2_ppm", "vpd_kpa", "temp_aire_c", "humedad_relativa_pct"],
+      "properties": {
+        "lote_id": { "$ref": "#/definitions/lote_id" },
+        "zona": { "type": "string" },
+        "cultivo": { "$ref": "#/definitions/cultivo_hidroponico" },
+        "etapa": { "$ref": "#/definitions/etapa_cultivo" },
+        "co2_ppm": { "type": "number", "minimum": 300, "maximum": 3000 },
+        "vpd_kpa": { "type": "number", "minimum": 0.0, "maximum": 5.0 },
+        "temp_aire_c": { "type": "number", "minimum": 0.0, "maximum": 50.0 },
+        "humedad_relativa_pct": { "type": "number", "minimum": 0.0, "maximum": 100.0 },
+        "dli_mol_m2_dia": { "type": ["number", "null"], "minimum": 0 },
+        "timestamp": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "agrovoltaico": {
+      "type": "object",
+      "required": ["lote_id", "panel_id", "irradiancia_w_m2", "kwh_generados", "kwh_autoconsumidos", "temperatura_panel_c", "cobertura_sombra_pct", "temp_bajo_panel_c", "temp_zona_abierta_c"],
+      "properties": {
+        "lote_id": { "$ref": "#/definitions/lote_id" },
+        "panel_id": { "type": "string" },
+        "irradiancia_w_m2": { "type": "number", "minimum": 0 },
+        "kwh_generados": { "type": "number", "minimum": 0 },
+        "kwh_autoconsumidos": { "type": "number", "minimum": 0 },
+        "temperatura_panel_c": { "type": "number" },
+        "cobertura_sombra_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "temp_bajo_panel_c": { "type": "number" },
+        "temp_zona_abierta_c": { "type": "number" },
+        "timestamp": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "cosecha": {
+      "type": "object",
+      "required": ["lote_id", "fecha_cosecha", "kg_cosechados", "destino", "operador_nif"],
+      "properties": {
+        "lote_id": { "$ref": "#/definitions/lote_id" },
+        "fecha_cosecha": { "type": "string", "format": "date" },
+        "kg_cosechados": { "type": "number", "exclusiveMinimum": 0 },
+        "calibre": { "type": ["string", "null"] },
+        "brix": { "type": ["number", "null"], "minimum": 0, "maximum": 30 },
+        "destino": { "type": "string", "enum": ["mercado_local", "exportacion", "distribuidor", "directo_consumidor"] },
+        "operador_nif": { "$ref": "#/definitions/nif_es" },
+        "notas": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

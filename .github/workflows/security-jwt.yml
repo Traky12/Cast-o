@@ -1,0 +1,58 @@
+name: Security - JWT & Refresh Tokens (deprecated)
+on:
+  workflow_dispatch:
+jobs:
+  jwt-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install JWT dependencies
+        run: |
+          pip install python-jose[cryptography] pydantic pytest
+      
+      - name: Test JWT generation and refresh
+        run: |
+          python -c "
+          from datetime import datetime, timedelta
+          from jose import jwt
+          
+          SECRET_KEY = 'test-secret-key'
+          ALGORITHM = 'HS256'
+          
+          # Generate token with 1h expiry
+          payload = {
+              'sub': 'user123',
+              'exp': datetime.utcnow() + timedelta(hours=1),
+              'type': 'access'
+          }
+          access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+          print(f'✓ Access token generated: {access_token[:30]}...')
+          
+          # Refresh token with 7d expiry
+          refresh_payload = {
+              'sub': 'user123',
+              'exp': datetime.utcnow() + timedelta(days=7),
+              'type': 'refresh'
+          }
+          refresh_token = jwt.encode(refresh_payload, SECRET_KEY, algorithm=ALGORITHM)
+          print(f'✓ Refresh token generated: {refresh_token[:30]}...')
+          
+          # Verify token
+          decoded = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+          assert decoded['sub'] == 'user123', 'Token verification failed'
+          print('✓ JWT validation successful')
+          "
+      
+      - name: Run JWT security tests
+        run: |
+          if [ -f tests/test_jwt.py ]; then
+            pytest tests/test_jwt.py -v --tb=short
+          else
+            echo "tests/test_jwt.py not found; skipping specific JWT test file"
+          fi
