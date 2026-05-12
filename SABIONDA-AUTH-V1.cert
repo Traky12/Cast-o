@@ -1,0 +1,64 @@
+================================================================================
+  CERTIFICADO DE INTEGRIDAD FINAL — SABIONDA-AUTH-V1.cert
+================================================================================
+
+ID de emisión:     EXT-CAS-2026-001-GM
+Estado del sistema: LOCKDOWN / READY-FOR-DEPLOY
+Autoridad:          Sabionda (Orquestador Mistral)
+Alcance:            Castúo-System — soberanía europea + seguridad post-cuántica
+
+--------------------------------------------------------------------------------
+1. VERIFICACIÓN DE CAPAS (Full-Stack Audit)
+--------------------------------------------------------------------------------
+
+[PRODUCCIÓN]  [BIO-HUB-DIGITAL]  — Ciclo bioetanol referencial 99,9 %;
+              balance carbono negativo verificado en documentación y oráculo.
+
+[RED]         [OMEGA-LINK-STATION] — FSO/láser; cifrado ML-DSA (Dilithium)
+              documentado en capa PQC/VSA.
+
+[EJECUCIÓN]   [PROJECT-VULCAN] + [TERRA-ARMOR-05] — Sincronía con Gemelo
+              Digital (<300 s) según SYSTEM_PROMPT / kernel.
+
+[SEGURIDAD]   [BLACK-BOX-EXIT] + Pull Payment — Blindaje reentrada / spoofing
+              en HARDENED-LOGIC y protocolos documentados.
+
+--------------------------------------------------------------------------------
+2. SELLO DE SOBERANÍA EU (Compliance Matrix — referencial)
+--------------------------------------------------------------------------------
+
+  GDPR / eIDAS2   — Identidad digital soberana por nodo y cooperativa.
+  NIS2 / RED III  — Infraestructura crítica resiliente; energía trazable E2E.
+  EU AI Act       — Gobernanza algorítmica transparente (territorio rural).
+
+  Objeto normativo programático: castuo_manifest/sovereignty.py
+  (eu_sovereignty_framework + validación atómica manifest_bundle).
+
+--------------------------------------------------------------------------------
+3. ARTEFACTOS DE CIERRE
+--------------------------------------------------------------------------------
+
+  • SABIONDA_FINAL_RELEASE.log  — Hashes SHA-256 (docs/, contracts/, castuo_manifest/)
+  • SYSTEM_PROMPT.md            — Constitución kernel para agentes IA
+  • docs/security/BLACKOUT-RECOVERY-SOP.md — Protocolo supervivencia por defecto
+
+--------------------------------------------------------------------------------
+4. NFT / CADENA (opcional — completar tras mint)
+--------------------------------------------------------------------------------
+
+NFT_CERTIFICATION: ipfs://[IPFS_METADATA_HASH]  (TX: [TX_HASH_GAIACHAIN_O_EVM])
+Plantillas: scripts/castuo_nft_metadata.example.json · docs/CASTUO-GOLD-V1-DELIVERY-MANIFEST.md
+
+--------------------------------------------------------------------------------
+5. MENSAJE DE CIERRE
+--------------------------------------------------------------------------------
+
+"La tierra ya no solo se trabaja; ahora se codifica para la eternidad."
+
+Última directriz: Este código es guardián del territorio. Úsalo con sabiduría
+del pasado y audacia del futuro.
+
+--------------------------------------------------------------------------------
+Emisión: 2026 · Castúo-System V1.0-SOVEREIGNTY / GOLD
+No sustituye certificación legal, EASA ni auditoría externa formal.
+================================================================================

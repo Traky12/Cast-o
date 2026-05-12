@@ -1,0 +1,17 @@
+# ConfigMap de producción para coordinador FL y cifrado E2E
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: encryption-config
+  namespace: castuo-prod
+data:
+  ENABLE_HE: "true"
+  ENABLE_TRACING: "true"
+  CACHE_TTL: "3600"
+  ENCRYPTION_ALGORITHM: "RSA4096_AES256_GCM_Kyber1024_SECURE"
+  HASH_ALGORITHM: "BLAKE3"
+  SENSITIVE_FIELDS: "customer_email,billing_address,shipping_address,credit_card,ssn"
+  MAX_MODELS_PER_ROUND: "1000"
+  OPTIMIZE_HE: "true"
+  HE_PARAMETERS: |
+    {"poly_modulus_degree": 16384, "coeff_mod_bit_sizes": [60, 40, 40, 60, 60], "security_level": "192-bit post-quantum", "global_scale": 1125899906842624}

@@ -1,0 +1,60 @@
+{
+  "title": "CASTÚO-SYSTEM™ - Alertas y Cumplimiento Normativo",
+  "tags": ["castuo", "alerts", "compliance"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Alertas Activas por Normativa",
+      "type": "table",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "ALERTS{alertstate=\"firing\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Time"}, "properties": [{"id": "custom.width", "value": 200}]},
+          {"matcher": {"id": "byName", "options": "alertname"}, "properties": [{"id": "custom.width", "value": 150}]},
+          {"matcher": {"id": "byName", "options": "normative"}, "properties": [{"id": "custom.width", "value": 300}]},
+          {"matcher": {"id": "byName", "options": "severity"}, "properties": [{"id": "custom.width", "value": 200}]}
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Histórico de Alertas por Normativa",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 8, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "sum by(normative) (ALERTS{alertstate=\"firing\"})",
+          "legendFormat": "{{ normative }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Tiempo Medio de Resolución por Normativa",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 4},
+      "targets": [
+        {
+          "expr": "avg by(normative) (alert_resolution_time_seconds)",
+          "format": "s",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1
+}

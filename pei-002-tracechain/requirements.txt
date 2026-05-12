@@ -1,0 +1,2 @@
+# Dependencias del script register_sigpac_digest.py (POST envelope opcional)
+requests>=2.28.0,<3

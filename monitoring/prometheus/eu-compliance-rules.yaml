@@ -1,0 +1,46 @@
+# Alertas de cumplimiento normativo UE (RGPD, AI Act, eIDAS, transferencias transfronterizas)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: eu-compliance-alerts
+  namespace: dt-prod
+  labels:
+    app: digital-twin
+    component: compliance
+    jurisdiction: EU
+spec:
+  groups:
+  - name: eu-compliance
+    rules:
+    - alert: EUComplianceViolation
+      expr: eu_compliance_violations_total > 0
+      for: 1m
+      labels:
+        severity: critical
+        jurisdiction: EU
+      annotations:
+        summary: "Violación de cumplimiento UE detectada ({{ $value }} incidentes)"
+        description: |
+          Normativa afectada: {{ $labels.standard }}
+          Acción requerida:
+          1. Bloquear procesamiento: kubectl scale deploy/moltbook-integration -n dt-prod --replicas=0
+          2. Generar informe: kubectl exec -n dt-prod deploy/digital-twin-core -- python -m backend.compliance.generate_eu_report
+          3. Notificar a DPO: echo "Incidente de cumplimiento UE" | mail -s "ALERT: EU Compliance Violation" dpo@castuo-system.com
+        runbook: "https://docs.castuo-system.eu/compliance/eu_violation"
+
+    - alert: CrossBorderDataTransfer
+      expr: rate(cross_border_data_transfers_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: warning
+        jurisdiction: EU
+      annotations:
+        summary: "Transferencia transfronteriza de datos detectada ({{ $value }})"
+        description: |
+          Origen: {{ $labels.source_country }}
+          Destino: {{ $labels.dest_country }}
+          Acción requerida:
+          1. Verificar SCCs: kubectl exec -n dt-prod deploy/digital-twin-core -- python -m backend.compliance.verify_sccs
+          2. Registrar en GaiaChain: kubectl exec -n dt-prod deploy/digital-twin-core -- python -m backend.compliance.register_cross_border
+          3. Notificar a legal: kubectl create job eu-legal-notification --from=cronjob/eu-legal-notif -n dt-prod
+        runbook: "https://docs.castuo-system.eu/compliance/cross_border_transfer"

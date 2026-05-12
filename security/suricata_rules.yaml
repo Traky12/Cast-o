@@ -1,0 +1,51 @@
+# CASTUO 5.0 — Reglas Suricata IDS/IPS (ETSI EN 303 645, NIST)
+# Formato simplificado; en producción usar reglas Suricata/Eve estándar.
+
+%YAML 1.1
+---
+# Detección de escaneo de puertos (reconocimiento)
+- rule:
+    id: 1000001
+    action: alert
+    protocol: tcp
+    src_ip: any
+    dest_ip: $HOME_NET
+    dest_port: any
+    msg: "PORT SCAN DETECTED - Possible reconnaissance"
+    classtype: attempted-recon
+    priority: 1
+
+# Intento de exploit en LoRaWAN (puerto 1700)
+- rule:
+    id: 1000002
+    action: drop
+    protocol: udp
+    src_ip: any
+    dest_ip: $IOT_NETWORK
+    dest_port: 1700
+    msg: "POSSIBLE IOT EXPLOIT ATTEMPT - LoRaWAN"
+    classtype: attempted-admin
+    priority: 2
+
+# Abuso de API GaiaChain (alta tasa de peticiones RPC 8545)
+- rule:
+    id: 1000003
+    action: alert
+    protocol: tcp
+    src_ip: any
+    dest_ip: $BLOCKCHAIN_NETWORK
+    dest_port: 8545
+    msg: "POSSIBLE BLOCKCHAIN API ABUSE - High request rate"
+    classtype: protocol-command-decode
+    priority: 3
+
+# Intento de acceso no autorizado a datos de producción
+- rule:
+    id: 1000004
+    action: alert
+    protocol: http
+    src_ip: any
+    dest_ip: $HOME_NET
+    msg: "UNAUTHORIZED ACCESS ATTEMPT TO PRODUCTION DATA"
+    classtype: attempted-user
+    priority: 1

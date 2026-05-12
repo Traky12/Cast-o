@@ -1,0 +1,104 @@
+# CASTÚO-SYSTEM™ — Cursor en sandbox restringido (protección absoluta)
+# Sustituir <AES_KEY_ENCRYPTED> y <RSA_KEY_ENCRYPTED> por valores en base64 (derivados de forma segura)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cursor-sandbox
+  labels:
+    security: restricted
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cursor-credentials
+  namespace: cursor-sandbox
+type: Opaque
+stringData:
+  aes-key: ""   # Rellenar en deploy (o usar external secrets)
+  rsa-key: ""   # Rellenar en deploy
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cursor-master
+  namespace: cursor-sandbox
+  labels:
+    app: cursor
+    tier: master
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 20001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: cursor
+    image: ghcr.io/castuo-system/cursor:secure
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    volumeMounts:
+    - name: cursor-secrets
+      mountPath: /etc/cursor/secrets
+      readOnly: true
+    - name: tmpfs
+      mountPath: /tmp
+    env:
+    - name: CURSOR_AES_KEY
+      valueFrom:
+        secretKeyRef:
+          name: cursor-credentials
+          key: aes-key
+    - name: CURSOR_RSA_KEY
+      valueFrom:
+        secretKeyRef:
+          name: cursor-credentials
+          key: rsa-key
+  volumes:
+  - name: cursor-secrets
+    secret:
+      secretName: cursor-credentials
+  - name: tmpfs
+    emptyDir:
+      medium: Memory
+      sizeLimit: 100Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cursor-isolation
+  namespace: cursor-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app: cursor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: gaiachain-validator
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: gaiachain-validator
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: UDP
+      port: 53

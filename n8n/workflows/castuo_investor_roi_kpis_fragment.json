@@ -1,0 +1,34 @@
+{
+  "name": "CASTUO_Fragmento_ROI_KPIs_Inversores",
+  "tags": ["CASTUO", "inversores", "ROI", "fragmento"],
+  "nodes": [
+    {
+      "parameters": {
+        "height": 320,
+        "width": 480,
+        "color": 4,
+        "content": "## Fragmento para canvas castuo-metricas-inversores\n\nConecta **la salida del nodo anterior** (p. ej. «Agregar para Optimización») a **Calcular ROI y KPIs**, y este a **Guardar Reporte Optimización**.\n\nAjusta nombres de campos (`peso_total`, `consumo_energia`, etc.) a tu esquema real."
+      },
+      "id": "sticky-roi-fragment",
+      "name": "Nota_ROI_Fragmento",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.all();\nlet totalCosecha = 0;\nlet totalCoste = 0;\nlet alertasCriticas = 0;\nlet eficienciaPromedio = 0;\nlet count = 0;\n\nfor (const item of data) {\n  const j = item.json || {};\n  if (j.peso_total != null) totalCosecha += Number(j.peso_total) || 0;\n  if (j.consumo_energia && j.consumo_energia.costo_estimado != null) {\n    totalCoste += Number(j.consumo_energia.costo_estimado) || 0;\n  }\n  if (Array.isArray(j.alertas_legales) && j.alertas_legales.includes('CRITICO')) {\n    alertasCriticas += 1;\n  }\n  if (j.eficiencia_general != null) {\n    eficienciaPromedio += Number(j.eficiencia_general) || 0;\n    count += 1;\n  }\n}\n\nconst roi =\n  totalCoste > 0 && totalCosecha > 0\n    ? ((totalCosecha * 3.5 - totalCoste) / totalCoste) * 100\n    : 0;\nconst eficiencia = count > 0 ? eficienciaPromedio / count : 0;\n\nreturn [\n  {\n    json: {\n      roi: roi.toFixed(2),\n      roi_impact: roi > 30 ? 'Excelente' : roi > 15 ? 'Bueno' : 'Mejorable',\n      alertas_criticas: alertasCriticas,\n      eficiencia_promedio: eficiencia.toFixed(2),\n      coste_por_kg: totalCosecha > 0 ? (totalCoste / totalCosecha).toFixed(2) : '0',\n      produccion_total_kg: totalCosecha,\n      timestamp: new Date().toISOString(),\n    },\n  },\n];"
+      },
+      "id": "code-roi-kpis-inversores",
+      "name": "Calcular ROI y KPIs para Inversores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [560, 400]
+    }
+  ],
+  "connections": {},
+  "settings": {},
+  "meta": {
+    "description": "Importar y copiar el nodo Code a tu workflow de métricas inversores; precio 3.5 €/kg es orientativo."
+  }
+}

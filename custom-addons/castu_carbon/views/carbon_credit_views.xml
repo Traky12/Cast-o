@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_carbon_credit_tree" model="ir.ui.view">
+        <field name="name">castu.carbon.credit.tree</field>
+        <field name="model">castu.carbon.credit</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="material_id"/>
+                <field name="kg_produced"/>
+                <field name="savings_kg_co2"/>
+                <field name="date"/>
+                <field name="state"/>
+                <field name="sale_price"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_carbon_credit_form" model="ir.ui.view">
+        <field name="name">castu.carbon.credit.form</field>
+        <field name="model">castu.carbon.credit</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name" readonly="1"/>
+                        <field name="material_id"/>
+                        <field name="production_id"/>
+                        <field name="kg_produced"/>
+                        <field name="savings_kg_co2"/>
+                        <field name="date"/>
+                        <field name="verification_doc" widget="binary"/>
+                        <field name="blockchain_tx" readonly="1"/>
+                        <field name="state"/>
+                        <field name="buyer_id"/>
+                        <field name="sale_price"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_register" string="Registrar en Blockchain" type="object" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_sell" string="Vender Crédito" type="object" class="btn-primary" invisible="state != 'registered'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_castu_carbon_credit_sell_wizard_form" model="ir.ui.view">
+        <field name="name">castu.carbon.credit.sell.wizard.form</field>
+        <field name="model">castu.carbon.credit.sell.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="credit_id" readonly="1"/>
+                    <field name="buyer_id"/>
+                    <field name="price_per_ton"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Confirmar Venta" type="object" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_carbon_credit" model="ir.actions.act_window">
+        <field name="name">Créditos de Carbono</field>
+        <field name="res_model">castu.carbon.credit</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_carbon_credits" name="Créditos de Carbono"
+        parent="castu_materials.menu_castu_materials_root" action="action_castu_carbon_credit" sequence="50"/>
+</odoo>

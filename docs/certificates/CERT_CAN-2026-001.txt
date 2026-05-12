@@ -1,0 +1,19 @@
+CERTIFICADO DE VALOR SOBERANO
+ID: local-fallback-9
+Fecha: 19/03/2026
+1. DATOS DEL ACTIVO
+  lote_id: CAN-2026-001
+  producto: Cannabis Medicinal (cannabis_medicinal)
+  fecha_cosecha: 19/03/2026
+  peso_neto: 50.0 g
+  ubicacion: Invernadero 3, Finca La Dehesa, Caceres
+  responsable: CASTUO-SYSTEM S.L.
+  yield_actual: 98.5
+  gaiachain_tx: gaiachain-no-cli
+2. SELLOS LEGALES
+  eIDAS 2: local-fallback-956bdcf48fda6a05
+  GaiaChain: gaiachain-no-cli
+
+--- CLAUSULA DE CONTINUIDAD OPERATIVA (eIDAS 2, Art. 25.2) ---
+eIDAS cualificado no disponible; se usa sello local hasta que la firma cualificada vuelva.
+Hash de continuidad: 957fefabdfd43b380dff4c7f6be4aa1c466d3d1ca6d187413e9dabd29b69ff67

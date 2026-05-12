@@ -1,0 +1,14 @@
+# ConfigMap para sistema de defensa y análisis forense
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: defense-config
+  namespace: castuo-prod
+data:
+  FORENSIC_ENABLED: "true"
+  DEFENSE_ENABLED: "true"
+  GAIA_CHAIN_URL: "http://gaiachain-service.gaiachain.svc.cluster.local:8080"
+  ALERT_THRESHOLD_NETWORK: "0.01"
+  ALERT_THRESHOLD_BEHAVIOR: "0.005"
+  MAX_EVIDENCE_RETENTION: "30"
+  LEGAL_COMPLIANCE_MODE: "strict"

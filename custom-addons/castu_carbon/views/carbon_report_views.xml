@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_carbon_report_form" model="ir.ui.view">
+        <field name="name">castu.carbon.report.form</field>
+        <field name="model">castu.carbon.report</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="total_credits" readonly="1"/>
+                        <field name="total_revenue" readonly="1"/>
+                        <field name="state"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_generate" string="Generar Reporte" type="object" class="btn-primary" invisible="state != 'draft'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_carbon_report" model="ir.actions.act_window">
+        <field name="name">Reportes de Carbono</field>
+        <field name="res_model">castu.carbon.report</field>
+        <field name="view_mode">form</field>
+    </record>
+    <menuitem id="menu_castu_carbon_reports" name="Reportes de Carbono"
+        parent="castu_materials.menu_castu_materials_root" action="action_castu_carbon_report" sequence="51"/>
+</odoo>

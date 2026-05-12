@@ -1,0 +1,68 @@
+{
+  "name": "Sabionda Webhook → API → MQTT",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "receive",
+        "responseMode": "respond",
+        "path": "sabionda-webhook",
+        "method": "POST"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/sensors/",
+        "options": {},
+        "method": "POST"
+      },
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "topic": "sabionda/recommendations",
+        "qos": 0,
+        "retain": false,
+        "broker": {
+          "__rl": true,
+          "value": "mqtt://mqtt:1883",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "MQTT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

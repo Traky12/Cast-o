@@ -1,0 +1,76 @@
+{
+  "audit_id": "AUDIT-2026-EXAMPLE",
+  "farm_id": "EXT-2026-01",
+  "date": "2026-03-25T00:00:00Z",
+  "location": {
+    "latitude": 39.4769,
+    "longitude": -6.3725,
+    "region": "Extremadura, Espana"
+  },
+  "satellite_data": {
+    "product_id": "S2A_MSIL2A_20230320T100031_N0509_R122_T30SXD_20230320T120432",
+    "ndvi": 0.75,
+    "albedo": 0.18,
+    "radiation": 850,
+    "notes": "Datos de ejemplo para pruebas. Reemplazar con valores reales."
+  },
+  "iot_data": {
+    "air_temp": 28,
+    "humidity": 60,
+    "energy_consumed": 3500,
+    "crop_type": "microgreens"
+  },
+  "results": {
+    "solar_energy": {
+      "available": 127.5,
+      "units": "W/m2",
+      "status": "estimated"
+    },
+    "crop_temperature": 22.5,
+    "energy_efficiency": {
+      "efficiency": 0.85,
+      "status": "optimal",
+      "notes": "Valor estimado. Validar con datos reales."
+    },
+    "alerts": [],
+    "recommendations": [
+      {
+        "type": "energy_saving",
+        "description": "Ajustar angulo de paneles segun latitud y sombreado (ingenieria).",
+        "savings_estimated": 105,
+        "units": "kWh/ano",
+        "status": "pending_validation"
+      }
+    ]
+  },
+  "energy_context": {
+    "prices": {
+      "country": "ES",
+      "prices": [45.2, 47.1, 49.8],
+      "units": "EUR/MWh",
+      "source": "ENTSO-E (datos de ejemplo)",
+      "status": "mock"
+    },
+    "carbon_intensity": {
+      "country": "ES",
+      "intensity": 180,
+      "units": "gCO2/kWh",
+      "source": "referencia ilustrativa",
+      "status": "estimated"
+    },
+    "policies": [
+      {
+        "name": "PNIEC 2021-2030",
+        "description": "Plan Nacional Integrado de Energia y Clima.",
+        "status": "reference"
+      }
+    ]
+  },
+  "gaiachain_tx": "[PENDIENTE]",
+  "notes": [
+    "Ejemplo ilustrativo. Sustituir por:",
+    "Hashes witness reales (script Register-EnergyAudit.sh).",
+    "Transacciones GaiaChain verificadas en explorer/API.",
+    "Sensores IoT y escenas satelite validadas en campo."
+  ]
+}

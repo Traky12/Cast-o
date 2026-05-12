@@ -1,0 +1,14 @@
+---
+env: production
+domain: "juntaextremadura.es"
+docker_network: "forestownershiptoken_net"
+
+offer_bot_port: 8007
+negotiation_bot_port: 8008
+loyalty_bot_port: 8009
+commercial_orchestrator_port: 8010
+
+gaia_chain_rpc: "https://gaiachain.castuo-system.com"
+sigpac_api_key: "{{ vault_sigpac_api_key }}"
+smtp_password: "{{ vault_smtp_password }}"
+

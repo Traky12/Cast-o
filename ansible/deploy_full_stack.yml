@@ -1,0 +1,7 @@
+---
+- name: Desplegar stack completo ForestOwnershipToken
+  hosts: agents
+  become: yes
+  roles:
+    - agents
+

@@ -1,0 +1,33 @@
+# CASTÚO-SYSTEM — ROOT MAESTRO (referencia única)
+# Uso: docker-compose -f docker-compose.hetzner.master.yml up -d --build
+# Requiere: secret master_password ya creado (docker secret create master_password -)
+# Swarm: docker stack deploy -c docker-compose.hetzner.master.yml castuo
+version: '3.8'
+
+# Requiere Docker Swarm para secrets: docker swarm init && echo -n 'PASSWORD' | docker secret create master_password -
+
+services:
+  castuo-master:
+    container_name: castuo-master
+    build:
+      context: .
+      dockerfile: api/Dockerfile.root-master
+    image: castuo/root-master:latest
+    privileged: true
+    cap_add:
+      - ALL
+    secrets:
+      - master_password
+    environment:
+      - MASTER_PASSWORD_FILE=/run/secrets/master_password
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev:/dev
+    ports:
+      - "2222:22"
+      - "8000:8000"
+    restart: unless-stopped
+
+secrets:
+  master_password:
+    external: true

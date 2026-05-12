@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-backend
+  namespace: castuo-system
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: backend
+        env:
+        - name: LEGAL_FRAMEWORK
+          value: "GDPR,AI_Act,PAC_2040"

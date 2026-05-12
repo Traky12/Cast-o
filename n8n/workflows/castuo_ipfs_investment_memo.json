@@ -1,0 +1,55 @@
+{
+  "name": "CASTUO_IPFS_Investment_Memo",
+  "active": false,
+  "tags": ["CASTUO", "ipfs", "investment", "webhook"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ipfs-investment-memo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "im-wh",
+      "name": "Webhook_Memo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [200, 320],
+      "webhookId": "castuo-ipfs-investment-memo"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst memo_id = String(body.memo_id || body.id || 'memo-unknown');\nconst payload = { memo_id, ts: new Date().toISOString(), note: body.note || '' };\nconst jwt = String($env.IPFS_API_KEY || '').trim();\nlet ipfs = {\n  skipped: true,\n  reason: 'IPFS_API_KEY vacío (JWT Pinata v3 en Bearer; ver docs Pinata)',\n};\nif (jwt) {\n  try {\n    const r = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        Authorization: 'Bearer ' + jwt,\n      },\n      body: JSON.stringify({\n        pinataContent: payload,\n        pinataMetadata: { name: 'investment_memo_' + memo_id },\n      }),\n    });\n    const t = await r.text();\n    let parsed;\n    try {\n      parsed = JSON.parse(t);\n    } catch {\n      parsed = { raw: t };\n    }\n    ipfs = { http_status: r.status, response: parsed };\n  } catch (e) {\n    ipfs = { error: e.message };\n  }\n}\nconst ipfs_hash = ipfs.response?.IpfsHash || null;\nlet gaia = { skipped: true };\nconst gurl = String($env.N8N_GAIACHAIN_API || '').trim();\nconst gkey = String($env.N8N_GAIACHAIN_API_KEY || '').trim();\nif (gurl && gkey && ipfs_hash) {\n  try {\n    const r = await fetch(gurl.replace(/\\/$/, ''), {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        Authorization: 'Bearer ' + gkey,\n      },\n      body: JSON.stringify({ ipfs_hash, memo_id, ts: payload.ts }),\n    });\n    gaia = { http_status: r.status, text: await r.text() };\n  } catch (e) {\n    gaia = { error: e.message };\n  }\n}\nreturn [{ json: { memo_id, payload, ipfs, ipfs_hash, gaia } }];"
+      },
+      "id": "im-code",
+      "name": "PinJSON_Gaia_Stub",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "im-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [760, 320]
+    }
+  ],
+  "connections": {
+    "Webhook_Memo": {
+      "main": [[{ "node": "PinJSON_Gaia_Stub", "type": "main", "index": 0 }]]
+    },
+    "PinJSON_Gaia_Stub": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Pinata: IPFS_API_KEY como Bearer (JWT Pinata v3) o ajustar URL/auth según proveedor. Infura usa Basic distinto. Slack: {{$env.N8N_SLACK_SALES}} tras nodo HTTP."
+  }
+}

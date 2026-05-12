@@ -1,0 +1,174 @@
+{
+  "title": "Dashboard de Ensayos Clinicos con Cannabis Medicinal (AEMPS) - repo",
+  "uid": "aemps-cannabis-trials",
+  "tags": ["AEMPS", "Cannabis Medicinal", "UNE 66181", "repo"],
+  "timezone": "browser",
+  "templating": {
+    "list": [
+      {
+        "name": "trial_id",
+        "label": "ID del ensayo (lote_id)",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(cannabis_trial_status, trial_id)",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Ensayos Activos",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cannabis_trial_status{status=\"active\"})",
+          "refId": "A"
+        }
+      ],
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center" }
+    },
+    {
+      "id": 2,
+      "title": "Ensayos Pendientes",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cannabis_trial_status{status=\"pending\"})",
+          "refId": "A"
+        }
+      ],
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center" }
+    },
+    {
+      "id": 3,
+      "title": "Ensayos Completados",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cannabis_trial_status{status=\"completed\"})",
+          "refId": "A"
+        }
+      ],
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center" }
+    },
+    {
+      "id": 4,
+      "title": "Cumplimiento AEMPS (RD 903/2025)",
+      "type": "gauge",
+      "gridPos": { "x": 0, "y": 6, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cannabis_trial_compliance{standard=\"AEMPS\"}) / sum(cannabis_trial_status) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "orange", "value": 80 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Cumplimiento GDPR",
+      "type": "gauge",
+      "gridPos": { "x": 8, "y": 6, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cannabis_trial_compliance{standard=\"GDPR\"}) / sum(cannabis_trial_status) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "orange", "value": 80 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Cumplimiento ISO 17025",
+      "type": "gauge",
+      "gridPos": { "x": 16, "y": 6, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cannabis_trial_compliance{standard=\"ISO_17025\"}) / sum(cannabis_trial_status) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "orange", "value": 80 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Detalle por Ensayo (status y compliance)",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "cannabis_trial_status{trial_id=\"$trial_id\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "cannabis_trial_compliance{trial_id=\"$trial_id\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "options": { "showHeader": true }
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1,
+  "style": "dark",
+  "editable": true,
+  "graphTooltip": 0
+}
+

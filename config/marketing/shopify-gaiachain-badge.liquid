@@ -1,0 +1,12 @@
+{% comment %}
+  CASTÚO-SYSTEM™ — Badge GaiaChain para Shopify (Extremadura AgroTech)
+  Mostrar en producto con tag 'GaiaChain'. Sustituir asset_url por la URL de tu tema.
+{% endcomment %}
+{% if product.tags contains 'GaiaChain' %}
+  <div class="gaiachain-badge">
+    <img src="{{ 'gaiachain-certified.svg' | asset_url }}" alt="Certificado GaiaChain" width="48" height="48">
+    <p>Verifica la trazabilidad:</p>
+    <a href="https://gaiachain.castuo-system.com/trace/{{ product.metafields.global.lot_id }}"
+       target="_blank" rel="noopener" class="button">Ver en GaiaChain</a>
+  </div>
+{% endif %}

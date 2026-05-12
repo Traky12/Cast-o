@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  rpi-hidroponia:
+    image: ghcr.io/castuo-system/rpi-hidroponia:optimized
+    environment:
+      - SENSOR_LIMIT=500
+      - MQTT_QOS=1
+      - REGION={{ region }}
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+    restart: unless-stopped

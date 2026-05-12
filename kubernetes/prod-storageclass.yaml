@@ -1,0 +1,11 @@
+# StorageClass opcional para datos persistentes (ajustar según el cluster)
+# Si el cluster ya tiene default StorageClass, no es necesario aplicar este archivo.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: castuo-prod-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+# Ajustar provisioner según el cluster: e.g. kubernetes.io/aws-ebs, pd.csi.storage.gke.io, etc.

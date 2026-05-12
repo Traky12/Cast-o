@@ -1,0 +1,23 @@
+{
+  "title": "Informe Estratégico: Red Europea de Drones",
+  "date": "2026-03-29",
+  "highlights": {
+    "total_missions": 0,
+    "success_rate": "0.0%",
+    "countries_involved": 0,
+    "total_distance": "0 km"
+  },
+  "recommendations": [
+    "Establecer acuerdos preferenciales con operadores en Francia (alta demanda).",
+    "Optimizar rutas entre España y Portugal para reducir costes.",
+    "Invertir en drones con mayor autonomía para misiones >200km."
+  ],
+  "detailed_data": {
+    "total_missions": 0,
+    "missions_by_status": {},
+    "missions_by_country_pair": {},
+    "total_distance_km": 0,
+    "total_operators_involved": 0,
+    "success_rate": 0.0
+  }
+}

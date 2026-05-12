@@ -1,0 +1,8 @@
+---
+env: staging
+domain: "staging.juntaextremadura.es"
+
+gaia_chain_rpc: "https://testnet.gaiachain.castuo-system.com"
+sigpac_api_key: "{{ vault_sigpac_api_key }}"
+smtp_password: "{{ vault_smtp_password }}"
+

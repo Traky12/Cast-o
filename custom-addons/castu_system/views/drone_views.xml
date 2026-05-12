@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_drone_tree" model="ir.ui.view">
+        <field name="name">castu.drone.tree</field>
+        <field name="model">castu.drone</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="granja_id"/>
+                <field name="estado"/>
+                <field name="bateria"/>
+                <field name="latitud"/>
+                <field name="longitud"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_castu_drone_form" model="ir.ui.view">
+        <field name="name">castu.drone.form</field>
+        <field name="model">castu.drone</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="granja_id"/>
+                        <field name="modelo"/>
+                        <field name="estado"/>
+                        <field name="bateria"/>
+                        <field name="latitud"/>
+                        <field name="longitud"/>
+                        <field name="altitud"/>
+                        <field name="mision_actual_id"/>
+                        <field name="biocoin_tx"/>
+                        <field name="ultimo_contacto"/>
+                    </group>
+                    <notebook>
+                        <page string="Misiones">
+                            <field name="mission_ids">
+                                <tree readonly="1">
+                                    <field name="name"/>
+                                    <field name="tipo"/>
+                                    <field name="estado"/>
+                                    <field name="fecha_inicio"/>
+                                    <field name="fecha_fin"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Alertas">
+                            <field name="alert_ids">
+                                <tree>
+                                    <field name="tipo"/>
+                                    <field name="mensaje"/>
+                                    <field name="fecha"/>
+                                    <field name="resuelta"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <footer>
+                    <button
+                        name="action_start_mission_mapping"
+                        string="Iniciar Misión de Mapeo"
+                        type="object"
+                        class="btn-primary"
+                        invisible="estado != 'standby'"
+                    />
+                    <button
+                        name="action_start_mission_spraying"
+                        string="Iniciar Misión de Fumigación"
+                        type="object"
+                        class="btn-primary"
+                        invisible="estado != 'standby'"
+                    />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_castu_drone_mission_tree" model="ir.ui.view">
+        <field name="name">castu.drone.mission.tree</field>
+        <field name="model">castu.drone.mission</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="drone_id"/>
+                <field name="tipo"/>
+                <field name="estado"/>
+                <field name="fecha_inicio"/>
+                <field name="fecha_fin"/>
+                <field name="biocoin_tx"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_castu_drone_mission_form" model="ir.ui.view">
+        <field name="name">castu.drone.mission.form</field>
+        <field name="model">castu.drone.mission</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name" readonly="1"/>
+                        <field name="drone_id"/>
+                        <field name="tipo"/>
+                        <field name="params"/>
+                        <field name="estado"/>
+                        <field name="fecha_inicio"/>
+                        <field name="fecha_fin"/>
+                        <field name="biocoin_tx"/>
+                        <field name="resultados"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_castu_drone" model="ir.actions.act_window">
+        <field name="name">Drones</field>
+        <field name="res_model">castu.drone</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_castu_drone_mission" model="ir.actions.act_window">
+        <field name="name">Misiones de Drones</field>
+        <field name="res_model">castu.drone.mission</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="menu_castu_drones"
+        name="Drones"
+        parent="menu_castu_root"
+        action="action_castu_drone"
+        sequence="15"
+    />
+    <menuitem
+        id="menu_castu_drone_missions"
+        name="Misiones"
+        parent="menu_castu_drones"
+        action="action_castu_drone_mission"
+        sequence="20"
+    />
+</odoo>

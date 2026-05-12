@@ -1,0 +1,52 @@
+{
+  "name": "CASTUO_Consultar_Sensores_PowerBI",
+  "active": false,
+  "tags": ["CASTUO", "sensores", "powerbi", "schedule"],
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "hoursH": 0, "minutesM": 60 }]
+        }
+      },
+      "id": "csp-schedule",
+      "name": "Schedule_Cada_Hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "notesInFlow": true,
+      "notes": "Cada 60 min; activar solo en self-hosted con TZ correcta.",
+      "position": [200, 300],
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "id": "csp-manual",
+      "name": "Manual_Prueba",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\n\nfunction deepMerge(a, b) {\n  if (!b) return a;\n  const out = { ...a };\n  for (const k of Object.keys(b)) {\n    if (\n      b[k] &&\n      typeof b[k] === 'object' &&\n      !Array.isArray(b[k]) &&\n      a[k] &&\n      typeof a[k] === 'object' &&\n      !Array.isArray(a[k])\n    ) {\n      out[k] = deepMerge(a[k], b[k]);\n    } else {\n      out[k] = b[k];\n    }\n  }\n  return out;\n}\n\nfunction loadGlobalVars() {\n  const envJson = String($env.CASTUO_GLOBAL_VARS_JSON || '').trim();\n  let base;\n  if (envJson) base = JSON.parse(envJson);\n  else {\n    const p = String($env.CASTUO_GLOBAL_VARS_PATH || '').trim();\n    if (!p) throw new Error('CASTUO_GLOBAL_VARS_JSON o CASTUO_GLOBAL_VARS_PATH requerido');\n    base = JSON.parse(fs.readFileSync(p, 'utf8'));\n  }\n  const ov = String($env.CASTUO_GLOBAL_VARS_OVERRIDE_PATH || '').trim();\n  if (ov && fs.existsSync(ov)) base = deepMerge(base, JSON.parse(fs.readFileSync(ov, 'utf8')));\n  return base;\n}\n\nconst cfg = loadGlobalVars();\nconst table = cfg.database.lecturas_sensores;\nconst lecturas = [];\nlet powerbi = { skipped: true, reason: 'streaming_endpoint vacío en global_vars' };\nconst url = cfg.external_services?.power_bi?.streaming_endpoint && String(cfg.external_services.power_bi.streaming_endpoint).trim();\nif (url) {\n  try {\n    const r = await fetch(url, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ rows: lecturas, source: 'castuo-n8n', ts: new Date().toISOString() }),\n    });\n    powerbi = { http_status: r.status, text: await r.text() };\n  } catch (e) {\n    powerbi = { error: e.message };\n  }\n}\nconst audit = {\n  timestamp: new Date().toISOString(),\n  operacion: 'Consultar Sensores → Power BI',\n  tabla_consulta: table,\n  filas: lecturas.length,\n  workflow: 'CASTUO_Consultar_Sensores_PowerBI',\n};\nreturn [{ json: { castuo: cfg, lecturas, powerbi, audit, data_table_select: table } }];"
+      },
+      "id": "csp-code",
+      "name": "Cargar_Select_Stub_PowerBI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 380]
+    }
+  ],
+  "connections": {
+    "Schedule_Cada_Hora": {
+      "main": [[{ "node": "Cargar_Select_Stub_PowerBI", "type": "main", "index": 0 }]]
+    },
+    "Manual_Prueba": {
+      "main": [[{ "node": "Cargar_Select_Stub_PowerBI", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Plantilla: lecturas vacías hasta conectar nodo Data Table/Postgres con cfg.database.lecturas_sensores. Power BI Push requiere URL y cuerpo acorde a dataset. Schedule deshabilitado por defecto."
+  }
+}

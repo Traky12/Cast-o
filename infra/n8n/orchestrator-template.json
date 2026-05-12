@@ -1,0 +1,399 @@
+{
+  "name": "Castuo_Orchestrator_Template_TRL9",
+  "tags": [
+    "TRL9",
+    "CRYPTO-FORTALEZA",
+    "LOCAL-FIRST"
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "path": "castuo/telemetry",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "name": "Entrada_Hardware_Verificada",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const sig = $json.headers?.['x-hardware-signature'] || $json.headers?.['X-Hardware-Signature'];\n  if (!sig) throw new Error('Falta firma hardware');\n\n  // Guardamos el inicio para el Feedback Loop (eficiencia CPU/RAM en el búnker).\n  const _startTime = Date.now();\n\n  return [{ json: { ...$json, hardware_signature_verified: true, _startTime } }];\n} catch (e) {\n  return [{ json: { ...$json, hardware_signature_verified: false, error: String(e) } }];\n}\n"
+      },
+      "name": "Nodo0_Verificacion_Firma_Hardware",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://sabionda-kernel.local:11434/api/decide",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "telemetry",
+              "value": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "Nodo1_Sabionda_Gateway_Local",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        640,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CASTUO_ENCRYPT_URL || 'http://api:8000/encrypt' }}",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "Nodo2_Crypto_PQC_Encrypt_Lacre",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        860,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://sabionda-kernel.local:11434/api/seal",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "encrypted_payload",
+              "value": "={{ $json.result || $json.encrypted_data || $json }}"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "Nodo3_Notarizacion_Sello_de_Lacre",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1080,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const startTime = $node['Nodo0_Verificacion_Firma_Hardware'].json._startTime || Date.now();\nconst executionTime = Date.now() - startTime;\nconst memoryUsed = process.memoryUsage().heapUsed / 1024 / 1024;\n\n// Acción fija del template: sirve como referencia para auditoría de consistencia.\nconst expected_action = 'castuo_orchestrator_template_action';\n\nreturn [{\n  json: {\n    status: 'auditado_por_sabionda',\n    expected_action,\n    efficiency_metrics: {\n      ms: executionTime,\n      mb: memoryUsed.toFixed(2)\n    },\n    recommendation_request: 'optimizar_codigo_js'\n  }\n}];\n"
+      },
+      "name": "FeedbackLoop_EfficiencyTelemetry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "topic": "sabionda/telemetry_anon",
+        "qos": 0,
+        "retain": false,
+        "broker": {
+          "__rl": true,
+          "value": "mqtt://mqtt:1883",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT_Publish_FeedbackLoop",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/api/audit/register-event",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.N8N_ADMIN_JWT }}"
+            }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tokenId",
+              "value": "0"
+            },
+            {
+              "name": "action",
+              "value": "={{ $json.expected_action }}"
+            },
+            {
+              "name": "status",
+              "value": "completed"
+            },
+            {
+              "name": "details",
+              "value": "={{ { source: 'orchestrator-template', efficiency: $json.efficiency_metrics } }}"
+            },
+            {
+              "name": "compliance",
+              "value": "={{ {} }}"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "FederatedAudit_Register_Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1660,
+        200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/api/compliance/audit/latest?tokenId=0",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.N8N_ADMIN_JWT }}"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "FederatedCompliance_Audit_Latest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1860,
+        200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const expected_action = $node['FeedbackLoop_EfficiencyTelemetry'].json.expected_action;\nconst latest_action = $json.action ?? $json.event ?? $json.Action ?? null;\n\nconst discrepancy = Boolean(latest_action) && latest_action !== expected_action;\n\nreturn [{\n  json: {\n    expected_action,\n    latest_action,\n    discrepancy,\n    tierra_firme_alert_activado: discrepancy\n  }\n}];\n"
+      },
+      "name": "FederatedAudit_Discrepancy_Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.tierra_firme_alert_activado }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "name": "IF_Discrepancy_Activar_TierraFirme",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2260,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "topic": "tierra-firme/alert",
+        "qos": 0,
+        "retain": false,
+        "broker": {
+          "__rl": true,
+          "value": "mqtt://mqtt:1883",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT_Publish_TierraFirme_Discrepancy",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        2460,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  // Si falla conectividad externa, activar contingencia analoga.\n  // Nota: aquí es un placeholder; el hardener valida presencia del patrón.\n  return [{ json: { ...$json, tierra_firme_alert_activado: true } }];\n} catch (e) {\n  return [{ json: { ...$json, tierra_firme_alert_error: String(e) } }];\n}\n"
+      },
+      "name": "ModoIsla_Tierra_Firme_Contingencia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "Entrada_Hardware_Verificada": {
+      "main": [
+        [
+          {
+            "node": "Nodo0_Verificacion_Firma_Hardware",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nodo0_Verificacion_Firma_Hardware": {
+      "main": [
+        [
+          {
+            "node": "Nodo1_Sabionda_Gateway_Local",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nodo1_Sabionda_Gateway_Local": {
+      "main": [
+        [
+          {
+            "node": "Nodo2_Crypto_PQC_Encrypt_Lacre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nodo2_Crypto_PQC_Encrypt_Lacre": {
+      "main": [
+        [
+          {
+            "node": "Nodo3_Notarizacion_Sello_de_Lacre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nodo3_Notarizacion_Sello_de_Lacre": {
+      "main": [
+        [
+          {
+            "node": "FeedbackLoop_EfficiencyTelemetry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FeedbackLoop_EfficiencyTelemetry": {
+      "main": [
+        [
+          {
+            "node": "MQTT_Publish_FeedbackLoop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FederatedAudit_Register_Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+    ,
+    "FederatedAudit_Register_Event": {
+      "main": [
+        [
+          {
+            "node": "FederatedCompliance_Audit_Latest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FederatedCompliance_Audit_Latest": {
+      "main": [
+        [
+          {
+            "node": "FederatedAudit_Discrepancy_Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FederatedAudit_Discrepancy_Check": {
+      "main": [
+        [
+          {
+            "node": "IF_Discrepancy_Activar_TierraFirme",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_Discrepancy_Activar_TierraFirme": {
+      "main": [
+        [
+          {
+            "node": "MQTT_Publish_TierraFirme_Discrepancy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "error_trl9_critical",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
+

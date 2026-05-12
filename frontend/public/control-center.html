@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASTUO Control Center v6.0</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #22c55e; --secondary: #16a34a; --dark: #064e3b; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: var(--dark); }
+        .sidebar { background: linear-gradient(to bottom, var(--primary), var(--secondary)); color: white; }
+        .card { background: white; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="flex h-screen bg-gray-50">
+    <div class="sidebar w-64 space-y-6 py-7 px-2 fixed inset-y-0 left-0">
+        <div class="text-center"><h1 class="text-2xl font-bold">🌿 CASTUO</h1><p class="text-sm">Control Center v6.0</p></div>
+        <nav class="space-y-3">
+            <a href="index.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-home mr-3"></i> Inicio</a>
+            <a href="sabionda-ia.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-brain mr-3"></i> Sabionda IA</a>
+            <a href="control-center.html" class="flex items-center px-4 py-2 bg-green-700 rounded text-white"><i class="fas fa-th-large mr-3"></i> Control Center</a>
+            <a href="ecommerce.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-shopping-cart mr-3"></i> E-commerce</a>
+            <a href="metricas.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-chart-bar mr-3"></i> Métricas</a>
+            <a href="panel-control-federado.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-network-wired mr-3"></i> Panel Federado</a>
+            <a href="sabionda-n8n-agents-dashboard.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-project-diagram mr-3"></i> Agentes n8n</a>
+        </nav>
+    </div>
+    <div class="ml-64 p-8 w-full overflow-y-auto">
+        <h2 class="text-2xl font-bold mb-8">CASTUO Control Center v6.0</h2>
+
+        <section id="mistral-agent" class="card p-6 mb-8">
+            <h3 class="font-bold text-lg mb-4">🤖 Mistral Master Agent</h3>
+            <p class="text-gray-600 text-sm mb-3">Consulta estado LER, certificación CTAEX, workflows n8n, Notion o pago microgreens. El agente elegirá las herramientas.</p>
+            <div class="flex gap-3 flex-wrap">
+                <input id="query" type="text" placeholder="Ej. Estado completo sistema CTAEX" class="flex-1 min-w-[200px] border rounded px-3 py-2">
+                <button type="button" onclick="masterQuery()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Ejecutar</button>
+            </div>
+            <div id="response" class="mt-4 p-4 bg-gray-50 rounded text-sm font-mono overflow-x-auto"></div>
+        </section>
+
+        <section id="integrations" class="mb-8">
+            <h3 class="font-bold text-lg mb-4">Integraciones</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div onclick="sabiondaLER()" class="card p-5 cursor-pointer hover:border-green-500 border border-transparent transition">
+                    <div class="text-2xl mb-2">📈</div>
+                    <div class="font-bold">Sabionda IA (LER)</div>
+                    <div class="text-sm text-gray-500">LER 1.54 · Análisis predictivo</div>
+                </div>
+                <div onclick="n8nStatus()" class="card p-5 cursor-pointer hover:border-green-500 border border-transparent transition">
+                    <div class="text-2xl mb-2">🔄</div>
+                    <div class="font-bold">n8n Workflows</div>
+                    <div class="text-sm text-gray-500">Automatización y triggers</div>
+                </div>
+                <div onclick="notionSync()" class="card p-5 cursor-pointer hover:border-green-500 border border-transparent transition">
+                    <div class="text-2xl mb-2">📋</div>
+                    <div class="font-bold">Notion CTAEX</div>
+                    <div class="text-sm text-gray-500">Roadmap y estado en tiempo real</div>
+                </div>
+                <div onclick="moneyCheckout()" class="card p-5 cursor-pointer hover:border-green-500 border border-transparent transition">
+                    <div class="text-2xl mb-2">💳</div>
+                    <div class="font-bold">Money Microgreens</div>
+                    <div class="text-sm text-gray-500">Checkout Stripe CTAEX Cert</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        var API_BASE = (window.location.port === '3000' && window.location.hostname === 'localhost') ? 'http://localhost:8000' : '';
+        var STRIPE_PK = window.STRIPE_PK || '';
+
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function masterQuery() {
+            var query = document.getElementById('query').value || 'Estado completo sistema CTAEX';
+            var el = document.getElementById('response');
+            el.innerHTML = '<p>Consultando Master Agent...</p>';
+            try {
+                var res = await fetch(API_BASE + '/castuo/master-agent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.detail || res.statusText);
+                el.innerHTML = '<pre class="whitespace-pre-wrap">' + escapeHtml(JSON.stringify(data, null, 2)) + '</pre>';
+            } catch (e) {
+                el.innerHTML = '<p class="text-red-500">Error: ' + escapeHtml(e.message) + '</p>';
+            }
+        }
+
+        function sabiondaLER() {
+            document.getElementById('query').value = 'Estado LER y recomendaciones agrovoltaica';
+            masterQuery();
+        }
+
+        function n8nStatus() {
+            document.getElementById('query').value = 'Estado de workflows n8n y última ejecución';
+            masterQuery();
+        }
+
+        function notionSync() {
+            document.getElementById('query').value = 'Estado CTAEX 17/03 y actualizar roadmap Notion';
+            masterQuery();
+        }
+
+        async function moneyCheckout() {
+            var el = document.getElementById('response');
+            el.innerHTML = '<p>Creando sesión Stripe para MG-2026-03-14...</p>';
+            try {
+                var res = await fetch(API_BASE + '/money/microgreens', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ batch_id: 'MG-2026-03-14' })
+                });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.detail || res.statusText);
+                var sessionId = data.stripe_session;
+                if (STRIPE_PK && sessionId && typeof Stripe !== 'undefined') {
+                    var stripe = Stripe(STRIPE_PK);
+                    stripe.redirectToCheckout({ sessionId: sessionId });
+                } else {
+                    el.innerHTML = '<p class="text-green-700">Sesión creada: <code>' + escapeHtml(sessionId) + '</code>. Configure STRIPE_PK en la página para redirigir a Checkout.</p>';
+                }
+            } catch (e) {
+                el.innerHTML = '<p class="text-red-500">Error: ' + escapeHtml(e.message) + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

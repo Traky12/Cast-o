@@ -1,0 +1,21 @@
+{
+  "solar_panels": {
+    "geometry": { "type": "Box", "width": 1.6, "height": 0.02, "depth": 1.0 },
+    "position": [0, 2.5, 0],
+    "material": { "color": "#333333", "metallic": 0.9 }
+  },
+  "crops": {
+    "geometry": { "type": "Plane", "width": 10, "height": 10 },
+    "position": [0, 0, 0],
+    "material": { "color": "#4CAF50", "opacity": 0.8 }
+  },
+  "thermal_data": {
+    "temperature": 22.5,
+    "radiation": 800,
+    "humidity": 65
+  },
+  "energy_efficiency": {
+    "efficiency": 0.85,
+    "status": "optimal"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "name": "CASTUO_Sentinel_Terpene_Tracking_Alerts",
+  "tags": ["CASTUO", "n8n", "sentinel", "terpene", "hydroponics", "ethics"],
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "receive",
+        "responseMode": "responseNode",
+        "path": "castuo-terpene-track",
+        "method": "POST"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst trace_id = 'castuo-ag-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);\nconst body = item.body ?? item;\nconst targetTerpene = String(body.target_terpene ?? $env.TERPENE_PROFILE ?? $env.CASTUO_TARGET_TERPENE ?? 'mirceno').trim().toLowerCase();\nconst ndvi = Number(body.ndvi_mean ?? body.ndvi ?? 0.6);\nconst current = {\n  humedad: Number(body.humedad ?? 65),\n  ph: Number(body.ph ?? 5.8),\n  ec: Number(body.ec ?? 1.2),\n  luz_umol: Number.isFinite(Number(body.luz_umol)) ? Number(body.luz_umol) : Math.min(1800, Math.max(200, ndvi * 1800)),\n  uvb_ratio: Number(body.uvb_ratio ?? 0.05),\n};\nconst optimal = {\n  mirceno: { luz_umol: [800, 1200], ph: [5.8, 6.2], ec: [1.0, 1.6], uvb_ratio: 0.05 },\n  limoneno: { luz_umol: [600, 900], ph: [6.0, 6.5], ec: [1.2, 1.8], uvb_ratio: 0.02 },\n};\nconst p = optimal[targetTerpene] || optimal.mirceno;\nconst deviation = {\n  luz_umol: current.luz_umol < p.luz_umol[0] || current.luz_umol > p.luz_umol[1],\n  ph: current.ph < p.ph[0] || current.ph > p.ph[1],\n  ec: current.ec < p.ec[0] || current.ec > p.ec[1],\n  uvb_ratio: Math.abs(current.uvb_ratio - p.uvb_ratio) > 0.01,\n};\nconst deviationAny = Object.values(deviation).some(Boolean);\nconst alertText = `[trace=${trace_id}] ALERTA agrotech (no medicina) perfil ${targetTerpene} | luz=${current.luz_umol} ph=${current.ph} ec=${current.ec} uvb=${current.uvb_ratio}`;\nconst ethics_notice = String($env.CASTUO_ALERT_LEGAL_PREFIX || 'TRL-6 integración | SNN capa TRL-4 sim').trim();\nconst trl_level = String($env.TRL_LEVEL || 'TRL-6-staging').trim();\nreturn [{ json: { trace_id, trl_level, ethics_notice, target_terpene: targetTerpene, ndvi, current, optimal_profile: p, deviation, deviation_any: deviationAny, alert_text: alertText } }];"
+      },
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{(($env.CASTUO_API_URL || 'http://api:8000').replace(/\\/$/, '')) + '/api/robotics/lab/neuromorphic/hydroponics/infer'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.CASTUO_API_TOKEN || $env.CASTUO_ROBOTICS_LAB_BEARER_TOKEN || '') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ { humedad: $node['Code'].json.current.humedad, ph: $node['Code'].json.current.ph, ec: $node['Code'].json.current.ec, luz_umol: $node['Code'].json.current.luz_umol, uvb_ratio: $node['Code'].json.current.uvb_ratio, target_terpene: $node['Code'].json.target_terpene } }}",
+        "options": {}
+      },
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $node['Code'].json['deviation_any'] }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [930, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ 'TRL-6 integración | SNN capa TRL-4 sim\\n\\n' + ($env.CASTUO_ALERT_LEGAL_PREFIX || 'Investigación agronómica. No consejo médico.') + '\\n\\nTrace: ' + $node['Code'].json['trace_id'] + '\\nTRL: ' + String($node['Code'].json['trl_level'] || '') + '\\n\\n' + $node['Code'].json['alert_text'] + '\\n\\nDocumentación:\\n- agrotech/ETHICS_TRACEABILITY.md\\n- deploy/CHECKLIST-TRL7-INDUSTRIAL-LIVE.md\\n- docs/legal/MARCO-LEGAL-SOBERANIA-UE-2026.md' }}"
+      },
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1160, 210],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', trace_id: $node['Code'].json['trace_id'], trl_level: $node['Code'].json['trl_level'], ethics_notice: $node['Code'].json['ethics_notice'], target_terpene: $node['Code'].json['target_terpene'], deviation: $node['Code'].json['deviation'], tier_disclosure_note: 'SNN TRL-4 sim en API; industrial ver deploy/CHECKLIST-TRL7-INDUSTRIAL-LIVE.md', infer: $json } }}"
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 380]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true
+  }
+}

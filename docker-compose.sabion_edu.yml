@@ -1,0 +1,25 @@
+# SABION EDU v5.0 — Protocolo educativo federado + certificados TRL
+# Uso: docker-compose -f docker-compose.sabion_edu.yml up -d
+# Dashboard: http://localhost:9500/edu/dashboard
+
+version: "3.8"
+
+services:
+  sabion-edu:
+    build:
+      context: ./backend/sabion_edu
+      dockerfile: Dockerfile
+    image: castuo-sabion-edu:latest
+    container_name: sabion-edu
+    ports:
+      - "9500:9500"
+    environment:
+      - SABIONDA_URL=${SABIONDA_URL:-http://sabionda-master:9000}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:9500
+    networks:
+      - edu_network
+    restart: unless-stopped
+
+networks:
+  edu_network:
+    driver: bridge

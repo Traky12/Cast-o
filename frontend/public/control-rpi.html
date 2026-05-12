@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control RPi | CASTUO-SYSTEM</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #22c55e;
+            --secondary: #16a34a;
+            --dark: #064e3b;
+            --light: #dcfce7;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: var(--dark);
+        }
+        .sidebar {
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            color: white;
+        }
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="flex h-screen bg-gray-50">
+    <!-- Sidebar -->
+    <div class="sidebar w-64 space-y-6 py-7 px-2 fixed inset-y-0 left-0 transform -translate-x-0 transition duration-200 ease-in-out">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold">🌿 CASTUO-SYSTEM</h1>
+            <p class="text-sm">Cultivos sostenibles</p>
+        </div>
+        <nav class="space-y-3">
+            <a href="index.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded">
+                <i class="fas fa-home mr-3"></i> Inicio
+            </a>
+            <a href="control-rpi.html" class="flex items-center px-4 py-2 bg-green-700 rounded text-white">
+                <i class="fas fa-microchip mr-3"></i> Control RPi
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8 w-full">
+        <h2 class="text-2xl font-bold mb-8">Control de Raspberry Pi</h2>
+
+        <!-- Tarjetas de Control -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="card p-6">
+                <h3 class="font-bold mb-4">Riego Automático</h3>
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-tint text-green-500 text-2xl mr-4"></i>
+                    <div>
+                        <p class="text-gray-500">Estado</p>
+                        <p class="text-2xl font-bold">Activo</p>
+                    </div>
+                </div>
+                <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Configurar
+                </button>
+            </div>
+            <div class="card p-6">
+                <h3 class="font-bold mb-4">Iluminación</h3>
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-lightbulb text-green-500 text-2xl mr-4"></i>
+                    <div>
+                        <p class="text-gray-500">Estado</p>
+                        <p class="text-2xl font-bold">Automático</p>
+                    </div>
+                </div>
+                <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Configurar
+                </button>
+            </div>
+            <div class="card p-6">
+                <h3 class="font-bold mb-4">Sensores</h3>
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-signal text-green-500 text-2xl mr-4"></i>
+                    <div>
+                        <p class="text-gray-500">Estado</p>
+                        <p class="text-2xl font-bold">9 Online</p>
+                    </div>
+                </div>
+                <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Ver Detalles
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - grafana.yaml
+  # prometheus.yaml requiere Prometheus Operator; descomentar si está instalado:
+  # - prometheus.yaml
+  # - alert-rules.yaml
+# Usar prometheus-federated.yaml y alert-rules-global.yaml en el cluster central para monitorización global.

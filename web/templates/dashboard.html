@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard nodos · Castúo-System</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <h1>Estado de nodos (maquetación)</h1>
+    <p class="tagline">Datos sintéticos para UI; conectar a inventario real y GaiaChain/auditoría en producción.</p>
+    <nav>
+      <a href="/">Inicio</a>
+      <a href="/security">Seguridad</a>
+    </nav>
+  </header>
+  <main class="content">
+    <p class="banner">367 tarjetas de ejemplo — optimizar con paginación o virtualización antes de producción.</p>
+    <div class="dashboard nodes-grid">
+      {% for node in nodes %}
+      <section class="node-card">
+        <h2>{{ node.id }}</h2>
+        <p>📍 {{ node.location }}</p>
+        <p>🔒 {{ node.security_status }}</p>
+        <p>🌱 Yield: {{ node.yield }}%</p>
+      </section>
+      {% endfor %}
+    </div>
+  </main>
+  <footer>
+    <p>© 2026 Castúo-System</p>
+  </footer>
+</body>
+</html>

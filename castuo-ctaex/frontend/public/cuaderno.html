@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuaderno | CASTUO-SYSTEM</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #22c55e;
+            --secondary: #16a34a;
+            --dark: #064e3b;
+            --light: #dcfce7;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: var(--dark);
+        }
+        .sidebar {
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            color: white;
+        }
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="flex h-screen bg-gray-50">
+    <!-- Sidebar -->
+    <div class="sidebar w-64 space-y-6 py-7 px-2 fixed inset-y-0 left-0 transform -translate-x-0 transition duration-200 ease-in-out">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold">🌿 CASTUO-SYSTEM</h1>
+            <p class="text-sm">Cultivos sostenibles</p>
+        </div>
+        <nav class="space-y-3">
+            <a href="index.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded">
+                <i class="fas fa-home mr-3"></i> Inicio
+            </a>
+            <a href="cuaderno.html" class="flex items-center px-4 py-2 bg-green-700 rounded text-white">
+                <i class="fas fa-book mr-3"></i> Cuaderno
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8 w-full">
+        <h2 class="text-2xl font-bold mb-8">Cuaderno de Cultivo</h2>
+
+        <!-- Entradas del Cuaderno -->
+        <div class="card p-6 mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Lote LOT-2026-0001</h3>
+                <span class="text-sm text-gray-500">13/03/2026</span>
+            </div>
+            <p class="mb-4">Rúcula en fase de pre-cosecha. Sensores muestran niveles óptimos de humedad y temperatura.</p>
+            <div class="flex items-center text-sm text-gray-500">
+                <i class="fas fa-leaf mr-2"></i> Rúcula
+                <span class="mx-4">|</span>
+                <i class="fas fa-clock mr-2"></i> Día 8/10
+            </div>
+        </div>
+
+        <div class="card p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Lote LOT-2026-0002</h3>
+                <span class="text-sm text-gray-500">12/03/2026</span>
+            </div>
+            <p class="mb-4">Kale en fase de crecimiento. Ajustado el riego automático para optimizar el crecimiento.</p>
+            <div class="flex items-center text-sm text-gray-500">
+                <i class="fas fa-leaf mr-2"></i> Kale
+                <span class="mx-4">|</span>
+                <i class="fas fa-clock mr-2"></i> Día 5/14
+            </div>
+        </div>
+    </div>
+</body>
+</html>

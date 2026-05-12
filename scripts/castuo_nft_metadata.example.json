@@ -1,0 +1,11 @@
+{
+  "name": "CASTUO_GOLD_V1 — Sabionda Authenticated Release",
+  "description": "Integridad referencial CASTUO_GOLD_V1; cumplimiento declarado GDPR, eIDAS2, NIS2, EU AI Act (metadatos no sustituyen auditoría legal).",
+  "external_url": "https://castuo.example/gold/v1",
+  "attributes": [
+    { "trait_type": "Certificate ID", "value": "EXT-CAS-2026-001-GM" },
+    { "trait_type": "Compliance (declarado)", "value": "GDPR, eIDAS2, NIS2, EU AI Act 2024/1689, RED III" },
+    { "trait_type": "Zip SHA256", "value": "REEMPLAZAR_TRAS_GENERAR_ZIP" },
+    { "trait_type": "Kernel", "value": "SYSTEM_PROMPT.md + Sabionda Kernel" }
+  ]
+}

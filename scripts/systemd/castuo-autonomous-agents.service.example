@@ -1,0 +1,45 @@
+# PLANTILLA — copiar a /etc/systemd/system/castuo-autonomous-agents.service y revisar rutas.
+# start_agents.py con --background lanza Popen y termina: usar Type=oneshot + RemainAfterExit=yes.
+#
+# Opcional: instalar también castuo-system.target.example como castuo-system.target si usas PartOf.
+
+[Unit]
+Description=Castúo-System Autonomous Agents Orchestrator
+Documentation=file:///opt/castuo-system/docs/legal/PRONTUARIO-MAESTRO-LEGAL-EJECUCION-90-DIAS.md
+Documentation=https://github.com/castuo-system/Castuo-System/blob/main/docs/legal/PRONTUARIO-MAESTRO-LEGAL-EJECUCION-90-DIAS.md
+After=network-online.target
+Wants=network-online.target
+# Opcional si los agentes dependen de contenedores locales:
+# After=docker.service
+# Wants=docker.service
+# Si no instalas castuo-system.target, comenta la siguiente línea:
+PartOf=castuo-system.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=castuo
+Group=castuo
+WorkingDirectory=/opt/castuo-system
+
+RuntimeDirectory=castuo-agents
+StateDirectory=castuo-agents
+
+EnvironmentFile=-/etc/castuo-system/agents.env
+EnvironmentFile=-/etc/castuo-system/local.env
+
+# Repo en /opt/castuo-system; PYTHONPATH la fija start_agents.py desde la raíz del repo
+ExecStart=/usr/bin/python3 /opt/castuo-system/backend/scripts/start_agents.py all --background --log-dir /var/log/castuo
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/castuo-system /var/lib/castuo-agents /var/log/castuo /tmp
+ProtectHome=yes
+# Si algún agente carga extensiones nativas que requieran W+X, valorar desactivar:
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=multi-user.target

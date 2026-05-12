@@ -1,0 +1,54 @@
+{
+  "name": "CASTUO_Sabionda_Dashboard_HTML_Stub",
+  "tags": ["CASTUO", "sabionda", "dashboard", "html", "webhook"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "sabionda-dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "sab-dash-wh",
+      "name": "Webhook_GET_Dashboard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "castuo-sabionda-dashboard-html"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst q = item.query || {};\nconst status = String(q.status || 'demo').toLowerCase();\nconst accent = '#00BFFF';\nconst green = '#228B22';\nconst html = `<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n<meta charset=\"utf-8\"/>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/>\n<title>CASTÚO · Sabionda</title>\n<style>\n body { font-family: system-ui, sans-serif; margin: 0; background: #0a0f0a; color: #e8f4e8; }\n header { padding: 1.25rem 1.5rem; border-bottom: 1px solid ${accent}55; }\n h1 { margin: 0; font-size: 1.25rem; color: ${accent}; }\n .tag { color: ${green}; font-size: 0.85rem; }\n main { padding: 1.5rem; max-width: 52rem; }\n .card { background: #111916; border: 1px solid ${green}44; border-radius: 8px; padding: 1rem; margin-top: 1rem; }\n code { color: ${accent}; }\n</style>\n</head>\n<body>\n<header><h1>CASTÚO-SYSTEM</h1><p class=\"tag\">Sabionda · stub HTML (insertar nodo Agente IA antes de Respond)</p></header>\n<main>\n<p>Query <code>status</code>=<strong>${status}</strong>. En n8n ≥ 1.103 el HTML puede servirse en iframe; para Chart.js/3D serio, preferir <code>frontend/</code> consumiendo JSON del orquestador.</p>\n<div class=\"card\">\n<ul>\n<li>Orquestador: <code>POST /webhook/castuo-orchestrate</code></li>\n<li>Holobrain: <code>POST /webhook/holobrain-display</code></li>\n</ul>\n</div>\n</main>\n</body>\n</html>`;\n\nreturn [{ json: { html } }];"
+      },
+      "id": "sab-dash-code",
+      "name": "Code_Build_HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "sab-dash-respond",
+      "name": "Respond_HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_GET_Dashboard": {
+      "main": [[{ "node": "Code_Build_HTML", "type": "main", "index": 0 }]]
+    },
+    "Code_Build_HTML": {
+      "main": [[{ "node": "Respond_HTML", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "GET /webhook/sabionda-dashboard — HTML mínimo Castúo. Añadir nodo LangChain + Markdown/HTML y CORS vía proxy si un SPA externo consume la API."
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "sustainability_metrics": {
+    "carbon_footprint": {
+      "current": "12 kg CO₂/ha",
+      "baseline": "24 kg CO₂/ha (2023)",
+      "reduction": "50%",
+      "standard": "ISO 14064",
+      "certificate": "AENOR-2026-1234"
+    },
+    "water_usage": {
+      "current": "15 L/ha",
+      "baseline": "30 L/ha (2023)",
+      "reduction": "50%",
+      "standard": "OCDE Water",
+      "certificate": "CHJ-2026-5678"
+    },
+    "energy": {
+      "source": "agrovoltaica (80% renovable, 20% red)",
+      "consumption": "0.5 kWh/m²",
+      "certificate": "CNMC-2026-9012"
+    },
+    "biodiversity": {
+      "index": "0.85 (High)",
+      "certificate": "UE Biodiversity 2030"
+    },
+    "soil_health": {
+      "organic_matter": "3.2%",
+      "ph": "6.5",
+      "certificate": "ISO 11074:2015"
+    }
+  },
+  "compliance": {
+    "GDPR": true,
+    "AI_Act_2024/1689": true,
+    "PAC_2027": true,
+    "GlobalGAP": true,
+    "Extremadura_Local_Laws": {
+      "Ley_1/2023_Agrovoltaica": true,
+      "Decreto_45/2024_Agua": true
+    }
+  }
+}

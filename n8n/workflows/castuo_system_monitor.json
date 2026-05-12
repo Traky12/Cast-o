@@ -1,0 +1,38 @@
+{
+  "name": "CASTUO_System_Monitor",
+  "tags": ["CASTUO", "n8n", "health", "TRL-6", "monitoring"],
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual_Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = ($env.CASTUO_API_URL || 'http://api:8000').replace(/\\/$/, '');\nconst url = `${base}/health`;\nconst trl = ($env.TRL_LEVEL || 'TRL-6-staging').trim();\nconst res = await fetch(url, { method: 'GET' });\nconst text = await res.text();\nreturn [{\n  json: {\n    trl_level: trl,\n    health_url: url,\n    http_status: res.status,\n    ok: res.ok,\n    body_preview: String(text).slice(0, 500),\n    ethics_notice: 'Monitoreo técnico; sin datos personales; ver agrotech/ETHICS_TRACEABILITY.md',\n    checked_at: new Date().toISOString(),\n  },\n}];\n"
+      },
+      "name": "GET_Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    }
+  ],
+  "connections": {
+    "Manual_Start": {
+      "main": [
+        [
+          {
+            "node": "GET_Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true
+  }
+}

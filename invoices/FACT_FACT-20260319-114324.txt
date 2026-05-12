@@ -1,0 +1,8 @@
+FACTURA
+Numero: FACT-20260319-114324
+Fecha: 2026-03-19
+Emisor: CASTÚO-SYSTEM S.L.
+Cliente: Test S.L.
+Subtotal: 20.00 EUR
+IVA: 2.00 EUR
+TOTAL: 22.00 EUR

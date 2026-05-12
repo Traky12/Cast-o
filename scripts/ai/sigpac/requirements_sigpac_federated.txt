@@ -1,0 +1,4 @@
+# Lab: no mezclar con CI ligera. Instalar aparte de requirements_sigpac.txt.
+-r requirements_sigpac.txt
+torch>=2.1.0
+flwr>=1.8.0

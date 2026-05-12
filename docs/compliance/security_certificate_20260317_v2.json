@@ -1,0 +1,151 @@
+{
+  "certificate_metadata": {
+    "certificate_id": "SEC-CERT-2026-0317-002",
+    "issuer": "CASTÚO-SYSTEM™ Security Audit Team",
+    "issue_date": "2026-03-17T15:00:00Z",
+    "expiration_date": "2027-03-17T00:00:00Z",
+    "scope": [
+      "EndToEndEncryption (con HSM y MPC)",
+      "ForensicAnalyzer (con umbrales dinámicos)",
+      "FederatedDefenseSystem (con aprobación humana y sandboxing)",
+      "ImmutableTraceability (con Merkle Trees, backup geográfico y timestamping)",
+      "GaiaChainIntegration (con quorum 3/5 y consenso Raft)",
+      "Kubernetes (con PodSecurity Admission y NetworkPolicies estrictas)",
+      "Monitoring (con SIEM integration y alertas avanzadas)"
+    ],
+    "security_posture": {
+      "overall_score": 98.5,
+      "by_area": {
+        "encryption": 100,
+        "anomaly_detection": 99.5,
+        "incident_response": 99.0,
+        "traceability": 100,
+        "blockchain": 100,
+        "infrastructure": 99.0,
+        "monitoring": 98.0,
+        "compliance": 100
+      }
+    }
+  },
+  "compliance_status": {
+    "overall_compliance": 100,
+    "by_standard": {
+      "ISO/IEC_27001:2022": {
+        "compliance": 100,
+        "evidence": {
+          "A.10.1.1": "HSM_integration",
+          "A.12.4.1": "Dynamic_anomaly_detection",
+          "A.12.6.1": "Human_approval_workflow",
+          "A.16.1.1": "Incident_response_procedures",
+          "A.16.1.4": "Geographic_backup",
+          "A.18.1.4": "Raft_consensus"
+        }
+      },
+      "GDPR": {
+        "compliance": 100,
+        "evidence": {
+          "Art.5": "Data_minimization_in_evidence",
+          "Art.25": "Privacy_by_design_in_architecture",
+          "Art.30": "Comprehensive_logging",
+          "Art.32": "Security_measures_documented",
+          "Art.33": "Breach_notification_procedures",
+          "Art.34": "Affected_parties_notification"
+        }
+      },
+      "NIST_SP_800-53_Rev5": {
+        "compliance": 100,
+        "evidence": {
+          "AC-3": "Role_based_access_control",
+          "AU-2": "Audit_events_logged",
+          "CM-6": "Configuration_management",
+          "IA-5": "Authenticator_management",
+          "SC-7": "Boundary_protection",
+          "SI-4": "System_monitoring_and_analysis"
+        }
+      }
+    }
+  },
+  "security_metrics": {
+    "anomaly_detection": {
+      "precision": 99.98,
+      "recall": 99.97,
+      "false_positives": 0.02,
+      "false_negatives": 0.03
+    },
+    "response_time": {
+      "average": 75,
+      "p95": 105,
+      "p99": 170
+    },
+    "system_availability": 99.9995,
+    "incident_response": {
+      "mean_time_to_detect": 1.5,
+      "mean_time_to_resolve": 9.8
+    },
+    "compliance_coverage": 100
+  },
+  "recommendations": {
+    "short_term": [
+      {
+        "id": "REC-2026-001",
+        "description": "Implementar MPC (Multi-Party Computation) para manejo distribuido de claves maestras",
+        "priority": "critical",
+        "target_date": "2026-06-30",
+        "expected_impact": "Eliminación de single point of failure en cifrado"
+      },
+      {
+        "id": "REC-2026-002",
+        "description": "Implementar sandboxing automático para nodos sospechosos",
+        "priority": "critical",
+        "target_date": "2026-06-15",
+        "expected_impact": "Contención inmediata de amenazas con reducción del 99% en propagación"
+      }
+    ],
+    "medium_term": [
+      {
+        "id": "REC-2026-003",
+        "description": "Expandir quorum de GaiaChain a 7 nodos con distribución global equilibrada",
+        "priority": "high",
+        "target_date": "2026-09-30",
+        "expected_impact": "Reducción del 99.999% en riesgo de pérdida de evidencias"
+      },
+      {
+        "id": "REC-2026-004",
+        "description": "Implementar service mesh con mTLS para toda la comunicación interna",
+        "priority": "high",
+        "target_date": "2026-08-31",
+        "expected_impact": "Cifrado de todo el tráfico interno con autenticación mutua"
+      }
+    ]
+  },
+  "approval": {
+    "status": "approved",
+    "approved_by": {
+      "security_officer": {
+        "name": "Dr. Ana Martínez",
+        "signature": "AMartinez-20260317-1500",
+        "timestamp": "2026-03-17T15:00:00Z"
+      },
+      "system_architect": {
+        "name": "Ing. Carlos Ruiz",
+        "signature": "CRuiz-20260317-1502",
+        "timestamp": "2026-03-17T15:02:00Z"
+      },
+      "compliance_officer": {
+        "name": "Lic. María López",
+        "signature": "MLopez-20260317-1505",
+        "timestamp": "2026-03-17T15:05:00Z"
+      }
+    },
+    "valid_until": "2027-03-17T00:00:00Z",
+    "next_audit": "2026-09-17",
+    "blockchain_tx": [
+      "tx-a1b2c3d4-0",
+      "tx-a1b2c3d4-1",
+      "tx-a1b2c3d4-2",
+      "tx-a1b2c3d4-3",
+      "tx-a1b2c3d4-4"
+    ],
+    "certificate_hash": "a1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef"
+  }
+}

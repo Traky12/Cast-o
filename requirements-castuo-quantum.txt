@@ -1,0 +1,6 @@
+# Opcional: QAOA híbrido (Aer / IBM Quantum) para BioGrid 5.PRO+
+# pip install -r requirements-castuo-quantum.txt
+qiskit>=1.0.0
+qiskit-optimization>=0.6.0
+qiskit-aer>=0.13.0
+# IBM Quantum (opcional): qiskit-ibm-runtime + export QISKIT_IBM_TOKEN

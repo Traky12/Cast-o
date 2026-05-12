@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Facturae xmlns="http://www.facturae.es/Facturae/2014/v3.2.1/Facturae">
+  <FileHeader>
+    <SchemaVersion>3.2.1</SchemaVersion>
+    <Modality>I</Modality>
+  </FileHeader>
+  <Parties>
+    <SellerParty>
+      <TaxIdentification>
+        <PersonTypeCode>J</PersonTypeCode>
+        <ResidenceTypeCode>01</ResidenceTypeCode>
+        <TaxIdentificationNumber>{{ empresa.nif }}</TaxIdentificationNumber>
+      </TaxIdentification>
+      <LegalEntity>
+        <CorporateName>{{ empresa.nombre }}</CorporateName>
+      </LegalEntity>
+    </SellerParty>
+    <BuyerParty>
+      <TaxIdentification>
+        <PersonTypeCode>J</PersonTypeCode>
+        <ResidenceTypeCode>01</ResidenceTypeCode>
+        <TaxIdentificationNumber>{{ cliente.nif }}</TaxIdentificationNumber>
+      </TaxIdentification>
+      <LegalEntity>
+        <CorporateName>{{ cliente.nombre }}</CorporateName>
+      </LegalEntity>
+    </BuyerParty>
+  </Parties>
+  <Invoices>
+    <Invoice>
+      <InvoiceHeader>
+        <InvoiceNumber>{{ factura.numero }}</InvoiceNumber>
+        <InvoiceIssueDate>{{ factura.fecha }}</InvoiceIssueDate>
+      </InvoiceHeader>
+      <Items>
+        <InvoiceLine>
+          <ItemDescription>Servicios CASTUO-SYSTEM™</ItemDescription>
+          <Quantity>1</Quantity>
+          <UnitPriceWithoutTax>{{ factura.base_imponible }}</UnitPriceWithoutTax>
+          <TotalCost>{{ factura.total }}</TotalCost>
+        </InvoiceLine>
+      </Items>
+      <TaxesOutputs>
+        <Tax>
+          <TaxTypeCode>01</TaxTypeCode>
+          <TaxRate>21.00</TaxRate>
+          <TaxableBase>
+            <TotalAmount>{{ factura.base_imponible }}</TotalAmount>
+          </TaxableBase>
+          <TaxAmount>
+            <TotalAmount>{{ factura.iva }}</TotalAmount>
+          </TaxAmount>
+        </Tax>
+      </TaxesOutputs>
+      <LegalLiterals />
+      <AdditionalData>
+        <Extensions>
+          <Extension>
+            <AdditionalInformation>
+              <BioCoinTX>{{ tx_hash }}</BioCoinTX>
+              <GitCommit>{{ git_commit }}</GitCommit>
+            </AdditionalInformation>
+          </Extension>
+        </Extensions>
+      </AdditionalData>
+    </Invoice>
+  </Invoices>
+</Facturae>

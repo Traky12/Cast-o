@@ -1,0 +1,38 @@
+# CASTÚO-SYSTEM™ | TRL6 — Fincas reales + Hetzner + SwissVault LIVE
+# RPi4 Finca B001/B002 → MQTT encriptado; SwissVault shard 2/5; GaiaChain witness; Behavioral Auth
+# Uso: export IMAGE_DIGEST=sha256:... GIT_SHA=... && docker compose -f docker/docker-compose-trl6.yml up -d
+
+version: '3.8'
+
+volumes:
+  encrypted_data:
+    driver: local
+    # En producción: driver_opts con device apuntando a LUKS/encrypted
+    # driver_opts: { type: none, o: bind, device: /dev/mapper/castuo-crypt }
+
+services:
+  castuo-trl6:
+    image: castuo/system:trl6.0.0@${IMAGE_DIGEST:-sha256:0000000000000000000000000000000000000000000000000000000000000000}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.trl6
+    container_name: castuo-trl6
+    environment:
+      - SWISS_VAULT_SHARD=2
+      - GAIA_CHAIN_WITNESS=true
+      - BEHAVIORAL_AUTH_ENABLED=true
+      - GIT_SHA=${GIT_SHA:-unknown}
+    volumes:
+      - encrypted_data:/data:ro
+    # En hosts con RNG hardware (opcional)
+    # - /dev/hwrng:/dev/hwrng:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

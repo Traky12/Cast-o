@@ -1,0 +1,56 @@
+{
+  "name": "WhatsApp Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "receive",
+        "responseMode": "respond",
+        "path": "whatsapp-webhook",
+        "method": "POST"
+      },
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v13.0/{{$credentials.whatsappPhoneId}}/messages",
+        "options": {},
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyContentType": "json",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headers": {
+          "parameters": {
+            "Authorization": "Bearer={{$credentials.whatsappToken}}"
+          }
+        }
+      },
+      "name": "Send WhatsApp Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "whatsappApi": {
+          "whatsappToken": "={{$env.WHATSAPP_BUSINESS_TOKEN}}",
+          "whatsappPhoneId": "={{$env.WHATSAPP_BUSINESS_PHONE_ID}}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

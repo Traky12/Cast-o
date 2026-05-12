@@ -1,0 +1,63 @@
+<odoo>
+    <record id="view_castu_granja_tree" model="ir.ui.view">
+        <field name="name">castu.granja.tree</field>
+        <field name="model">castu.granja</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="ubicacion"/>
+                <field name="potencia_kw"/>
+                <field name="biocoin_tx"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_castu_granja_form" model="ir.ui.view">
+        <field name="name">castu.granja.form</field>
+        <field name="model">castu.granja</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="ubicacion"/>
+                        <field name="potencia_kw"/>
+                        <field name="biocoin_tx" readonly="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Licencias">
+                            <field name="licencia_ids">
+                                <tree editable="bottom">
+                                    <field name="name"/>
+                                    <field name="fecha"/>
+                                    <field name="rea_numero"/>
+                                    <field name="state"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="EPCIS">
+                            <field name="epcis_event_ids">
+                                <tree editable="bottom">
+                                    <field name="event_time"/>
+                                    <field name="event_type"/>
+                                    <field name="epc"/>
+                                    <field name="state"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_castu_granja" model="ir.actions.act_window">
+        <field name="name">Granjas</field>
+        <field name="res_model">castu.granja</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_castu_root" name="CASTUO" sequence="10"/>
+    <menuitem id="menu_castu_granjas" name="Granjas" parent="menu_castu_root" action="action_castu_granja" sequence="10"/>
+</odoo>
+

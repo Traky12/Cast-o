@@ -1,0 +1,77 @@
+{
+  "database": {
+    "cosechas": "castuo_prod_cosechas",
+    "lecturas_sensores": "castuo_prod_lecturas_sensores",
+    "cultivos": "castuo_prod_cultivos",
+    "analisis_diarios": "castuo_prod_analisis_diarios",
+    "alertas": "castuo_prod_alertas",
+    "reportes_cultivos": "castuo_prod_reportes_cultivos",
+    "reportes_optimizacion": "castuo_prod_reportes_optimizacion",
+    "reportes_ejecutivos": "castuo_prod_reportes_ejecutivos",
+    "log_incidencias": "castuo_prod_log_incidencias",
+    "log_auditoria_trazabilidad": "castuo_prod_log_auditoria",
+    "leads_typeform": "castuo_prod_leads_typeform",
+    "gateway_requests": "castuo_prod_gateway_requests",
+    "gateway_errors": "castuo_prod_gateway_errors"
+  },
+  "notifications": {
+    "slack": {
+      "slack_channel": "#alertas-castuo",
+      "sales_channel": "#ventas-castuo",
+      "fotogrametria_channel": "#fotogrametria",
+      "simulaciones_channel": "#simulaciones",
+      "technical_alerts_channel": "#alertas-tecnicas",
+      "sensor_alerts_channel": "#alertas-sensores",
+      "critical_alerts_channel": "#alertas-criticas",
+      "cartografia_channel": "#cartografia",
+      "holobrain_visualizations_channel": "#holobrain",
+      "logseq_notifications_channel": "#logseq-notifications"
+    },
+    "emails": {
+      "admin_email": "admin@castuo-system.es",
+      "team_emails": ["equipo1@castuo-system.es", "equipo2@castuo-system.es"],
+      "ceo_email": "ceo@castuo-system.es",
+      "certificacion_email": "certificaciones@castuo-system.es",
+      "client_email": "cliente@ejemplo.com",
+      "agronomia_email": "agronomia@castuo-system.es",
+      "investor_email": "inversores@castuo-system.es",
+      "ctaex_certification_email": "ctaex@castuo-system.es"
+    }
+  },
+  "external_services": {
+    "power_bi": {
+      "streaming_endpoint": "",
+      "certificados_endpoint": ""
+    },
+    "pdf_generation": {
+      "pdf_generation_service_url": "",
+      "latex_compilation_service": ""
+    },
+    "gaiachain": {
+      "api_endpoint": "",
+      "api_key": "",
+      "simulation_endpoint": "",
+      "gemelo_digital_endpoint": "",
+      "satelital_endpoint": "",
+      "cartografia_endpoint": ""
+    },
+    "pix4d": {
+      "api_key": ""
+    },
+    "polygon": {
+      "nft_minting_service": "",
+      "api_key": ""
+    },
+    "blender": {
+      "service_url": ""
+    },
+    "google_sheets": {
+      "backup_spreadsheet": "REPLACE_SPREADSHEET_ID_SENSORES",
+      "backup_sheet": "Respaldo_Sensores",
+      "backup_spreadsheet_cultivos": "REPLACE_SPREADSHEET_ID_CULTIVOS",
+      "backup_sheet_cultivos": "Respaldo_Cultivos",
+      "backup_spreadsheet_analisis": "REPLACE_SPREADSHEET_ID_ANALISIS",
+      "backup_sheet_analisis": "Respaldo_Analisis"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+# SABIONDA_MASTER_v4.0 — IA Suprema + IPFS + (opcional Sepolia)
+# Uso: docker-compose -f docker-compose.sabionda.yml up -d
+# Status: http://localhost:9000/sabionda/status
+
+version: "3.8"
+
+services:
+  sabionda-master:
+    build:
+      context: ./backend/sabionda
+      dockerfile: Dockerfile
+    image: castuo-sabionda:latest
+    container_name: sabionda-master
+    ports:
+      - "9000:9000"
+    environment:
+      - EDU_URL=${EDU_URL:-http://localhost:9500}
+      - KYBER_MODE=1024
+      - PEERS_ENCRYPTED=true
+      - CONSENSUS_THRESHOLD=0.66
+      - ML_REVENUE_TARGET=150000
+      - ML_FAIL_RATE=0.2
+      - ML_ISO_STAGE2=98
+      - IPFS_HOST=http://ipfs:5001
+      - IPFS_ENABLED=true
+      - SABIONDA_PEER1=http://node1-castuo:8001
+      - SABIONDA_PEER2=http://node2-castuo:8001
+      - SABIONDA_PEER3=http://node3-castuo:8001
+    volumes:
+      - sabionda_data:/data
+    networks:
+      - sabionda_network
+    restart: unless-stopped
+
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: ipfs-sabionda
+    ports:
+      - "4101:4001"
+      - "5101:5001"
+    volumes:
+      - ipfs_sabionda:/data/ipfs
+    networks:
+      - sabionda_network
+    restart: unless-stopped
+
+volumes:
+  sabionda_data:
+  ipfs_sabionda:
+
+networks:
+  sabionda_network:
+    driver: bridge

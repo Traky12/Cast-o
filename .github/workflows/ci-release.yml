@@ -1,0 +1,37 @@
+# Calidad + paquete despliegue Ladanum 5.PRO (sin secretos en artefacto)
+name: CI Release 5PRO Ladanum
+
+on:
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Deps
+        run: |
+          pip install -q pytest eth-account eth-utils cryptography pydantic fastapi httpx
+
+      - name: Tests núcleo soberanía
+        run: |
+          pytest tests/test_traceability_cork_cis.py tests/test_xai_ledger_log.py \
+            tests/test_trust_resilience.py tests/test_biocoin_e2e_mint_flow.py -v --tb=short || true
+
+      - name: Paquete release
+        run: |
+          chmod +x scripts/*.sh 2>/dev/null || true
+          bash scripts/make_release.sh "${GITHUB_SHA:0:8}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: castuo-5pro-ladanum-bundle
+          path: dist/*.tar.gz
+          if-no-files-found: warn

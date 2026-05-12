@@ -1,0 +1,23 @@
+<odoo>
+    <record id="view_account_move_form_castu" model="ir.ui.view">
+        <field name="name">account.move.form.castu</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_date']" position="after">
+                <field name="biocoin_tx"/>
+                <field name="git_commit"/>
+            </xpath>
+            <xpath expr="//field[@name='state']" position="after">
+                <button
+                    name="action_enviar_sii"
+                    string="Enviar a SII"
+                    type="object"
+                    class="btn-primary"
+                    attrs="{'invisible': [('state', '!=', 'posted')]}"
+                />
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

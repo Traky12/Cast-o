@@ -1,0 +1,20 @@
+# docker/prometheus.yml — monitorización CTAEX (backend /metrics, Prometheus, Node Exporter)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Incluye métricas OT: ot_remote_writes_disabled, ot_kill_switch_active, ot_critical_actuator_commands_total,
+  # castuo_ot_actuator_denials_total. En Grafana filtra por ot_* o castuo_ot_*.
+  - job_name: 'backend'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['backend:8000']
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node_exporter:9100']

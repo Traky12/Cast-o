@@ -1,0 +1,21 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    region: eu
+  tasks:
+    - name: Instalar Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Configurar Docker Compose para RPi
+      template:
+        src: templates/docker-compose.rpi.yml
+        dest: /home/pi/docker-compose.yml
+
+    - name: Iniciar servicios
+      command: docker compose up -d
+      args:
+        chdir: /home/pi

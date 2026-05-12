@@ -1,0 +1,61 @@
+name: SIGPAC validation PEI-001
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "pei-001-sigpac/**"
+      - ".github/workflows/sigpac-validation-pei001.yml"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "pei-001-sigpac/**"
+      - ".github/workflows/sigpac-validation-pei001.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar GDAL (geopandas / shapefiles)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencias PEI-001
+        run: pip install -r pei-001-sigpac/scripts/requirements.txt
+
+      - name: Ejecutar validación (fixtures)
+        run: |
+          python pei-001-sigpac/scripts/validate_sigpac.py \
+            --parcelas pei-001-sigpac/tests/fixtures/parcelas_test.geojson \
+            --sigpac pei-001-sigpac/tests/fixtures/sigpac_layer_test.geojson \
+            --sigpac-code-field codigo_sigpac \
+            --mapping-path pei-001-sigpac/data/mapping.json \
+            --out-json pei-001-sigpac/reports/sigpac_pei001_ci.json \
+            --out-pdf pei-001-sigpac/reports/sigpac_pei001_ci.pdf
+
+      - name: Validación con mapping (fixtures)
+        run: |
+          python pei-001-sigpac/scripts/validate_sigpac.py \
+            --parcelas pei-001-sigpac/tests/fixtures/parcelas_mapping_test.geojson \
+            --sigpac pei-001-sigpac/tests/fixtures/sigpac_layer_test.geojson \
+            --sigpac-code-field codigo_sigpac \
+            --mapping-path pei-001-sigpac/tests/fixtures/mapping_test.json \
+            --out-json pei-001-sigpac/reports/sigpac_pei001_mapping_ci.json \
+            --out-pdf pei-001-sigpac/reports/sigpac_pei001_mapping_ci.pdf
+
+      - name: Pytest PEI-001
+        run: pytest pei-001-sigpac/tests/test_validate_sigpac.py -v
+
+      - name: Subir informes
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigpac-report-pei001
+          path: pei-001-sigpac/reports/

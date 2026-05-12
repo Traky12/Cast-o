@@ -1,0 +1,11 @@
+groups:
+  - name: biocoin-carbon-alerts
+    rules:
+      - alert: BioCoinCarbonSale
+        expr: bio_coin_carbon_sold_total > 0
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "Carbon credits sold for {{ $value }} BioCoin"
+          description: "{{ $labels.buyer }} bought {{ $labels.kgCO2 }} kg of CO₂"

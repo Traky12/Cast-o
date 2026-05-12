@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CASTUO-CTAEX | Microgreens Certificados</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }
+    h1 { color: #1a5f2a; }
+    .cards { display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap; }
+    .card {
+      border: 1px solid #ddd; padding: 20px; border-radius: 8px; cursor: pointer;
+      background: #fff; min-width: 180px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .card:hover { background: #f0f8ff; border-color: #1a5f2a; }
+    #sensor-data, #certificate { margin-top: 20px; padding: 16px; background: #fff; border-radius: 8px; border: 1px solid #eee; }
+    pre { overflow-x: auto; font-size: 12px; }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <h1>🌱 Microgreens Certificados CTAEX</h1>
+  <p>CASTUO-SYSTEM v6.0 — Trazabilidad blockchain + Certificación CTAEX</p>
+
+  <section id="gaia-ec">
+    <h2>📊 Control en tiempo real</h2>
+    <div class="cards">
+      <div class="card" onclick="loadSensors('mg1')">
+        <h3>Cama MG1</h3>
+        <p>Rábano | Día 7 | 250g previstos</p>
+      </div>
+      <div class="card" onclick="buyBatch('MG-2026-03-14')">
+        <h3>Comprar €25/kg</h3>
+        <p>Certificado CTAEX + Blockchain</p>
+      </div>
+      <div class="card" onclick="showCert('MG-2026-03-14')">
+        <h3>Ver certificado</h3>
+        <p>QR Code trazabilidad</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="sensor-data" style="display:none;"></div>
+  <div id="certificate" style="display:none;"></div>
+
+  <script>
+    // API del backend: mismo origen o URL completa (ej: http://89.167.5.233:8000)
+    const API_BASE = window.API_BASE || new URLSearchParams(window.location.search).get('api') || '';
+
+    const stripe = window.Stripe ? window.Stripe(window.STRIPE_PK || 'pk_test_placeholder') : null;
+
+    async function loadSensors(bedId) {
+      const el = document.getElementById('sensor-data');
+      el.style.display = 'block';
+      el.innerHTML = '<p>Cargando...</p>';
+      try {
+        const res = await fetch(API_BASE + '/microgreens/sensors?bed_id=' + encodeURIComponent(bedId));
+        const data = await res.json();
+        el.innerHTML = '<h3>Datos ambientales (' + bedId + ')</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+      } catch (e) {
+        el.innerHTML = '<p class="error">Error: ' + e.message + '. ¿API en ' + (API_BASE || 'mismo origen') + '?</p>';
+      }
+    }
+
+    async function buyBatch(batchId) {
+      if (!stripe) {
+        alert('Configura STRIPE_PK en la página para habilitar pagos.');
+        return;
+      }
+      try {
+        const res = await fetch(API_BASE + '/ecommerce/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ batch_id: batchId })
+        });
+        const out = await res.json();
+        if (out.session && out.session.id) {
+          stripe.redirectToCheckout({ sessionId: out.session.id });
+        } else {
+          alert(out.detail || 'Error al crear checkout');
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function showCert(batchId) {
+      const el = document.getElementById('certificate');
+      el.style.display = 'block';
+      el.innerHTML = '<p>Cargando certificado...</p>';
+      try {
+        const res = await fetch(API_BASE + '/certificacion/ctaex?batch_id=' + encodeURIComponent(batchId));
+        const cert = await res.json();
+        const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(cert.qr_code || cert.batch_id);
+        el.innerHTML = '<h3>Certificado CTAEX</h3>' +
+          '<p><strong>ID:</strong> ' + cert.batch_id + '</p>' +
+          '<p><strong>Estado:</strong> ' + (cert.valid ? 'VÁLIDO ✅' : 'INVÁLIDO ❌') + '</p>' +
+          '<p><strong>Normativas:</strong> ' + (cert.standards || []).join(', ') + '</p>' +
+          '<p><strong>GaiaChain TX:</strong> ' + (cert.gaia_tx || '-') + '</p>' +
+          '<img src="' + qrUrl + '" alt="QR Code">';
+      } catch (e) {
+        el.innerHTML = '<p class="error">Error: ' + e.message + '</p>';
+      }
+    }
+  </script>
+</body>
+</html>

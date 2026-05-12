@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "name": "sigpac_code_mismatch",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "uso_sigpac": "barbecho",
+        "codigo_sigpac": "111"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-6.001, 39.000],
+            [-5.999, 39.000],
+            [-5.999, 39.002],
+            [-6.001, 39.002],
+            [-6.001, 39.000]
+          ]
+        ]
+      }
+    }
+  ]
+}

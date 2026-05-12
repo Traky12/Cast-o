@@ -1,0 +1,101 @@
+# CASTÚO-SYSTEM v2.0 — Producción escalable (Backend + PostgreSQL + Redis + Celery)
+# Uso: docker compose -f docker/docker-compose.ctaex.yml -f docker/docker-compose.v2-production.yml up -d
+# Requiere: DB_PASSWORD, GAIA_CHAIN_CONTRACT, GAIA_CHAIN_PRIVATE_KEY, AEMPS_API_KEY (opcionales)
+
+version: '3.8'
+
+services:
+  backend:
+    image: castuo-system/backend:2.0.0
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=sabionda_prod
+      - DB_USER=sabionda_admin
+      - DB_PASSWORD=${DB_PASSWORD}
+      - GAIA_CHAIN_RPC=${GAIA_CHAIN_RPC:-https://rpc.gaia-chain.com}
+      - GAIA_CHAIN_CONTRACT=${GAIA_CHAIN_CONTRACT}
+      - GAIA_CHAIN_ABI=${GAIA_CHAIN_ABI:-[]}
+      - GAIA_CHAIN_WALLET=${GAIA_CHAIN_WALLET}
+      - GAIA_CHAIN_PRIVATE_KEY=${GAIA_CHAIN_PRIVATE_KEY}
+      - AEMPS_API_KEY=${AEMPS_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: sabionda_prod
+      POSTGRES_USER: sabionda_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sabionda_admin -d sabionda_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 500M
+
+  celery:
+    image: castuo-system/backend:2.0.0
+    command: celery -A backend.tasks worker --loglevel=info
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=sabionda_prod
+      - DB_USER=sabionda_admin
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 500M
+
+volumes:
+  postgres_data:
+  redis_data:

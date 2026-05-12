@@ -1,0 +1,7 @@
+# Canónico: deploy/docker-compose.mqtt.yml (rutas ./mqtt-tls relativas a deploy/).
+# Uso desde la raíz del repo:
+#   docker compose -f docker-compose.mqtt.yml up -d
+# Checklist: deploy/MQTT-TLS-CHECKLIST-MINIMO.md
+
+include:
+  - path: deploy/docker-compose.mqtt.yml

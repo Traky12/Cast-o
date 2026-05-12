@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_teledeteccion_tree" model="ir.ui.view">
+        <field name="name">castu.teledeteccion.tree</field>
+        <field name="model">castu.teledeteccion</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="granja_id"/>
+                <field name="fecha"/>
+                <field name="ndvi_promedio"/>
+                <field name="ndvi_min"/>
+                <field name="ndvi_max"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_teledeteccion_form" model="ir.ui.view">
+        <field name="name">castu.teledeteccion.form</field>
+        <field name="model">castu.teledeteccion</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="granja_id"/>
+                        <field name="fecha"/>
+                        <field name="ndvi_promedio"/>
+                        <field name="ndvi_min"/>
+                        <field name="ndvi_max"/>
+                        <field name="imagen_url"/>
+                    </group>
+                    <group string="Alertas">
+                        <field name="alert_ids" nolabel="1">
+                            <tree>
+                                <field name="tipo"/>
+                                <field name="ndvi"/>
+                                <field name="zona"/>
+                                <field name="fecha"/>
+                            </tree>
+                        </field>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_analizar_ndvi" string="Analizar NDVI" type="object" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_teledeteccion" model="ir.actions.act_window">
+        <field name="name">Teledetección</field>
+        <field name="res_model">castu.teledeteccion</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_teledeteccion" name="Teledetección" parent="menu_castu_drones" action="action_castu_teledeteccion" sequence="50"/>
+</odoo>

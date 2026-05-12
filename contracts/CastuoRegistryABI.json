@@ -1,0 +1,43 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "evidenceHash", "type": "bytes32" },
+      { "indexed": false, "name": "dataRoomId", "type": "string" },
+      { "indexed": true, "name": "submitter", "type": "address" }
+    ],
+    "name": "EvidenceSubmitted",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "name": "_evidenceHash", "type": "bytes32" },
+      { "name": "_dataRoomId", "type": "string" }
+    ],
+    "name": "submitEvidence",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "h", "type": "bytes32" }],
+    "name": "isEvidenceRegistered",
+    "outputs": [{ "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "", "type": "bytes32" }],
+    "name": "evidenceSubmitted",
+    "outputs": [{ "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "", "type": "bytes32" }],
+    "name": "dataRoomOf",
+    "outputs": [{ "name": "", "type": "string" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

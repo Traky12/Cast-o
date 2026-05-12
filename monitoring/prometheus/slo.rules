@@ -1,0 +1,34 @@
+# CASTÚO-SYSTEM™ — SLIs/SLOs y alertas de violación
+groups:
+  - name: castuo-slos
+    rules:
+      - record: slo:ai_recommendation_availability
+        expr: |
+          sum(rate(ai_recommendations_total[5m])) by (product_type)
+          / (sum(rate(ai_recommendations_total[5m])) by (product_type)
+             + sum(rate(ai_recommendation_errors_total[5m])) by (product_type))
+        labels:
+          slo: "99.5%"
+          business_impact: high
+
+      - record: slo:self_healing_success_rate
+        expr: |
+          sum(rate(self_healing_events_total[5m])) by (agent_type)
+          / (sum(rate(self_healing_events_total[5m])) by (agent_type)
+             + sum(rate(self_healing_failures_total[5m])) by (agent_type))
+        labels:
+          slo: "99.9%"
+          business_impact: critical
+
+      - alert: SLOViolation
+        expr: |
+          (slo:ai_recommendation_availability < 0.995) or
+          (slo:self_healing_success_rate < 0.999)
+        for: 15m
+        labels:
+          severity: critical
+          team: reliability
+        annotations:
+          summary: "Violación de SLO para {{ $labels.job }}"
+          description: "El SLO ({{ $labels.slo }}) ha sido violado. Valor actual: {{ $value }}."
+          runbook_url: "https://docs.castuo-system.eu/slos/violation"

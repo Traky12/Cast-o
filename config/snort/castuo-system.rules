@@ -1,0 +1,20 @@
+# CASTÚO-SYSTEM™ — Reglas Snort para detección de intrusos
+# Copiar a /etc/snort/rules/castuo-system.rules e incluir en snort.conf
+
+# Escaneo de puertos
+alert tcp any any -> $HOME_NET any (msg:"CASTUO-SYSTEM: Port Scan Detected"; flow:to_server; detection_filter:track by_src, count 100, seconds 60; classtype:attempted-recon; sid:1000001; rev:1;)
+
+# Intentos de exploit en API (SQLi/command injection)
+alert tcp any any -> $HOME_NET 8000 (msg:"CASTUO-SYSTEM: API Exploit Attempt"; flow:to_server; content:"/api/v1/"; pcre:"/(union|select|insert|update|delete|drop|exec|xp_cmdshell)/i"; classtype:web-application-attack; sid:1000002; rev:1;)
+
+# Acceso no autorizado a GaiaChain
+alert tcp any any -> $HOME_NET 8080 (msg:"CASTUO-SYSTEM: Unauthorized GaiaChain Access"; flow:to_server; content:"/api/v1/"; pcre:"/(admin|root|backup|restore)/i"; classtype:attempted-admin; sid:1000003; rev:1;)
+
+# Patrón sospechoso en MQTT (IoT)
+alert udp any any -> $HOME_NET 1883 (msg:"CASTUO-SYSTEM: IoT Malware Pattern"; content:"|AA BB CC DD|"; depth:4; offset:0; classtype:trojan-activity; sid:1000004; rev:1;)
+
+# DDoS (umbral alto)
+alert tcp any any -> $HOME_NET any (msg:"CASTUO-SYSTEM: DDoS Attack Detected"; flow:to_server; threshold:type threshold, track by_src, count 1000, seconds 1; classtype:denial-of-service; sid:1000005; rev:1;)
+
+# Manipulación de Cursor (eval/exec en solicitudes)
+alert tcp any any -> $HOME_NET any (msg:"CASTUO-SYSTEM: Cursor Tampering Attempt"; flow:to_server; content:"cursor"; pcre:"/(eval|exec|system|spawn)/i"; classtype:policy-violation; sid:1000006; rev:1;)

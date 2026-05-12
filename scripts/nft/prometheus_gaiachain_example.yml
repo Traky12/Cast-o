@@ -1,0 +1,8 @@
+# Ejemplo de job Prometheus para monitorear nodo GaiaChain testnet.
+# Ajusta targets según tu nodo (métricas expuestas en :9100 o el puerto que use el exporter).
+# scrape_configs:
+#   - job_name: 'gaiachain_testnet'
+#     scrape_interval: 15s
+#     metrics_path: '/metrics'
+#     static_configs:
+#       - targets: ['gaiachain-testnet.node:9100']

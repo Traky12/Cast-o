@@ -1,0 +1,19 @@
+# CASTÚO-SYSTEM™ — Servicio de verificación de firmware TPM 2.0 (Libelium IoT)
+# Instalar: cp tpm-firmware-verifier.service /etc/systemd/system/ && systemctl enable --now tpm-firmware-verifier
+
+[Unit]
+Description=TPM Firmware Verification Service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/tpm_firmware_verifier /firmware/bin/firmware.bin /firmware/keys/firmware.pub.pem /firmware/bin/firmware.sig
+RemainAfterExit=yes
+User=root
+Group=root
+# Reinicio en fallo (reintentar cada 5s)
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

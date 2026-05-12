@@ -1,0 +1,24 @@
+# Ejemplo: exponer el mismo backend FastAPI (incluye POST /langgraph/castuo/run) tras Ingress.
+# Ajustar namespace, secret TLS y anotaciones del controlador (nginx, traefik, etc.).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: castuo-api-langgraph
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  tls:
+    - hosts:
+        - grafo.castuo-system.es
+      secretName: castuo-grafo-tls
+  rules:
+    - host: grafo.castuo-system.es
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-api
+                port:
+                  number: 8000

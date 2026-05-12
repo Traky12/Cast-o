@@ -1,0 +1,5 @@
+# PEI-001: capas locales SIGPAC + informes (GDAL vía sistema para .shp)
+geopandas>=0.14.0,<0.15
+shapely>=2.0.1,<3
+pytest>=7.4.0
+fpdf2>=2.7.0

@@ -1,0 +1,41 @@
+{{- if and .Values.agents.master.autoscaling (ne (toString .Values.agents.master.autoscaling.enabled) "false") (gt (int (.Values.agents.master.autoscaling.maxReplicas | default 5)) 0) }}
+{{- $hpa := .Values.agents.master.autoscaling }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "castuo-system.fullname" . }}-master-agent
+  labels:
+    {{- include "castuo-system.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "castuo-system.fullname" . }}-master-agent
+  minReplicas: {{ $hpa.minReplicas | default 2 }}
+  maxReplicas: {{ $hpa.maxReplicas | default 5 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $hpa.targetCPUUtilizationPercentage | default 70 }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $hpa.targetMemoryUtilizationPercentage | default 80 }}
+    {{- if $hpa.targetQueueLength }}
+    - type: External
+      external:
+        metric:
+          name: rabbitmq_queue_messages
+          selector:
+            matchLabels:
+              queue: agent.master
+        target:
+          type: AverageValue
+          averageValue: {{ $hpa.targetQueueLength | quote }}
+    {{- end }}
+{{- end }}

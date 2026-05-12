@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_chatbot_session_form" model="ir.ui.view">
+        <field name="name">castu.chatbot.session.form</field>
+        <field name="model">castu.chatbot.session</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name" readonly="1"/>
+                        <field name="user_id" readonly="1"/>
+                        <field name="fecha_inicio" readonly="1"/>
+                    </group>
+                    <group string="Mensajes">
+                        <field name="mensaje_ids" nolabel="1">
+                            <tree readonly="1">
+                                <field name="tipo"/>
+                                <field name="contenido"/>
+                                <field name="fecha"/>
+                            </tree>
+                        </field>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_chatbot" model="ir.actions.act_window">
+        <field name="name">Chatbot de IA</field>
+        <field name="res_model">castu.chatbot.session</field>
+        <field name="view_mode">form</field>
+    </record>
+    <menuitem id="menu_castu_chatbot" name="Chatbot IA" parent="menu_castu_root" action="action_castu_chatbot" sequence="80"/>
+</odoo>

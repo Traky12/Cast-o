@@ -1,0 +1,14 @@
+{
+  "name": "Amnesia Haze (20% THC)",
+  "description": "Medical cannabis cultivated with zero waste in Extremadura, Spain. THC: 20%, CBD: 0%. CO₂ saved: 15kg.",
+  "image": "ipfs://QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/cannabis.jpg",
+  "attributes": [
+    { "trait_type": "Crop Type", "value": "Cannabis" },
+    { "trait_type": "Strain", "value": "Amnesia Haze" },
+    { "trait_type": "THC", "value": "20%" },
+    { "trait_type": "CBD", "value": "0%" },
+    { "trait_type": "CO₂ Saved", "value": "15kg" },
+    { "trait_type": "Farm ID", "value": "extremadura-farm-001" },
+    { "trait_type": "Growth Stage", "value": "100%" }
+  ]
+}

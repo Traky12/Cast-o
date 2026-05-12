@@ -1,0 +1,14 @@
+# CASTÚO-SYSTEM™ — Reglas Suricata avanzadas (GaiaChain, IoT, Sabionda, Cursor)
+# Incluir en rule-files de suricata.yaml
+
+# Ataques a GaiaChain (admin/backup/restore/debug)
+alert tcp any any -> $HOME_NET 8080 (msg:"CASTÚO-SYSTEM: GaiaChain Exploit Attempt"; flow:to_server; content:"/api/v1/"; pcre:"/(admin|backup|restore|debug)/i"; threshold:type threshold, track by_src, count 3, seconds 60; classtype:attempted-admin; sid:2000001; rev:1;)
+
+# Manipulación de sensores IoT (patrón conocido)
+alert udp any any -> $HOME_NET 1883 (msg:"CASTÚO-SYSTEM: IoT Sensor Tampering"; content:"|AA BB CC DD|"; depth:4; threshold:type limit, track by_src, count 1, seconds 3600; classtype:trojan-activity; sid:2000002; rev:1;)
+
+# Phishing en Sabionda Educa (login/password/admin en URI)
+alert tcp any any -> $HOME_NET 443 (msg:"CASTÚO-SYSTEM: Sabionda Educa Phishing"; flow:to_server; content:"sabionda.agro"; pcre:"/(login|password|admin)/i"; http_uri; threshold:type threshold, track by_src, count 5, seconds 300; classtype:phishing; sid:2000003; rev:1;)
+
+# Anomalía en tráfico Cursor (cursor.js + eval)
+alert tcp any any -> $HOME_NET any (msg:"CASTÚO-SYSTEM: Cursor Anomaly"; flow:to_server; content:"cursor"; pcre:"/eval|exec|system/i"; threshold:type threshold, track by_src, count 1, seconds 60; classtype:policy-violation; sid:2000004; rev:1;)

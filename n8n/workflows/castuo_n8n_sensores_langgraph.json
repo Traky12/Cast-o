@@ -1,0 +1,154 @@
+{
+  "name": "CASTUO_n8n_Sensores_LangGraph",
+  "active": false,
+  "tags": ["CASTUO", "sensores", "langgraph", "webhook"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "recibir-datos-sensores",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "sns-wh",
+      "name": "Webhook_Recibir_Sensores",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "castuo-recibir-datos-sensores"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst body = j.body && typeof j.body === 'object' ? j.body : j;\nconst ts = body.timestamp || new Date().toISOString();\nconst echo = {\n  sensor_id: body.sensor_id,\n  valor: body.valor,\n  timestamp: ts,\n  cultivo: body.cultivo,\n  ubicacion: body.ubicacion,\n};\nreturn [\n  {\n    json: {\n      payload: {\n        action: 'analizar_sensores',\n        sensor_id: echo.sensor_id,\n        valor: echo.valor,\n        timestamp: echo.timestamp,\n        cultivo: echo.cultivo,\n        ubicacion: echo.ubicacion,\n      },\n      _echo: echo,\n    },\n  },\n];"
+      },
+      "id": "sns-build",
+      "name": "Build_Payload_Sensores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_LANGGRAPH_URL || $env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://castuo-api:8000').replace(/\\/$/, '') + '/langgraph/castuo/execute-graph' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $json.payload } }}",
+        "options": { "timeout": 180000 }
+      },
+      "id": "sns-http",
+      "name": "HTTP_Castuo_ExecuteGraph",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst b = $('Build_Payload_Sensores').first().json;\nconst echo = b._echo || {};\nif (r.errors && r.errors.length) {\n  throw new Error('Castuo LangGraph: ' + r.errors.join('; '));\n}\nlet recs = [];\ntry {\n  const o = JSON.parse(r.analysis);\n  if (o && Array.isArray(o.recomendaciones)) recs = o.recomendaciones.map(String);\n} catch (e) {\n  recs = [];\n}\nconst recomText = recs.length ? recs.join(', ') : String(r.analysis || '').slice(0, 2000);\nreturn [\n  {\n    json: {\n      sensor_id: echo.sensor_id ?? null,\n      valor: echo.valor ?? null,\n      cultivo: echo.cultivo ?? null,\n      ubicacion: echo.ubicacion ?? null,\n      timestamp: echo.timestamp ?? new Date().toISOString(),\n      analisis: r.analysis ?? '',\n      recomendaciones: recs,\n      recomendaciones_text: recomText,\n      tx_hash: r.trace_hash || '',\n      errors: r.errors || [],\n      gaia_http_status: r.gaia_http_status,\n      slack_http_status: r.slack_http_status,\n    },\n  },\n];"
+      },
+      "id": "sns-norm",
+      "name": "Normalize_Sensor_Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK || $env.SLACK_INCOMING_WEBHOOK_URL || '' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { text: '📡 Sensores CASTÚO · sensor ' + String($json.sensor_id) + ' · cultivo ' + String($json.cultivo) + ' · valor ' + String($json.valor) + '\\n' + String($json.recomendaciones_text || '').slice(0, 500) + '\\nTrace (SHA-256): ' + String($json.tx_hash || '') } }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "sns-slack",
+      "name": "Slack_Webhook_Sensores",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1200, 160],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "Activa y define SLACK_WEBHOOK (misma variable que el backend LangGraph). Alternativa: nodo Slack OAuth."
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "castuo_prod_sensores_analisis",
+          "mode": "list",
+          "cachedResultName": "castuo_prod_sensores_analisis"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sensor_id": "={{ $json.sensor_id }}",
+            "valor": "={{ $json.valor }}",
+            "cultivo": "={{ $json.cultivo }}",
+            "ubicacion": "={{ $json.ubicacion }}",
+            "analisis": "={{ $json.analisis }}",
+            "recomendaciones": "={{ $json.recomendaciones_text }}",
+            "trace_hash": "={{ $json.tx_hash }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "sns-pg",
+      "name": "Postgres_Sensores_Analisis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1200, 440],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "Activa, credencial Postgres y ejecuta optional_castuo_prod_sensores_analisis.sql. Columna trace_hash (no tx_hash) alinea con API Castúo."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "sns-resp",
+      "name": "Respond_Sensores",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1440, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_Recibir_Sensores": {
+      "main": [[{ "node": "Build_Payload_Sensores", "type": "main", "index": 0 }]]
+    },
+    "Build_Payload_Sensores": {
+      "main": [[{ "node": "HTTP_Castuo_ExecuteGraph", "type": "main", "index": 0 }]]
+    },
+    "HTTP_Castuo_ExecuteGraph": {
+      "main": [[{ "node": "Normalize_Sensor_Result", "type": "main", "index": 0 }]]
+    },
+    "Normalize_Sensor_Result": {
+      "main": [
+        [
+          { "node": "Respond_Sensores", "type": "main", "index": 0 },
+          { "node": "Slack_Webhook_Sensores", "type": "main", "index": 0 },
+          { "node": "Postgres_Sensores_Analisis", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "POST /webhook/recibir-datos-sensores → FastAPI /langgraph/castuo/execute-graph con {\"payload\":{...}}. No usar langgraph-api:8123. tx_hash en la salida = trace_hash del API (trazabilidad local); on-chain solo si configuráis GaiaChain en el backend. Slack/Postgres desactivados por defecto."
+  }
+}

@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: junta-document-service
+  labels:
+    app: junta-document-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: junta-document-service
+  template:
+    metadata:
+      labels:
+        app: junta-document-service
+    spec:
+      containers:
+        - name: document-service
+          image: ghcr.io/castuo-system/junta-document-service:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: GAIA_CHAIN_RPC
+              value: "https://gaiachain.castuo-system.com"
+            - name: DOCUMENT_TOKEN_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: junta-secrets
+                  key: document_token_address
+            - name: FIRE_REPORT_TOKEN_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: junta-secrets
+                  key: fire_report_token_address
+            - name: JUNTA_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: junta-secrets
+                  key: private_key
+            - name: VERIFIER_URL
+              value: "https://verifier.castuo-system.com"
+          volumeMounts:
+            - name: documents
+              mountPath: /app/documents
+      volumes:
+        - name: documents
+          persistentVolumeClaim:
+            claimName: junta-documents-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: junta-document-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: junta-document-service
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: junta-documents-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

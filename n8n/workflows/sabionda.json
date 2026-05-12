@@ -1,0 +1,114 @@
+{
+  "name": "Sabionda IA Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "receive",
+        "responseMode": "respond",
+        "path": "sabionda-webhook",
+        "method": "POST"
+      },
+      "name": "Sabionda Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/sensors/",
+        "options": {},
+        "method": "POST"
+      },
+      "name": "Send to API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "topic": "sabionda/recommendations",
+        "qos": 0,
+        "retain": false,
+        "broker": {
+          "__rl": true,
+          "value": "mqtt://mqtt:1883",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT Publish",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "database": "Notion",
+        "operation": "createPage",
+        "pageName": "={{$node[\"Sabionda Webhook\"].json[\"body\"][\"lot_id\"]}}",
+        "parentId": {
+          "type": "database",
+          "value": "YOUR_NOTION_DATABASE_ID"
+        },
+        "properties": {
+          "Name": {
+            "title": [
+              {
+                "text": {
+                  "content": "={{$node[\"Sabionda Webhook\"].json[\"body\"][\"lot_id\"]}}"
+                }
+              }
+            ]
+          },
+          "Action": {
+            "rich_text": [
+              {
+                "text": {
+                  "content": "={{$node[\"Sabionda Webhook\"].json[\"body\"][\"action\"]}}"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "name": "Notion Integration",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [650, 450],
+      "credentials": {
+        "notionApi": {
+          "integrationType": "oAuth2",
+          "authentication": "oAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Sabionda Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send to API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notion Integration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to API": {
+      "main": [
+        [
+          {
+            "node": "MQTT Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

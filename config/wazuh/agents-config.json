@@ -1,0 +1,69 @@
+{
+  "agents": [
+    {
+      "id": "gaiachain-node-01",
+      "name": "GaiaChain Node (Cáceres)",
+      "ip": "192.168.1.10",
+      "os": { "type": "linux", "version": "Ubuntu 22.04" },
+      "groups": ["blockchain", "critical"],
+      "config": {
+        "syscheck": {
+          "frequency": 3600,
+          "auto_ignore": false,
+          "directories": ["/etc/gaiachain", "/var/lib/gaiachain", "/opt/cursor"]
+        },
+        "rootcheck": {
+          "frequency": 7200,
+          "rootkit_files": true,
+          "rootkit_trojans": true,
+          "hidden_ports": true
+        },
+        "open-scap": {
+          "enabled": true,
+          "content": "ssg-ubuntu2204-ds.xml",
+          "interval": 86400
+        }
+      }
+    },
+    {
+      "id": "iot-gateway-01",
+      "name": "IoT Gateway (Badajoz)",
+      "ip": "192.168.2.20",
+      "os": { "type": "linux", "version": "Debian 11" },
+      "groups": ["iot", "gateway"],
+      "config": {
+        "syscheck": {
+          "frequency": 1800,
+          "directories": ["/firmware", "/etc/tpm"]
+        },
+        "command": {
+          "custom": [
+            {
+              "name": "TPM Verification",
+              "command": "/usr/local/bin/tpm_firmware_verifier /firmware/bin/firmware.bin /firmware/keys/firmware.pub.pem /firmware/bin/firmware.sig",
+              "interval": 3600
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "notification": {
+    "email": {
+      "enabled": true,
+      "to": ["security@castuo-system.com"],
+      "level": 12
+    },
+    "slack": {
+      "enabled": true,
+      "webhook": "https://hooks.slack.com/services/XXX",
+      "level": 7
+    },
+    "gaiachain": {
+      "enabled": true,
+      "endpoint": "https://gaiachain.castuo-system.com/api/v1/alert",
+      "api_key": "$GAIA_CHAIN_API_KEY",
+      "level": 3
+    }
+  }
+}

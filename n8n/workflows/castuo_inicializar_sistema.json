@@ -1,0 +1,34 @@
+{
+  "name": "CASTUO_Inicializar_Sistema",
+  "active": false,
+  "tags": ["CASTUO", "init", "validation", "env"],
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "cis-manual",
+      "name": "Iniciar_Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "async function tryGaia() {\n  const base = String($env.N8N_GAIACHAIN_API || $env.GAIACHAIN_API_ENDPOINT || '').trim();\n  const key = String($env.N8N_GAIACHAIN_API_KEY || $env.GAIACHAIN_API_KEY || '').trim();\n  if (!base) return { name: 'gaiachain', skipped: true, reason: 'N8N_GAIACHAIN_API vacío' };\n  const statusPath = String($env.N8N_GAIACHAIN_STATUS_PATH || '/status').trim();\n  const suffix = statusPath.startsWith('/') ? statusPath : '/' + statusPath;\n  const url = base.replace(/\\/$/, '') + suffix;\n  try {\n    const headers = { Accept: 'application/json' };\n    if (key) headers.Authorization = 'Bearer ' + key;\n    const r = await fetch(url, { method: 'GET', headers, redirect: 'manual' });\n    return { name: 'gaiachain', url, http_status: r.status, ok: r.ok };\n  } catch (e) {\n    return { name: 'gaiachain', url, error: e.message };\n  }\n}\n\nasync function tryPowerBi() {\n  const u = String($env.N8N_POWERBI_ENDPOINT || $env.POWER_BI_STREAMING_ENDPOINT || '').trim();\n  if (!u) return { name: 'power_bi', skipped: true, reason: 'N8N_POWERBI_ENDPOINT vacío' };\n  try {\n    const r = await fetch(u, { method: 'HEAD', redirect: 'manual' });\n    return { name: 'power_bi', http_status: r.status, ok: r.status < 500 };\n  } catch (e) {\n    return { name: 'power_bi', error: e.message };\n  }\n}\n\nfunction slackEnv() {\n  const ch = String($env.N8N_SLACK_CRITICAL || $env.N8N_SLACK_ALERTS || '').trim();\n  const wh = String($env.SLACK_WEBHOOK || '').trim();\n  return {\n    name: 'slack',\n    channel_configured: !!ch,\n    webhook_configured: !!wh,\n    note: 'Nodos Slack en UI deben usar Credencial OAuth o webhook; esto solo comprueba env.',\n  };\n}\n\nfunction postgresHint() {\n  const t = String($env.DB_TYPE || $env.N8N_DATABASE_TYPE || 'sqlite').toLowerCase();\n  const pg = t.includes('postgres');\n  return {\n    name: 'postgres',\n    skipped: !pg,\n    n8n_database_type: t,\n    note: pg ? 'Validar conexión con nodo Postgres y credencial en n8n' : 'SQLite por defecto: sin check TCP',\n  };\n}\n\nconst steps = [];\nif (String($env.CASTUO_SKIP_EXTERNAL_VALIDATION || '') === '1') {\n  return [\n    {\n      json: {\n        allOk: true,\n        skipped: true,\n        reason: 'CASTUO_SKIP_EXTERNAL_VALIDATION=1',\n        ts: new Date().toISOString(),\n      },\n    },\n  ];\n}\n\nsteps.push(await tryGaia());\nsteps.push(await tryPowerBi());\nsteps.push(slackEnv());\nsteps.push(postgresHint());\n\nconst hardFail = steps.filter((s) => s.error || (s.ok === false && !s.skipped));\nconst allOk = hardFail.length === 0;\n\nreturn [\n  {\n    json: {\n      allOk,\n      steps,\n      slack_message: allOk\n        ? 'Sistema inicializado: chequeos básicos OK (revisar nodos reales Slack/Postgres en UI).'\n        : 'Fallo validación: ' + hardFail.map((x) => x.name).join(', '),\n      ts: new Date().toISOString(),\n    },\n  },\n];"
+      },
+      "id": "cis-validate",
+      "name": "Validar_Gaia_PowerBI_Slack_Env",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 360]
+    }
+  ],
+  "connections": {
+    "Iniciar_Manual": {
+      "main": [[{ "node": "Validar_Gaia_PowerBI_Slack_Env", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Validación ligera vía $env + fetch. En producción: añadir nodos HTTP Request con Credencial Header Auth (sin API key en env), Postgres con credencial n8n, Slack OAuth. CASTUO_SKIP_EXTERNAL_VALIDATION=1 para laboratorio. Añadir nodo Slack al final con {{ $json.slack_message }}."
+  }
+}

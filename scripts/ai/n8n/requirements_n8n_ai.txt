@@ -1,0 +1,3 @@
+# Opcional: heurística en ai_decision.py no requiere torch; TorchScript sí.
+-r requirements_n8n.txt
+torch>=2.1.0

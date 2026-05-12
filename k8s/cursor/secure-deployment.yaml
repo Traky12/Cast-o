@@ -1,0 +1,128 @@
+# CASTÚO-SYSTEM™ — Despliegue seguro de Cursor con socket HSM y políticas estrictas
+# Sustituir placeholders de Secret en deploy; no incluir contraseñas en el manifiesto.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cursor
+  namespace: cursor-sandbox
+  labels:
+    app: cursor
+    security: restricted
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cursor
+  template:
+    metadata:
+      labels:
+        app: cursor
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/cursor: runtime/default
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 20001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: cursor
+        image: ghcr.io/castuo-system/cursor:secure
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - name: hsm-socket
+          mountPath: /var/run/hsm
+        - name: tmpfs
+          mountPath: /tmp
+        env:
+        - name: HSM_SOCKET
+          value: /var/run/hsm/socket
+        - name: CURSOR_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cursor-hsm-keys
+              key: signing_key
+      volumes:
+      - name: hsm-socket
+        hostPath:
+          path: /var/run/hsm
+          type: Socket
+      - name: tmpfs
+        emptyDir:
+          medium: Memory
+          sizeLimit: 100Mi
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: cursor-restricted
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - configMap
+    - emptyDir
+    - secret
+    - hostPath
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: MustRunAsNonRoot
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: true
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cursor-isolation
+  namespace: cursor-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app: cursor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: gaiachain-validator
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: gaiachain-validator
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 53

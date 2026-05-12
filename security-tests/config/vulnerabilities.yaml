@@ -1,0 +1,98 @@
+vulnerabilities:
+  - id: "sql-injection"
+    name: "SQL Injection"
+    cwe: "CWE-89"
+    severity: "critical"
+    compliance_impact:
+      - "GDPR:Art.32 (Seguridad del tratamiento)"
+      - "ISO_27001:A.14.2.5 (Inyección de código)"
+      - "Ley_3_2023:Art.20 (Protección de datos)"
+    mitigation:
+      - "Usar consultas parametrizadas (ej: SQLAlchemy, psycopg2)"
+      - "Implementar WAF en Traefik con reglas OWASP"
+      - "Validación estricta de inputs (regex, whitelisting)"
+
+  - id: "cross-site-scripting"
+    name: "Cross-Site Scripting (XSS)"
+    cwe: "CWE-79"
+    severity: "high"
+    compliance_impact:
+      - "GDPR:Art.32"
+      - "ISO_27001:A.14.2.1 (Validación de inputs)"
+    mitigation:
+      - "Implementar CSP headers estrictos"
+      - "Sanitización de outputs"
+      - "Usar frameworks modernos (React/Vue)"
+
+  - id: "broken-authentication"
+    name: "Autenticación rota"
+    cwe: "CWE-287"
+    severity: "critical"
+    compliance_impact:
+      - "GDPR:Art.32"
+      - "ISO_27001:A.9.4.2 (Gestión de autenticación)"
+      - "Ley_3_2023:Art.8 (Consentimientos)"
+    mitigation:
+      - "Implementar MFA (TOTP o YubiKey)"
+      - "Rotación periódica de tokens JWT"
+      - "Monitorizar intentos fallidos"
+
+  - id: "sensitive-data-exposure"
+    name: "Exposición de datos sensibles"
+    cwe: "CWE-319"
+    severity: "critical"
+    compliance_impact:
+      - "GDPR:Art.5.1.f (Integridad y confidencialidad)"
+      - "ISO_27001:A.10.1.1 (Criptografía)"
+    mitigation:
+      - "Cifrado en tránsito (TLS 1.2+)"
+      - "Cifrado en reposo (AES-256)"
+      - "Masking de datos sensibles"
+
+  - id: "security-misconfiguration"
+    name: "Configuración de seguridad incorrecta"
+    cwe: "CWE-16"
+    severity: "high"
+    compliance_impact:
+      - "ISO_27001:A.12.6.1 (Configuración segura)"
+      - "GDPR:Art.32"
+    mitigation:
+      - "Escaneos regulares de configuración"
+      - "Hardening de servidores"
+      - "Revisión de headers de seguridad"
+
+  - id: "insecure-direct-object-references"
+    name: "Referencias directas a objetos inseguras"
+    cwe: "CWE-639"
+    severity: "medium"
+    compliance_impact:
+      - "GDPR:Art.32"
+      - "ISO_27001:A.14.2.4"
+    mitigation:
+      - "Controles de acceso basados en roles"
+      - "Validación de permisos"
+      - "Uso de UUIDs en lugar de IDs secuenciales"
+
+  - id: "missing-security-headers"
+    name: "Falta de headers de seguridad"
+    cwe: "CWE-693"
+    severity: "medium"
+    compliance_impact:
+      - "ISO_27001:A.14.1.2 (Protección contra ataques)"
+    mitigation:
+      - "CSP headers estrictos"
+      - "HSTS habilitado"
+      - "X-Frame-Options DENY"
+
+  - id: "api-vulnerabilities"
+    name: "Vulnerabilidades en APIs"
+    cwe: "CWE-200"
+    severity: "high"
+    compliance_impact:
+      - "GDPR:Art.32"
+      - "AI_Act:Anexo_III (Seguridad de sistemas de IA)"
+    mitigation:
+      - "Validación estricta de inputs"
+      - "Rate limiting"
+      - "Autenticación robusta (OIDC)"
+

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Modelo303>
+    <Cabecera>
+        <Ejercicio>2026</Ejercicio>
+        <Periodo>3</Periodo>
+        <NIF>B12345678</NIF>
+        <Nombre>CASTÚO-SYSTEM S.L.</Nombre>
+    </Cabecera>
+    <Detalle>
+        <BaseImponible tipo="general">
+            <Importe>0.00</Importe>
+            <Cuota>0.00</Cuota>
+        </BaseImponible>
+        <BaseImponible tipo="reducido">
+            <Importe>0.00</Importe>
+            <Cuota>0.00</Cuota>
+        </BaseImponible>
+        <BaseImponible tipo="superreducido">
+            <Importe>0.00</Importe>
+            <Cuota>0.00</Cuota>
+        </BaseImponible>
+        <Total>
+            <Base>0.00</Base>
+            <Cuota>0.00</Cuota>
+            <Resultado>0.00</Resultado>
+        </Total>
+    </Detalle>
+    <Pie>
+        <Normativa>Orden HFP/417/2022</Normativa>
+        <FechaGeneracion>2026-03-19T13:18:20</FechaGeneracion>
+    </Pie>
+</Modelo303>

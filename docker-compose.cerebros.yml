@@ -1,0 +1,70 @@
+# CASTÚO — “cerebros” híbridos: notas Markdown (SilverBullet) + Logseq web (UI) + Postgres operativo.
+# No sustituye al stack principal; es opcional y soberano (todo en tu host/red).
+#
+#   cp .env.cerebros.example .env.cerebros
+#   docker compose -f docker-compose.cerebros.yml --env-file .env.cerebros up -d
+#
+# Logseq web usa File System Access API: en remoto exige HTTPS (ver docs oficiales Logseq).
+# SilverBullet: https://silverbullet.md/Install/Docker — SB_USER obligatorio; SB_AUTH_TOKEN para API.
+
+version: "3.8"
+
+services:
+  logseq-web:
+    image: ghcr.io/logseq/logseq-webapp:latest
+    container_name: castuo-cerebro-logseq
+    ports:
+      - "127.0.0.1:${LOGSEQ_PORT:-3001}:80"
+    restart: unless-stopped
+    networks:
+      - castuo_cerebros
+
+  silverbullet-soberano:
+    image: ghcr.io/silverbulletmd/silverbullet:latest
+    container_name: castuo-cerebro-silverbullet-soberano
+    environment:
+      - SB_USER=${CEREBRO_SOBERANO_SB_USER:?set CEREBRO_SOBERANO_SB_USER user:pass in .env.cerebros}
+      - SB_AUTH_TOKEN=${CEREBRO_SOBERANO_SB_AUTH_TOKEN:-}
+    volumes:
+      - ./cerebros/soberano:/space
+    ports:
+      - "127.0.0.1:${SILVERBULLET_SOBERANO_PORT:-3002}:3000"
+    restart: unless-stopped
+    networks:
+      - castuo_cerebros
+
+  silverbullet-auditor:
+    image: ghcr.io/silverbulletmd/silverbullet:latest
+    container_name: castuo-cerebro-silverbullet-auditor
+    environment:
+      - SB_USER=${CEREBRO_AUDITOR_SB_USER:?set CEREBRO_AUDITOR_SB_USER user:pass in .env.cerebros}
+      - SB_AUTH_TOKEN=${CEREBRO_AUDITOR_SB_AUTH_TOKEN:-}
+    volumes:
+      - ./cerebros/auditoria:/space
+    ports:
+      - "127.0.0.1:${SILVERBULLET_AUDITOR_PORT:-3003}:3000"
+    restart: unless-stopped
+    networks:
+      - castuo_cerebros
+
+  postgres-cerebros:
+    image: postgres:16-alpine
+    container_name: castuo-cerebros-postgres
+    environment:
+      POSTGRES_DB: ${CEREBROS_POSTGRES_DB:-agri_brain}
+      POSTGRES_USER: ${CEREBROS_POSTGRES_USER:?set CEREBROS_POSTGRES_USER in .env.cerebros}
+      POSTGRES_PASSWORD: ${CEREBROS_POSTGRES_PASSWORD:?set CEREBROS_POSTGRES_PASSWORD in .env.cerebros}
+    volumes:
+      - castuo_cerebros_pg:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${CEREBROS_POSTGRES_PORT:-5433}:5432"
+    restart: unless-stopped
+    networks:
+      - castuo_cerebros
+
+networks:
+  castuo_cerebros:
+    driver: bridge
+
+volumes:
+  castuo_cerebros_pg:

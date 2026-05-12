@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  dashboard:
+    image: extremadura-dashboard:latest
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - REACT_APP_FOREST_OWNERSHIP_TOKEN_ADDRESS=${REACT_APP_FOREST_OWNERSHIP_TOKEN_ADDRESS}
+    restart: unless-stopped
+
+# Para HTTPS (puerto 443) montar certificados y configurar Nginx en Dockerfile o usar proxy inverso externo.
+# Ejemplo con certs locales:
+# volumes:
+#   - ./certs:/etc/nginx/certs:ro

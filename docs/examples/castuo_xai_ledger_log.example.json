@@ -1,0 +1,21 @@
+{
+  "schema_version": "castuo.xai_ledger_log.v1",
+  "event_id": "URN:CASTUO:LOG:2026:0042",
+  "mission_id": "CRIPTA-SILENCIO-2026",
+  "timestamp": "2026-03-18T09:15:00Z",
+  "unit_id": "NANO-03-ALFA",
+  "decision": {
+    "action": "ABORT_PENETRATION",
+    "reason_code": "THR_VIB_LIMIT",
+    "natural_language_explanation": "Vibración estructural detectada > 0.5 mm/s en superficie de contacto frágil."
+  },
+  "telemetry_snapshot": {
+    "lidar_confidence": 0.98,
+    "vibration_sensor_peak_mm_s": 0.62,
+    "battery_pct": 82
+  },
+  "ledger_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "event_anchor_hash": "REEMPLAZAR_TRAS_compute_event_anchor_hash_y_firma_SE",
+  "signature": "0x…",
+  "signer_pubkey_hint": "SE-NANO03-LOT-2026-Q1"
+}

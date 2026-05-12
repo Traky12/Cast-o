@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_demand_prediction_tree" model="ir.ui.view">
+        <field name="name">castu.demand.prediction.tree</field>
+        <field name="model">castu.demand.prediction</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="material_id"/>
+                <field name="date"/>
+                <field name="method"/>
+                <field name="accuracy"/>
+                <field name="alert_generated"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_demand_prediction_form" model="ir.ui.view">
+        <field name="name">castu.demand.prediction.form</field>
+        <field name="model">castu.demand.prediction</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="material_id"/>
+                        <field name="date"/>
+                        <field name="method"/>
+                        <field name="accuracy"/>
+                        <field name="alert_generated"/>
+                    </group>
+                    <group string="Predicciones (próximos días)">
+                        <field name="predictions" nolabel="1" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_demand_prediction" model="ir.actions.act_window">
+        <field name="name">Predicciones de Demanda</field>
+        <field name="res_model">castu.demand.prediction</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_demand_prediction" name="Predicción de Demanda"
+        parent="castu_materials.menu_castu_materials_root" action="action_castu_demand_prediction" sequence="40"/>
+</odoo>

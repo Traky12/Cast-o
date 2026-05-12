@@ -1,0 +1,40 @@
+# CASTUO — Capa datos + red interna para soberanía UE (PostgreSQL FOSS).
+# Documentación: docs/deploy/EU-FOSS-SOVEREIGNTY-STACK.md
+# Uso: docker compose -f docker-compose.eu-sovereignty.yml --env-file .env up -d
+#
+# Combinar con:
+#   docker compose -f docker-compose.monitor.yml up -d
+#   docker compose -f docker-compose.gaiachain.yml up -d
+#   docker compose -f docker-compose.eu-oss.yml up -d   # Keycloak/Traefik (opcional)
+
+version: "3.8"
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-castuo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-castuo_dev_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-castuo}
+      # Territorio de procesado: fijar TZ UE coherente con auditoría
+      TZ: ${TZ:-Europe/Madrid}
+    volumes:
+      - eu_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-castuo} -d ${POSTGRES_DB:-castuo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - eu_sovereignty_net
+
+networks:
+  eu_sovereignty_net:
+    driver: bridge
+    name: castuo_eu_sovereignty_net
+
+volumes:
+  eu_postgres_data:
+    name: castuo_eu_postgres_data

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Guardi�n Cu�ntico Nivel 2">
+  <defs>
+    <linearGradient id="bg2" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1976D2"/>
+      <stop offset="100%" stop-color="#2E7D32"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="236" fill="url(#bg2)" stroke="#FFD700" stroke-width="16"/>
+  <circle cx="256" cy="256" r="170" fill="none" stroke="#FFFFFF" stroke-width="10" opacity="0.9"/>
+  <path d="M256 150c58 0 106 48 106 106 0 70-106 160-106 160S150 326 150 256c0-58 48-106 106-106z"
+        fill="#FFFFFF" opacity="0.95"/>
+  <path d="M240 244l16 18 44-54" fill="none" stroke="#FFD700" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="256" y="452" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="26" fill="#FFFFFF">
+    GUARDI�N CU�NTICO � NIVEL 2
+  </text>
+</svg>

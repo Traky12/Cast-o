@@ -1,0 +1,36 @@
+#!/bin/sh
+# Post-merge: análisis, mejoras, docs, regresión (copiar a .git/hooks/post-merge)
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+echo "Ejecutando post-merge (evolución con Mistral opcional)..."
+
+# 1. Analizar cambios
+if [ -f "$ROOT/backend/scripts/analyze_changes.py" ]; then
+  echo "Analizando cambios recientes..."
+  python3 "$ROOT/backend/scripts/analyze_changes.py" 2>/dev/null || git config --local hook.post-merge.failed true 2>/dev/null || true
+fi
+
+# 2. Proponer mejoras
+if [ -f "$ROOT/backend/scripts/propose_improvements.py" ]; then
+  echo "Proponiendo mejoras..."
+  python3 "$ROOT/backend/scripts/propose_improvements.py" 2>/dev/null || true
+fi
+
+# 3. Documentación (opcional)
+if [ -f "$ROOT/backend/scripts/generate_docs.py" ]; then
+  echo "Generando documentación..."
+  python3 "$ROOT/backend/scripts/generate_docs.py" 2>/dev/null || true
+fi
+
+# 4. Tests de regresión (abortar merge si fallan)
+if command -v npm >/dev/null 2>&1 && [ -f package.json ]; then
+  echo "Ejecutando tests de regresión..."
+  if ! npm run test:regression 2>/dev/null; then
+    echo "Tests de regresión fallaron. Considera revertir el merge."
+    exit 1
+  fi
+fi
+
+echo "Post-merge completado."

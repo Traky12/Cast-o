@@ -1,0 +1,62 @@
+# CASTÚO IA Agents — Anytype ↔ FastAPI ↔ Ollama
+# Uso: docker-compose -f docker-compose.agents.yml up -d
+
+version: "3.8"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-agents
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - agents_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  fastapi-agents:
+    build:
+      context: ./backend/agents
+      dockerfile: Dockerfile
+    image: castuo-agents:latest
+    container_name: fastapi-agents
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./backend/agents/data:/app/data
+    environment:
+      - AGENTS_DATA_DIR=/app/data
+      - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
+      - VAULT_URL=${VAULT_URL:-http://vault:8200}
+      - ANYTYPE_ENDPOINT=${ANYTYPE_ENDPOINT:-localhost:8008}
+      - ANYTYPE_PATH=${ANYTYPE_PATH:-/data/anytype}
+      - APPLUS_CERTIFICACION_EMAIL=${APPLUS_CERTIFICACION_EMAIL:-certificacion@applus.com}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_ALERT_CHAT_ID=${TELEGRAM_ALERT_CHAT_ID}
+      - AGENTE_AUDITOR_UMBRAL=${AGENTE_AUDITOR_UMBRAL:-95}
+      - AGENTE_MONITOREO_UPTIME_UMBRAL=${AGENTE_MONITOREO_UPTIME_UMBRAL:-99.5}
+      - AGENTE_VAULT_ROTATION_DAYS=${AGENTE_VAULT_ROTATION_DAYS:-30}
+      - AGENTE_CAMPO_CONSENTS_UMBRAL=${AGENTE_CAMPO_CONSENTS_UMBRAL:-90}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - agents_network
+    restart: unless-stopped
+
+volumes:
+  ollama_models:
+
+networks:
+  agents_network:
+    driver: bridge

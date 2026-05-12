@@ -1,0 +1,35 @@
+.consent-manager {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.consent-status.granted {
+  border-left: 4px solid #28a745;
+}
+
+.consent-status.withdrawn {
+  border-left: 4px solid #dc3545;
+}
+
+.withdraw-btn {
+  background: #dc3545;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.withdraw-btn:hover {
+  background: #c82333;
+}
+
+.consent-loading {
+  padding: 20px;
+  text-align: center;
+  color: #6c757d;
+}
+

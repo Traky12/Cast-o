@@ -1,0 +1,26 @@
+# CASTÚO-SYSTEM™ — Configuración MFA para OpenZeppelin Defender (anti-hacking v1.0)
+# Referencia para políticas de autenticación multifactor en acciones críticas
+
+defender:
+  mfa:
+    enabled: true
+    methods:
+      - type: totp
+        required: true
+      - type: hardware_key
+        required: false
+  policies:
+    - action: approve_upgrade
+      require_mfa: true
+    - action: execute_admin_action
+      require_mfa: true
+      require_hardware_key: true
+    - action: modify_policy
+      require_mfa: true
+      require_2_signers: true
+  emergency_access:
+    enabled: true
+    break_glass_procedure:
+      - require: 3_signers
+      - require: video_call_verification
+      - max_duration: 1h

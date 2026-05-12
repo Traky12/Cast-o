@@ -1,0 +1,1 @@
+# Tests seguridad / Vault opcional

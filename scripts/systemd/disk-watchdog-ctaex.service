@@ -1,0 +1,16 @@
+[Unit]
+Description=CASTUO-CTAEX Disk Watchdog
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment="DISK_THRESHOLD=90"
+Environment="DISK_CHECK_INTERVAL=300"
+Environment="NOTIFY_SCRIPT=/root/castuo-ctaex/scripts/notify_slack_ctaex.sh"
+ExecStart=/root/castuo-ctaex/scripts/disk_watchdog_ctaex.sh
+Restart=always
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target

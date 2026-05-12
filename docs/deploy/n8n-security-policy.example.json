@@ -1,0 +1,16 @@
+{
+  "_comment": "Plantilla para políticas de seguridad en n8n. n8n no carga este archivo por defecto: traduce a ENV, proxy y Settings > Workflow Security. Reemplaza *.invalid con tus dominios reales.",
+  "workflow": {
+    "securePrompts": {
+      "enabled": true,
+      "allowedPatterns": [
+        "https://api.example.invalid/data",
+        "https://gaia-chain.invalid/validate"
+      ]
+    },
+    "execution": {
+      "isolateWorkflows": true,
+      "timeout": 300
+    }
+  }
+}

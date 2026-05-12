@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Consentimiento para Tratamiento de Datos — plantilla</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; }
+    h1 { color: #2c3e50; }
+    .consent-box { border: 1px solid #ddd; padding: 20px; margin: 20px 0; background: #f9f9f9; }
+    button { background: #3498db; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Consentimiento para Tratamiento de Datos Personales</h1>
+  <div class="consent-box">
+    <p>
+      En cumplimiento del <strong>RGPD (UE) 2016/679</strong>, el responsable del tratamiento
+      (sustituir por razón social) solicita tu consentimiento para:
+    </p>
+    <ul>
+      <li>Responder a tus consultas mediante el sistema de soporte (incl. asistente automatizado si aplica).</li>
+      <li>Mejorar el servicio mediante análisis <strong>pseudonimizado o agregado</strong>, según política publicada.</li>
+      <li>Garantizar la calidad y la seguridad de la plataforma.</li>
+    </ul>
+    <p>
+      Puedes ejercer derechos ARCO+ y retirar el consentimiento contactando con:
+      <a href="mailto:privacidad@educanova.ai">privacidad@educanova.ai</a> (sustituir).
+    </p>
+    <form id="consentForm">
+      <label>
+        <input type="checkbox" name="consent" required>
+        Acepto el tratamiento de mis datos según lo descrito y la política de privacidad vigente.
+      </label>
+      <p><button type="submit">Enviar consentimiento</button></p>
+    </form>
+  </div>
+  <script>
+    document.getElementById('consentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Demo: en producción enviar a tu backend con registro hora y versión de política.');
+    });
+  </script>
+</body>
+</html>

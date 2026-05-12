@@ -1,0 +1,17 @@
+{
+  "name": "castuo-biocoin",
+  "version": "1.0.0",
+  "description": "BioCoin Castúo - Smart contract con trazabilidad Git (CASTUO-SYSTEM™)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy_biocoin.js",
+    "deploy:castu": "hardhat run scripts/deploy_biocoin.js --network castu",
+    "mint": "hardhat run scripts/mint_biocoin.js",
+    "mint:castu": "hardhat run scripts/mint_biocoin.js --network castu"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^4.9.0",
+    "hardhat": "^2.19.0"
+  }
+}

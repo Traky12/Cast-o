@@ -1,0 +1,13 @@
+# Copiar a docker-compose.override.yml cuando el host monta tokens en /mnt/castuo_secure (mount_secure.example.sh).
+# Alternativa sin "secure": volumen /mnt/usb/tokens:/app/tokens:ro y CASTUO_TOKENS_PATH=/mnt/usb/tokens.
+version: "3.9"
+
+services:
+  api:
+    volumes:
+      - /mnt/castuo_secure/tokens:/app/tokens:ro
+    environment:
+      TOKENS_PATH: /app/tokens
+      CASTUO_ADMIN_GENERAL_BEARER_FILE: /app/tokens/admin_general.token
+      FARMER_API_KEY_FILE: /app/tokens/farmer.key
+      MQTT_TECHNICIAN_PASSWORD_FILE: /app/tokens/technician.key

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_asset_token_tree" model="ir.ui.view">
+        <field name="name">castu.asset.token.tree</field>
+        <field name="model">castu.asset.token</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="asset_id"/>
+                <field name="total_supply"/>
+                <field name="circulating_supply"/>
+                <field name="owner_id"/>
+                <field name="state"/>
+                <field name="blockchain_tx"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_asset_token_form" model="ir.ui.view">
+        <field name="name">castu.asset.token.form</field>
+        <field name="model">castu.asset.token</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="asset_id"/>
+                        <field name="unidad_respaldo"/>
+                        <field name="total_supply"/>
+                        <field name="circulating_supply"/>
+                        <field name="owner_id"/>
+                        <field name="state"/>
+                        <field name="blockchain_tx"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_create_on_chain" string="Crear en Blockchain" type="object" class="btn-primary" invisible="state != 'draft'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_asset_token" model="ir.actions.act_window">
+        <field name="name">Tokens de Activos</field>
+        <field name="res_model">castu.asset.token</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_asset_token" name="Tokenización" parent="menu_castu_root" action="action_castu_asset_token" sequence="85"/>
+</odoo>

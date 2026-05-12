@@ -1,0 +1,38 @@
+# Anexo C — Parcela Jara (Cistus ladanifer) — entidad NGSI-LD (FIWARE)
+# Compatible con Context Broker; metadatos para gemelo digital y aleación CastuoResin L7.
+# @context: https://uri.eglobalis.com/ngsi-ld/v1/castuo-jara.jsonld (ejemplo)
+
+id: "urn:ngsi-ld:JaraPlot:castuo-extremadura-001"
+type: JaraPlot
+location:
+  type: GeoProperty
+  value:
+    type: Point
+    coordinates: [-6.37, 39.48]
+soilMoisture:
+  type: Property
+  value: 0.42
+  observedAt: "2026-01-01T12:00:00Z"
+castuoResinL7Matrix:
+  type: Property
+  value:
+    composition_pct:
+      cistus_ladanifer: 60
+      hemp: 30
+      flax: 10
+    target_gpa: 3.1
+    uv_humidity_cure: true
+  observedAt: "2026-01-01T12:00:00Z"
+chlorellaBioGridSynergy:
+  type: Relationship
+  object: "urn:ngsi-ld:BioGrid:castuo-chlorella-01"
+co2PassiveCaptureKgYear:
+  type: Property
+  value: 0.0
+  unitCode: KGM
+digitalTwinDegradationModel:
+  type: Property
+  value: "BioFlex-Chlorella half-life compost days target 180"
+qaoaEnergyBudgetLink:
+  type: Relationship
+  object: "urn:ngsi-ld:BioGridEnergy:perovskita-biogas-01"

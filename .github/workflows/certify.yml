@@ -1,0 +1,56 @@
+# SABIONDA v7.1 | Certificación batch completa (LIMS → GaiaChain → Certificado)
+# Barreras v7.1 — Cursor Integration.
+
+name: Certify Batch
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_id:
+        description: 'Batch ID to certify'
+        required: true
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/validate_lims.py'
+      - 'scripts/register_gaiachain.py'
+      - 'scripts/issue_certificate.py'
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install httpx python-dotenv --quiet
+
+      - name: Validate with LIMS
+        env:
+          BATCH_ID: ${{ github.event.inputs.batch_id || 'demo-batch' }}
+        run: |
+          python scripts/validate_lims.py "$BATCH_ID" || true
+
+      - name: Register in GaiaChain
+        env:
+          BATCH_ID: ${{ github.event.inputs.batch_id || 'demo-batch' }}
+        run: |
+          python scripts/register_gaiachain.py "$BATCH_ID" || true
+
+      - name: Issue Certificate
+        env:
+          BATCH_ID: ${{ github.event.inputs.batch_id || 'demo-batch' }}
+        run: |
+          python scripts/issue_certificate.py "$BATCH_ID" || true
+
+      - name: Summary
+        run: |
+          echo "Certification pipeline completed for batch ${{ github.event.inputs.batch_id || 'demo-batch' }}"

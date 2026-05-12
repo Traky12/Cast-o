@@ -1,0 +1,39 @@
+[
+  {
+    "inputs": [{"name": "tokenId", "type": "uint256"}],
+    "name": "getProperty",
+    "outputs": [
+      {"name": "parcelaId", "type": "string"},
+      {"name": "owner", "type": "address"},
+      {"name": "coordinates", "type": "string"},
+      {"name": "area", "type": "uint256"},
+      {"name": "treeSpecies", "type": "string"},
+      {"name": "carbonSequestered", "type": "uint256"},
+      {"name": "ipfsHash", "type": "string"},
+      {"name": "isProtected", "type": "bool"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "tokenId", "type": "uint256"}],
+    "name": "getCertifications",
+    "outputs": [{"name": "", "type": "string[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "tokenId", "type": "uint256"}],
+    "name": "calculateSubsidies",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "tokenId", "type": "uint256"}],
+    "name": "getEligibleSubsidies",
+    "outputs": [{"name": "", "type": "string[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

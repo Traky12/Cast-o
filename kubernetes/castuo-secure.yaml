@@ -1,0 +1,93 @@
+# CASTÚO-SYSTEM v1.7.1 — K8s RBAC + Taints (Capa 5).
+# Uso: kubectl apply -f kubernetes/castuo-secure.yaml
+# Nodos críticos deben tener taint: kubectl taint nodes <node> castuo-critical=:NoSchedule
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: castuo-secure
+  labels:
+    app.kubernetes.io/name: castuo-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nft-minter-sa
+  namespace: castuo-secure
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nft-minter-role
+  namespace: castuo-secure
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: castuo-nft-minter
+  namespace: castuo-secure
+subjects:
+  - kind: ServiceAccount
+    name: nft-minter-sa
+    namespace: castuo-secure
+roleRef:
+  kind: Role
+  name: nft-minter-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-nft-minter
+  namespace: castuo-secure
+  labels:
+    app: castuo-nft-minter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: castuo-nft-minter
+  template:
+    metadata:
+      labels:
+        app: castuo-nft-minter
+    spec:
+      serviceAccountName: nft-minter-sa
+      tolerations:
+        - key: "castuo-critical"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: nft-minter
+          image: castuo/backend:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GAIA_CHAIN_RPC
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: gaia_chain_rpc
+            - name: NFT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: nft_private_key
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+# Secret (crear con kubectl create secret generic castuo-secrets --from-literal=...)
+# kubectl create secret generic castuo-secrets -n castuo-secure \
+#   --from-literal=gaia_chain_rpc=https://gaiachain-testnet \
+#   --from-literal=nft_private_key=0x...

@@ -1,0 +1,16 @@
+# Requiere Prometheus Operator instalado en el cluster (monitoring.coreos.com/v1).
+# Si no usas Operator, sustituir por Deployment/ConfigMap estándar.
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  namespace: castuo-system
+spec:
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      team: castuo
+  resources:
+    requests:
+      memory: 400Mi
+  enableAdminAPI: true

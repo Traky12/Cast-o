@@ -1,0 +1,66 @@
+# Reglas dinámicas Traefik – backend, dashboard, headers EU
+# Ajustar Host() a tus dominios (api.castuo-system.eu, dashboard.castuo-system.eu)
+
+http:
+  routers:
+    backend-forestal:
+      rule: "Host(`api.castuo-system.eu`) && PathPrefix(`/api`)"
+      service: backend-forestal
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - rate-limit
+        - security-headers
+        - eu-compliance
+
+    dashboard:
+      rule: "Host(`dashboard.castuo-system.eu`)"
+      service: dashboard
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - eu-compliance
+
+  services:
+    backend-forestal:
+      loadBalancer:
+        servers:
+          - url: "http://backend:8000"
+
+    dashboard:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:3000"
+
+  middlewares:
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+
+    security-headers:
+      headers:
+        frameDeny: true
+        sslRedirect: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "same-origin"
+        featurePolicy: "geolocation 'none'; microphone 'none'; camera 'none'"
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; img-src 'self' data:; font-src 'self' fonts.gstatic.com; object-src 'none'; frame-src 'none'"
+
+    eu-compliance:
+      headers:
+        customResponseHeaders:
+          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: "DENY"
+          X-XSS-Protection: "1; mode=block"
+          Server: "CASTÚO-SYSTEM-EU"
+          X-EU-Compliance: "GDPR,ISO-27001,Ley-3-2023,AI-Act"
+          X-Data-Residency: "EU"
+          X-License: "EUPL-1.2,Apache-2.0,MIT"

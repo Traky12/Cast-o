@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_material_compuesto_tree" model="ir.ui.view">
+        <field name="name">castu.material.compuesto.tree</field>
+        <field name="model">castu.material.compuesto</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="tipo"/>
+                <field name="materia_prima"/>
+                <field name="stock_kg"/>
+                <field name="precio_kg"/>
+                <field name="aplicacion_default"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_material_compuesto_form" model="ir.ui.view">
+        <field name="name">castu.material.compuesto.form</field>
+        <field name="model">castu.material.compuesto</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="tipo"/>
+                        <field name="materia_prima"/>
+                        <field name="stock_kg"/>
+                        <field name="precio_kg"/>
+                        <field name="aplicacion_default"/>
+                        <field name="propiedades"/>
+                        <field name="biocoin_tx"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_producir" string="Producir (desde materia prima)" type="object" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_castu_material_aplicacion_tree" model="ir.ui.view">
+        <field name="name">castu.material.aplicacion.tree</field>
+        <field name="model">castu.material.aplicacion</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="material_id"/>
+                <field name="producto_final"/>
+                <field name="cantidad"/>
+                <field name="kg_consumidos"/>
+                <field name="fecha"/>
+                <field name="granja_destino_id"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_material_aplicacion_form" model="ir.ui.view">
+        <field name="name">castu.material.aplicacion.form</field>
+        <field name="model">castu.material.aplicacion</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name" readonly="1"/>
+                        <field name="material_id"/>
+                        <field name="producto_final"/>
+                        <field name="cantidad"/>
+                        <field name="kg_consumidos"/>
+                        <field name="fecha"/>
+                        <field name="granja_destino_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_material_compuesto" model="ir.actions.act_window">
+        <field name="name">Materiales Compuestos</field>
+        <field name="res_model">castu.material.compuesto</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_castu_material_aplicacion" model="ir.actions.act_window">
+        <field name="name">Aplicaciones</field>
+        <field name="res_model">castu.material.aplicacion</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_materiales" name="Materiales" parent="menu_castu_root" action="action_castu_material_compuesto" sequence="90"/>
+    <menuitem id="menu_castu_material_aplicacion" name="Aplicaciones" parent="menu_castu_materiales" action="action_castu_material_aplicacion" sequence="10"/>
+</odoo>

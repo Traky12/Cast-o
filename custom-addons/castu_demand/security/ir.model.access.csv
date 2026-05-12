@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_castu_demand_prediction,castu.demand.prediction,model_castu_demand_prediction,,1,1,1,1
+access_castu_demand_alert,castu.demand.alert,model_castu_demand_alert,,1,1,1,1

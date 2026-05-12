@@ -1,0 +1,27 @@
+# backend/Dockerfile.agent — Imagen para agentes CASTÚO-SYSTEM™ (master, selfhealing, ai)
+# Construir desde la raíz del repo: docker build -t castuo-agent:v2.1 -f backend/Dockerfile.agent .
+
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    netcat-openbsd \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY backend/requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/ /app/backend/
+
+ENV PYTHONPATH=/app
+ENV CASTUO_KEY_DIR=/etc/castuo/keys
+
+RUN mkdir -p /etc/castuo/keys && chmod 700 /etc/castuo/keys
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

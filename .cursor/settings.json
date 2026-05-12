@@ -1,0 +1,19 @@
+{
+  "cursor": {
+    "model": "mistral-large-latest"
+  },
+  "plugins": {
+    "gitlab": {
+      "enabled": true
+    },
+    "slack": {
+      "enabled": true
+    },
+    "firebase": {
+      "enabled": true
+    },
+    "agent-compatibility": {
+      "enabled": true
+    }
+  }
+}

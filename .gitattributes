@@ -1,0 +1,20 @@
+# CASTÚO-SYSTEM v1.7.1 — Git-crypt (Capa 4). Archivos cifrados en repo.
+# Tras git-crypt init: git-crypt add-gpg-user gregorio@castuo.es
+# Bloquear: git-crypt lock && git add -u && git commit -m "🔒 Encriptación git-crypt v1.7"
+
+.key filter=git-crypt diff=git-crypt
+*.key filter=git-crypt diff=git-crypt
+private/** filter=git-crypt diff=git-crypt
+private/.sol filter=git-crypt diff=git-crypt
+backend/config/secrets/** filter=git-crypt diff=git-crypt
+.env filter=git-crypt diff=git-crypt
+.env.* !filter !diff
+!.env.example
+!.env.sops
+# GDPR v1.7.1 — rutas críticas privacidad
+api/services/privacy_service.py filter=git-crypt diff=git-crypt
+api/certificates/*.pdf filter=git-crypt diff=git-crypt
+frontend/extremadura-dashboard/src/components/PrivacyModule.js filter=git-crypt diff=git-crypt
+frontend/extremadura-dashboard/src/components/PrivacyModule.css filter=git-crypt diff=git-crypt
+docs/junta-extremadura/legal/* filter=git-crypt diff=git-crypt
+docs/junta-extremadura/legal/** filter=git-crypt diff=git-crypt

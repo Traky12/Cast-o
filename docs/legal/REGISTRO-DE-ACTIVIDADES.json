@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "nota": "Plantilla GDPR Art. 30. Completar con tratamientos reales. Minimizar datos: vida -> agua -> datos.",
+  "actividades": [
+    {
+      "id": 1,
+      "descripcion": "PLACEHOLDER: primera actividad real (ej: recogida de email voluntario post-taller).",
+      "finalidad": "PLACEHOLDER: finalidad concreta y mínima.",
+      "base_legal": "PLACEHOLDER: consentimiento / interés legítimo (según caso).",
+      "categoria_datos": [
+        "PLACEHOLDER: nombre",
+        "PLACEHOLDER: email"
+      ],
+      "plazo_conservacion": "PLACEHOLDER: duración (ej: 12 meses) o hasta supresión.",
+      "medidas_seguridad": "AES-256-GCM (si aplica) + minimización + acceso limitado",
+      "encargados": [
+        "PLACEHOLDER: responsable",
+        "PLACEHOLDER: DPO/contacto"
+      ],
+      "fecha_inicio": "2026-03-18",
+      "estado": "plantilla"
+    }
+  ]
+}
+

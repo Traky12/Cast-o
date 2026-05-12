@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_alert_tree" model="ir.ui.view">
+        <field name="name">castu.alert.tree</field>
+        <field name="model">castu.alert</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="status=='triggered' and severity in ['high','critical']" decoration-warning="status=='triggered' and severity=='medium'">
+                <field name="material_id"/>
+                <field name="current_value"/>
+                <field name="threshold_value"/>
+                <field name="severity"/>
+                <field name="status"/>
+                <field name="message"/>
+                <field name="triggered_at"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_alert_form" model="ir.ui.view">
+        <field name="name">castu.alert.form</field>
+        <field name="model">castu.alert</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="material_id"/>
+                        <field name="rule_id"/>
+                        <field name="current_value"/>
+                        <field name="threshold_value"/>
+                        <field name="severity"/>
+                        <field name="status"/>
+                        <field name="message" readonly="1"/>
+                        <field name="blockchain_tx" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_acknowledge" string="Reconocer" type="object" class="btn-primary" invisible="status != 'triggered'"/>
+                    <button name="action_resolve" string="Marcar Resuelta" type="object" class="btn-secondary" invisible="status != 'acknowledged'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_alert" model="ir.actions.act_window">
+        <field name="name">Alertas Activadas</field>
+        <field name="res_model">castu.alert</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_alerts" name="Alertas Activadas"
+        parent="castu_materials.menu_castu_materials_root" action="action_castu_alert" sequence="61"/>
+</odoo>

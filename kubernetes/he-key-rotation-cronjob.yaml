@@ -1,0 +1,29 @@
+# CronJob: rotación de claves HE cada 90 días (1º del mes cada 3 meses)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: he-key-rotation
+  namespace: castuo
+spec:
+  schedule: "0 0 1 */3 *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: key-rotator
+            image: ghcr.io/tu-organizacion/castuo-system:v2.1
+            command: ["python", "-m", "backend.scripts.rotate_he_keys"]
+            args: ["--scheme", "CKKS"]
+            env:
+            - name: DRY_RUN
+              value: "false"
+            volumeMounts:
+            - name: he-keys
+              mountPath: /etc/he-keys
+          restartPolicy: OnFailure
+          volumes:
+          - name: he-keys
+            secret:
+              secretName: he-keys

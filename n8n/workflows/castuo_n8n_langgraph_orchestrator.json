@@ -1,0 +1,93 @@
+{
+  "name": "CASTUO_n8n_LangGraph_Orchestrator",
+  "active": false,
+  "tags": ["CASTUO", "n8n", "langgraph", "orchestrator"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "langgraph-executor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "lgo-wh",
+      "name": "Webhook_LangGraph_Executor",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [220, 320],
+      "webhookId": "castuo-langgraph-executor"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst raw = j.body && typeof j.body === 'object' ? j.body : j;\nreturn [{ json: { payload: raw } }];"
+      },
+      "id": "lgo-wrap",
+      "name": "Wrap_Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_LANGGRAPH_URL || $env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://castuo-api:8000').replace(/\\/$/, '') + '/langgraph/castuo/execute-graph' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $json.payload } }}",
+        "options": { "timeout": 180000 }
+      },
+      "id": "lgo-http",
+      "name": "HTTP_Castuo_LangGraph",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [700, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nreturn [\n  {\n    json: {\n      ok: !r.errors || r.errors.length === 0,\n      analysis: r.analysis || '',\n      trace_hash: r.trace_hash || '',\n      errors: r.errors || [],\n      gaia_http_status: r.gaia_http_status,\n      slack_http_status: r.slack_http_status,\n      raw: r,\n    },\n  },\n];"
+      },
+      "id": "lgo-norm",
+      "name": "Normalize_Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "lgo-resp",
+      "name": "Respond_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1180, 320]
+    }
+  ],
+  "connections": {
+    "Webhook_LangGraph_Executor": {
+      "main": [[{ "node": "Wrap_Payload", "type": "main", "index": 0 }]]
+    },
+    "Wrap_Payload": {
+      "main": [[{ "node": "HTTP_Castuo_LangGraph", "type": "main", "index": 0 }]]
+    },
+    "HTTP_Castuo_LangGraph": {
+      "main": [[{ "node": "Normalize_Response", "type": "main", "index": 0 }]]
+    },
+    "Normalize_Response": {
+      "main": [[{ "node": "Respond_Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Orquestación n8n → API CASTÚO (LangGraph en FastAPI, no contenedor 8123). Webhook POST .../webhook/langgraph-executor. Añadir nodos Slack/Postgres tras Normalize_Response. No usar /mcp/cursor ni deploy-graph dinámico sin servidor real."
+  }
+}

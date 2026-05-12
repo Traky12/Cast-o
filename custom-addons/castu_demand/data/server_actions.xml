@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="action_generate_demand_predictions" model="ir.actions.server">
+        <field name="name">Generar predicciones de demanda</field>
+        <field name="model_id" ref="model_castu_demand_prediction"/>
+        <field name="state">code</field>
+        <field name="code">env['castu.demand.prediction'].generate_predictions()
+action = {'type': 'ir.actions.act_window', 'name': 'Predicciones de Demanda', 'res_model': 'castu.demand.prediction', 'view_mode': 'tree,form'}</field>
+    </record>
+    <menuitem id="menu_castu_demand_generate" name="Generar predicciones ahora"
+        parent="castu_materials.menu_castu_materials_root" action="action_generate_demand_predictions" sequence="39"/>
+</odoo>

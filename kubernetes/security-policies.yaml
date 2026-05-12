@@ -1,0 +1,59 @@
+# Políticas de seguridad para CASTÚO-SYSTEM™
+# Nota: PodSecurityPolicy (policy/v1beta1) está deprecado en 1.21 y eliminado en 1.25.
+# En clusters 1.25+ omitir el primer documento (o ignorar el error) y usar solo
+# Pod Security Standards con el label del namespace (segundo documento).
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: castuo-restricted
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - configMap
+    - emptyDir
+    - secret
+    - persistentVolumeClaim
+    - projected
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: MustRunAsNonRoot
+    ranges:
+      - min: 1000
+        max: 65535
+  runAsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+  readOnlyRootFilesystem: true
+  allowedHostPaths: []
+---
+# Namespace con Pod Security Standards (recomendado en 1.25+).
+# Si el namespace ya existe: kubectl label ns castuo-prod pod-security.kubernetes.io/enforce=restricted
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: castuo-prod
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    name: castuo-prod

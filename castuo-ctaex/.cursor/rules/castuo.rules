@@ -1,0 +1,64 @@
+rules:
+  - name: "Soberanía EU"
+    description: "Evita proveedores no europeos (AWS, GCP, etc.). Usa Hetzner/OVH/OVHcloud."
+    pattern: "(aws|googleapis|amazonaws|gcp)"
+    severity: "error"
+    fix: "Usa endpoints de Hetzner (DE), OVH (FR) u otros proveedores UE soberanos."
+
+  - name: "Comentarios en Español"
+    description: "Comentarios y documentación en español (normativa UE / CTAEX)."
+    pattern: "//.*"
+    language: ["javascript", "typescript"]
+    severity: "warning"
+    fix: "// Ajusta pH rúcula a 5.8–6.2 y EC a 1.4–1.6"
+
+  - name: "Docker multi-stage obligatorio"
+    description: "Los Dockerfile deben usar build multi-stage para optimizar imágenes."
+    pattern: "^FROM\\s+.+$"
+    language: ["dockerfile"]
+    severity: "error"
+    fix: |
+      Usa una build multi-stage, por ejemplo:
+      FROM python:3.11-slim AS builder
+      WORKDIR /app
+      COPY requirements.txt .
+      RUN pip install --no-cache-dir -r requirements.txt
+      FROM python:3.11-slim
+      WORKDIR /app
+      COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
+      COPY . .
+
+  - name: "Logs estructurados JSON"
+    description: "Logs deben ser JSON para Six Sigma / ELK."
+    pattern: "\\b(print\\(|console\\.log\\()"
+    language: ["python", "javascript", "typescript"]
+    severity: "warning"
+    fix: |
+      Usa logging estructurado, por ejemplo:
+      logger.info(json.dumps({"event": "ph_adjust", "bandeja": "B001", "value": 6.2}))
+
+  - name: "FastAPI con auth"
+    description: "Endpoints FastAPI deben usar Depends(get_current_user) o verificación de token."
+    pattern: "@app\\.(get|post|put|delete)\\("
+    language: ["python"]
+    severity: "error"
+    fix: |
+      Añade autenticación basada en Depends:
+      @app.get("/ruta", dependencies=[Depends(verify_token)])
+      async def ruta():
+          ...
+
+  - name: "VeChain TX por decisión"
+    description: "Cada decisión agronómica debe generar o adjuntar un hash/tx de VeChain."
+    pattern: "decision"
+    language: ["python"]
+    severity: "warning"
+    fix: "Incluye un campo sha256/tx en el modelo de respuesta y propágalo a VeChain vía vechain_client.log_siex_record."
+
+  - name: "Catálogo 32 microgreens"
+    description: "CROP_PARAMS debe incluir al menos 32 cultivos y respetar rangos pH/EC documentados."
+    pattern: "CROP_PARAMS"
+    language: ["python"]
+    severity: "info"
+    fix: "Revisa que CROP_PARAMS contenga 32+ entradas (guisantes, rábanos, lentejas, mostaza, rúcula, kale, etc.) con pH/EC coherentes."
+

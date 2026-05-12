@@ -1,0 +1,79 @@
+# Deployment del sistema de defensa (forense + FL defensa)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: defense-system
+  namespace: castuo-prod
+  labels:
+    app: defense-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: defense-system
+  template:
+    metadata:
+      labels:
+        app: defense-system
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: defense
+        image: ghcr.io/tu-organizacion/castuo-system:v2.1-defense
+        envFrom:
+        - configMapRef:
+            name: defense-config
+        - configMapRef:
+            name: encryption-config
+        ports:
+        - containerPort: 8000
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        volumeMounts:
+        - name: encryption-keys
+          mountPath: /etc/encryption-keys
+          readOnly: true
+        - name: traceability-data
+          mountPath: /var/traceability
+      volumes:
+      - name: encryption-keys
+        secret:
+          secretName: he-keys
+      - name: traceability-data
+        persistentVolumeClaim:
+          claimName: traceability-pvc
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - defense-system
+              topologyKey: kubernetes.io/hostname

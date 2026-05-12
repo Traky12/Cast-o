@@ -1,0 +1,501 @@
+{
+  "name": "Zero_Leak_Encrypt_Forward_v2",
+  "tags": [
+    "TRL9",
+    "CRYPTO-FORTALEZA",
+    "LOCAL-FIRST",
+    "FEEDBACK-LOOP",
+    "AUDIT-CONSISTENCY"
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "topic": "biohub/telemetry",
+        "qos": 0,
+        "retain": false,
+        "user": "={{ $env.CASTUO_MQTT_USER || 'n8n-user' }}",
+        "password": "={{ $env.CASTUO_MQTT_PASS }}",
+        "broker": {
+          "__rl": true,
+          "value": "={{ $env.CASTUO_MQTT_BROKER || 'mqtt://mqtt:1883' }}",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT_Telemetria_BioHub",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const startTime = Date.now();\n  const action_id = 'zero_leak_encrypt_forward_' + new Date().toISOString().replace(/[:.]/g, '-');\n\n  return [{\n    json: {\n      _startTime: startTime,\n      action_id,\n      telemetry_in: $json\n    }\n  }];\n} catch (e) {\n  return [{ json: { tierra_firme_alert_activado: true, error: String(e) } }];\n}\n"
+      },
+      "name": "ZeroLeak_Init",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.telemetry_in || {};\n\n// Sanitiza a datos mínimos (no telemetría completa).\nconst sanitized = {\n  hydrogen_pressure_bar: raw.hydrogen_pressure_bar ?? raw.hydrogen?.pressure_bar ?? null,\n  biomass_reserve_pct: raw.biomass_reserve_pct ?? raw.biomass?.reserve_pct ?? null,\n  ph: raw.ph ?? null,\n  ec_ms_cm: raw.ec_ms_cm ?? null,\n  timestamp: raw.timestamp ?? raw.ts ?? new Date().toISOString()\n};\n\nconst dataText = JSON.stringify(sanitized);\n\nreturn [{\n  json: {\n    sanitized,\n    dataText,\n    action_id: $json.action_id,\n    _startTime: $json._startTime\n  }\n}];\n"
+      },
+      "name": "ZeroLeak_Sanitize_MinData",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CASTUO_ENCRYPT_URL || 'http://api:8000/encrypt' }}",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ $json.dataText }}"
+            },
+            {
+              "name": "use_holography",
+              "value": "false"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "Crypto_PQC_Encrypt_Lacre_CifradoReal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        860,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $input.first().json;\n\n// El nodo /encrypt devuelve {status, result: ...}. Normalizamos a string JSON.\nconst ciphertext_json_str = JSON.stringify(prev.result ?? prev);\n\nreturn [{\n  json: {\n    ciphertext_json_str,\n    action_id: $node['ZeroLeak_Sanitize_MinData'].json.action_id,\n    _startTime: $node['ZeroLeak_Sanitize_MinData'].json._startTime,\n    sanitized: $node['ZeroLeak_Sanitize_MinData'].json.sanitized\n  }\n}];\n"
+      },
+      "name": "ZeroLeak_Extract_Ciphertext",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CASTUO_PQC_SIGN_URL || 'http://api:8000/api/admin/pqc/sign' }}",
+        "method": "POST",
+        "sendBody": true,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.N8N_ADMIN_JWT }}"
+            }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ $json.ciphertext_json_str }}"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "Crypto_PQC_Sign_Ciphertext",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1260,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const signature = $json.signature ?? $json.result?.signature ?? $json;\n\nreturn [{\n  json: {\n    ciphertext_json_str: $node['ZeroLeak_Extract_Ciphertext'].json.ciphertext_json_str,\n    signature,\n    action_id: $node['ZeroLeak_Extract_Ciphertext'].json.action_id,\n    _startTime: $node['ZeroLeak_Extract_Ciphertext'].json._startTime,\n    sanitized: $node['ZeroLeak_Extract_Ciphertext'].json.sanitized\n  }\n}];\n"
+      },
+      "name": "ZeroLeak_Prepare_External_Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.ZERO_LEAK_OUT_URL }}",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ciphertext_json",
+              "value": "={{ JSON.parse($json.ciphertext_json_str) }}"
+            },
+            {
+              "name": "signature",
+              "value": "={{ $json.signature.signature ?? $json.signature }}"
+            },
+            {
+              "name": "source",
+              "value": "zero-leak-biohub"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.sanitized?.timestamp || new Date().toISOString() }}"
+            }
+          ]
+        },
+        "timeout": 20000
+      },
+      "name": "ZeroLeak_External_Send_CiphertextOnly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1660,
+        200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const startTime = $json._startTime ?? $node['ZeroLeak_Extract_Ciphertext'].json._startTime ?? Date.now();\n  const executionTime = Date.now() - startTime;\n  const memoryUsed = process.memoryUsage().heapUsed / 1024 / 1024;\n\n  const externalStatus = $json.statusCode ?? $json.status ?? null;\n  const externalOk = (externalStatus === null) ? true : Number(externalStatus) < 400;\n\n  return [{\n    json: {\n      action_id: $node['ZeroLeak_Extract_Ciphertext'].json.action_id,\n      external_ok: externalOk,\n      tierra_firme_alert_activado: !externalOk,\n      efficiency_metrics: {\n        ms: executionTime,\n        mb: memoryUsed.toFixed(2)\n      }\n    }\n  }];\n} catch (e) {\n  const executionTime = Date.now() - Date.now();\n  const memoryUsed = process.memoryUsage().heapUsed / 1024 / 1024;\n\n  return [{\n    json: {\n      action_id: $node['ZeroLeak_Extract_Ciphertext'].json.action_id,\n      external_ok: false,\n      tierra_firme_alert_activado: true,\n      efficiency_metrics: {\n        ms: executionTime,\n        mb: memoryUsed.toFixed(2)\n      },\n      _quarantine_reason: 'tierra_firme_alert: error en feedback'\n    }\n  }];\n}\n"
+      },
+      "name": "ZeroLeak_FeedbackLoop_TryCatch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1860,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CASTUO_AUDIT_REGISTER_URL || 'http://api:8000/api/audit/register-event' }}",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.N8N_ADMIN_JWT }}"
+            }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tokenId",
+              "value": "0"
+            },
+            {
+              "name": "action",
+              "value": "zero_leak_encrypt_forward_v2"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.external_ok ? 'completed' : 'blocked' }}"
+            },
+            {
+              "name": "details",
+              "value": "={{ { source: 'zero-leak', action_id: $json.action_id, efficiency: $json.efficiency_metrics } }}"
+            },
+            {
+              "name": "compliance",
+              "value": "={{ {} }}"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "ZeroLeak_Register_Audit_Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2060,
+        200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CASTUO_COMPLIANCE_LATEST_URL || 'http://api:8000/api/compliance/audit/latest?tokenId=0' }}",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.N8N_ADMIN_JWT }}"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "ZeroLeak_Compliance_Audit_Latest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2260,
+        200
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const latest = $json || {};\nconst expected_action = 'zero_leak_encrypt_forward_v2';\nconst expected_status = $node['ZeroLeak_FeedbackLoop_TryCatch'].json.external_ok ? 'completed' : 'blocked';\n\nconst latest_action = latest.action ?? latest.event ?? latest.Action ?? null;\nconst latest_status = latest.status ?? latest.state ?? null;\n\nconst discrepancy = (latest_action && latest_action !== expected_action) || (latest_status && latest_status !== expected_status);\n\nconst tierra = $node['ZeroLeak_FeedbackLoop_TryCatch'].json.tierra_firme_alert_activado || discrepancy;\n\nreturn [{\n  json: {\n    action_id: $node['ZeroLeak_FeedbackLoop_TryCatch'].json.action_id,\n    external_ok: $node['ZeroLeak_FeedbackLoop_TryCatch'].json.external_ok,\n    discrepancy,\n    tierra_firme_alert_activado: tierra,\n    efficiency_metrics: $node['ZeroLeak_FeedbackLoop_TryCatch'].json.efficiency_metrics,\n    _discrepancy_details: {\n      latest_action,\n      latest_status,\n      expected_action,\n      expected_status\n    }\n  }\n}];\n"
+      },
+      "name": "ZeroLeak_Discrepancy_Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.tierra_firme_alert_activado }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "name": "IF_TierraFirme_Activado",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "topic": "tierra-firme/alert",
+        "qos": 0,
+        "retain": false,
+        "user": "={{ $env.CASTUO_MQTT_USER || 'n8n-user' }}",
+        "password": "={{ $env.CASTUO_MQTT_PASS }}",
+        "broker": {
+          "__rl": true,
+          "value": "={{ $env.CASTUO_MQTT_BROKER || 'mqtt://mqtt:1883' }}",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT_Publish_TierraFirme",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "topic": "sabionda/telemetry_anon",
+        "qos": 0,
+        "retain": false,
+        "user": "={{ $env.CASTUO_MQTT_USER || 'n8n-user' }}",
+        "password": "={{ $env.CASTUO_MQTT_PASS }}",
+        "broker": {
+          "__rl": true,
+          "value": "={{ $env.CASTUO_MQTT_BROKER || 'mqtt://mqtt:1883' }}",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT_Publish_FeedbackLoop",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "MQTT_Telemetria_BioHub": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Init",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Init": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Sanitize_MinData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Sanitize_MinData": {
+      "main": [
+        [
+          {
+            "node": "Crypto_PQC_Encrypt_Lacre_CifradoReal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto_PQC_Encrypt_Lacre_CifradoReal": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Extract_Ciphertext",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Extract_Ciphertext": {
+      "main": [
+        [
+          {
+            "node": "Crypto_PQC_Sign_Ciphertext",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto_PQC_Sign_Ciphertext": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Prepare_External_Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Prepare_External_Body": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_External_Send_CiphertextOnly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_External_Send_CiphertextOnly": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_FeedbackLoop_TryCatch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_FeedbackLoop_TryCatch": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Register_Audit_Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Register_Audit_Event": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Compliance_Audit_Latest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Compliance_Audit_Latest": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Discrepancy_Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Discrepancy_Check": {
+      "main": [
+        [
+          {
+            "node": "IF_TierraFirme_Activado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MQTT_Publish_FeedbackLoop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_TierraFirme_Activado": {
+      "main": [
+        [
+          {
+            "node": "MQTT_Publish_TierraFirme",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MQTT_Publish_FeedbackLoop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "error_trl9_critical",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
+

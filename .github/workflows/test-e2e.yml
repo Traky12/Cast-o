@@ -1,0 +1,56 @@
+name: Ejecutar pruebas E2E
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      api:
+        image: python:3.11-slim
+        env:
+          PORT: 8000
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd="curl --fail http://localhost:8000/ || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Install Chrome for Selenium
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Run E2E tests (headless)
+        env:
+          DASHBOARD_URL: http://localhost:3000
+          API_BASE_URL: http://localhost:8000
+          TEST_TOKEN_ID: 1
+          TEST_WALLET_ADDRESS: 0x7A1234567890abcdef1234567890abcdef12345678
+          TEST_EMAIL: propietario@test.com
+        run: |
+          pytest tests/e2e/test_privacy_module.py --html=report.html --self-contained-html
+
+      - name: Subir informe de pruebas
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-pruebas-e2e
+          path: report.html
+

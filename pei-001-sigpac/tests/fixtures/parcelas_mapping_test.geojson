@@ -1,0 +1,22 @@
+{
+  "type": "FeatureCollection",
+  "name": "parcelas_pei001_mapping",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": "MAP-001", "uso_declarado": "cannabis_medicinal" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-6.0005, 39.0005],
+            [-6.0001, 39.0005],
+            [-6.0001, 39.0009],
+            [-6.0005, 39.0009],
+            [-6.0005, 39.0005]
+          ]
+        ]
+      }
+    }
+  ]
+}

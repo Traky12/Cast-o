@@ -1,0 +1,55 @@
+{
+  "name": "AGRI_BRAIN_Educational_Agent",
+  "active": false,
+  "tags": ["CASTUO", "agri-brain", "education", "mistral"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agri-brain-educational",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "abe-wh",
+      "name": "Webhook_Educational",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [200, 320],
+      "webhookId": "agri-brain-educational"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body ?? $input.first().json;\nconst topic = String(b.topic || 'agrovoltaica en Extremadura');\nconst mk = String($env.MISTRAL_API_KEY || '').trim();\nif (!mk) {\n  return [{\n    json: {\n      success: false,\n      error: 'MISTRAL_API_KEY no configurada',\n      topic,\n      markdown_fallback: '# Contenido educativo\\n\\nConfigura MISTRAL_API_KEY en n8n para generación dinámica.',\n    },\n  }];\n}\nconst r = await fetch('https://api.mistral.ai/v1/chat/completions', {\n  method: 'POST',\n  headers: { Authorization: `Bearer ${mk}`, 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    model: 'mistral-small-latest',\n    messages: [\n      {\n        role: 'system',\n        content:\n          'Eres experta agrovoltaica UE. Responde en Markdown claro, sin diagnóstico médico, sin cifras inventadas.',\n      },\n      {\n        role: 'user',\n        content: `Explica de forma técnica y pedagógica: ${topic}. Incluye secciones y bullet points.`,\n      },\n    ],\n  }),\n});\nconst t = await r.text();\nlet out;\ntry { out = JSON.parse(t); } catch { out = { raw: t }; }\nconst text = out.choices?.[0]?.message?.content || '';\nreturn [{ json: { success: r.ok, topic, mistral: out, markdown: text } }];"
+      },
+      "id": "abe-code",
+      "name": "Mistral_Educational_MD",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "abe-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [760, 320]
+    }
+  ],
+  "connections": {
+    "Webhook_Educational": {
+      "main": [[{ "node": "Mistral_Educational_MD", "type": "main", "index": 0 }]]
+    },
+    "Mistral_Educational_MD": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Agente educativo: Mistral → Markdown. RAG requiere vector store real conectado aparte. Salida JSON para que FastAPI/frontend rendericen."
+  }
+}

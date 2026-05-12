@@ -1,0 +1,221 @@
+{
+  "name": "Castuo_BioHub_Sentinel_v2.0",
+  "tags": [
+    "TRL9",
+    "CRITICAL",
+    "SABIONDA"
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "hoursH": 0,
+              "minutesM": 5
+            }
+          ]
+        }
+      },
+      "name": "Schedule_5min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://192.168.1.132:8000/api/biohub/telemetry",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RSA-Signature",
+              "value": "{{ $env.BIOHUB_RSA_SIG }}"
+            }
+          ]
+        }
+      },
+      "name": "Get_BioHub_Telemetry",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        400,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.hydrogen_pressure_bar }}",
+              "operation": "smaller",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "name": "CRITICAL_Pressure_Alert",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// MANUAL TIERRA FIRME - PÁGINA 4\n\nconst estado = $input.first().json;\nconst crisis_level = estado.hydrogen_pressure_bar < 150 ? 'CRITICO' : 'ALERTA';\n\nconst accion = {\n  fase: 'Tierra_Firme_F' + (estado.hydrogen_pressure_bar < 150 ? '2' : '1'),\n  manual_page: 4,\n  custodios: ['custodio1@castuo.eu', 'custodio2@castuo.eu', 'custodio3@castuo.eu'],\n  orden_fisica: crisis_level === 'CRITICO' ? [\n    'Bypass_baterias_solid_state',\n    'Dron_VULCAN_valvulas',\n    'Desconexion_nodos_no_criticos'\n  ] : ['Precalentamiento_emergencia']\n};\n\nreturn { accion, crisis_level, timestamp: new Date().toISOString() };"
+      },
+      "name": "Manual_Tierra_Firme",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        800,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "create",
+        "model": "mistral-nemo",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Eres Sabionda v3.1. Prioridad: Supervivencia Bio-Hub. Consulta Manual Tierra Firme. Evalúa ética de desconexión nodos. Responde JSON accionable."
+            },
+            {
+              "role": "user",
+              "content": "PRESIÓN: {{ $json.hydrogen_pressure_bar }} bar. BIOMASA: {{ $json.biomass_reserve_pct }}%. CRISIS: {{ $json.crisis_level }}. FASE: {{ $json.accion.fase }}. ¿Desconectar nodos no críticos?"
+            }
+          ]
+        }
+      },
+      "name": "Sabionda_Decision_Etica",
+      "type": "n8n-nodes-base.mistralChat",
+      "position": [
+        1000,
+        100
+      ],
+      "credentials": {
+        "mistralApi": {
+          "id": "mistral-castuo",
+          "name": "Mistral EU"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://192.168.1.132:8001/biohub/emergency",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "={{ $json.accion.orden_fisica[0] }}"
+            },
+            {
+              "name": "emergency_level",
+              "value": "={{ $json.crisis_level }}"
+            },
+            {
+              "name": "signature",
+              "value": "{{ $env.BIOHUB_HSM_SIG }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Custodia-Tripartita",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "name": "Ejecutar_Orden_Fisica",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1200,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "centinela@castuo-system.eu",
+        "toEmail": "={{ $json.accion.custodios.join(',') }}",
+        "subject": "🚨 TIERRA FIRME F{{ $json.accion.fase }} - Bio-Hub {{ $json.crisis_level }}",
+        "emailType": "html",
+        "html": "<h1>MANUAL TIERRA FIRME - PÁG {{ $json.accion.manual_page }}</h1><p>Presión: {{ $json.hydrogen_pressure_bar }} bar</p><p>Acción ejecutada: {{ $json.accion.orden_fisica[0] }}</p><hr><small>Sabionda v3.1 + n8n TRL9</small>"
+      },
+      "name": "Notificar_Custodios",
+      "type": "n8n-nodes-base.sendEmail",
+      "position": [
+        1400,
+        100
+      ],
+      "credentials": {
+        "smtpGmail": {
+          "id": "castuo-smtp",
+          "name": "SMTP Castúo"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule_5min": {
+      "main": [
+        [
+          "Get_BioHub_Telemetry"
+        ]
+      ]
+    },
+    "Get_BioHub_Telemetry": {
+      "main": [
+        [
+          "CRITICAL_Pressure_Alert"
+        ]
+      ]
+    },
+    "CRITICAL_Pressure_Alert": {
+      "main": [
+        [],
+        [
+          "Manual_Tierra_Firme"
+        ]
+      ]
+    },
+    "Manual_Tierra_Firme": {
+      "main": [
+        [
+          "Sabionda_Decision_Etica"
+        ]
+      ]
+    },
+    "Sabionda_Decision_Etica": {
+      "main": [
+        [
+          "Ejecutar_Orden_Fisica"
+        ]
+      ]
+    },
+    "Ejecutar_Orden_Fisica": {
+      "main": [
+        [
+          "Notificar_Custodios"
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "error_trl9_critical",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

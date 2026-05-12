@@ -1,0 +1,54 @@
+{
+  "wazuh": {
+    "agents": [
+      {
+        "id": "gaiachain-master-node",
+        "name": "GaiaChain Master Node (Cáceres)",
+        "ip": "192.168.1.100",
+        "config": {
+          "syscheck": {
+            "frequency": 3600,
+            "auto_ignore": false,
+            "directories": ["/etc/gaiachain", "/var/lib/gaiachain", "/opt/cursor"],
+            "ignore": ["/etc/gaiachain/master_password.hash", "/var/lib/gaiachain/keys/master_key.pem"]
+          },
+          "rootcheck": {
+            "frequency": 7200,
+            "rootkit_files": true,
+            "rootkit_trojans": true,
+            "hidden_ports": true
+          },
+          "command": {
+            "custom": [
+              { "name": "Master Access Verification", "command": "/opt/castuo/scripts/security/verify-master-access.sh", "interval": 86400, "timeout": 30 },
+              { "name": "TPM Integrity Check", "command": "/usr/local/bin/tpm_firmware_verifier /firmware/bin/firmware.bin /firmware/keys/firmware.pub.pem /firmware/bin/firmware.sig", "interval": 3600, "timeout": 60 }
+            ]
+          }
+        },
+        "alerts": {
+          "email": { "enabled": true, "to": ["security@castuo-system.com"], "level": 12 },
+          "slack": { "enabled": true, "webhook": "https://hooks.slack.com/services/XXX", "level": 7 },
+          "gaiachain": { "enabled": true, "endpoint": "https://gaiachain.castuo-system.com/api/v1/alert", "api_key": "$GAIA_CHAIN_API_KEY", "level": 3 }
+        }
+      },
+      {
+        "id": "cursor-sandbox",
+        "name": "Cursor Sandbox",
+        "ip": "192.168.1.101",
+        "config": {
+          "syscheck": { "frequency": 1800, "directories": ["/opt/cursor", "/etc/cursor"] },
+          "command": {
+            "custom": [
+              { "name": "Cursor Signature Verification", "command": "/opt/castuo/scripts/cursor/verify_signature.py", "interval": 300, "timeout": 30 }
+            ]
+          }
+        }
+      }
+    ],
+    "rules": {
+      "master_password_access_denied": { "level": 15, "description": "Acceso denegado a contraseña maestra", "action": ["block_ip", "notify_admin", "gaiachain_alert"] },
+      "tpm_verification_failed": { "level": 14, "description": "Fallo verificación TPM", "action": ["quarantine_host", "notify_admin", "gaiachain_alert"] },
+      "cursor_signature_invalid": { "level": 13, "description": "Firma Cursor inválida", "action": ["stop_container", "notify_admin", "gaiachain_alert"] }
+    }
+  }
+}

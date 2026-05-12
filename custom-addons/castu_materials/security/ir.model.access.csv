@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_castu_material,access_castu_material,model_castu_material,,1,1,1,1
+access_castu_material_production,access_castu_material_production,model_castu_material_production,,1,1,1,1
+access_castu_material_sale,access_castu_material_sale,model_castu_material_sale,,1,1,1,1
+access_castu_material_sale_line,access_castu_material_sale_line,model_castu_material_sale_line,,1,1,1,1
+access_castu_material_certification,access_castu_material_certification,model_castu_material_certification,,1,1,1,1

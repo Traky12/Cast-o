@@ -1,0 +1,55 @@
+{
+  "name": "CASTUO_Guardar_Cosechas",
+  "active": false,
+  "tags": ["CASTUO", "cosechas", "env", "n8n"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "guardar-cosechas",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "gc-wh",
+      "name": "Webhook_Inicio",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [200, 320],
+      "webhookId": "castuo-guardar-cosechas"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst crypto = require('crypto');\n\nfunction deepMerge(a, b) {\n  if (!b) return a;\n  const out = { ...a };\n  for (const k of Object.keys(b)) {\n    if (\n      b[k] &&\n      typeof b[k] === 'object' &&\n      !Array.isArray(b[k]) &&\n      a[k] &&\n      typeof a[k] === 'object' &&\n      !Array.isArray(a[k])\n    ) {\n      out[k] = deepMerge(a[k], b[k]);\n    } else {\n      out[k] = b[k];\n    }\n  }\n  return out;\n}\n\nfunction loadGlobalVarsOptional() {\n  try {\n    const envJson = String($env.CASTUO_GLOBAL_VARS_JSON || '').trim();\n    if (envJson) {\n      let base = JSON.parse(envJson);\n      const ov = String($env.CASTUO_GLOBAL_VARS_OVERRIDE_PATH || '').trim();\n      if (ov && fs.existsSync(ov)) base = deepMerge(base, JSON.parse(fs.readFileSync(ov, 'utf8')));\n      return base;\n    }\n    const p = String($env.CASTUO_GLOBAL_VARS_PATH || '').trim();\n    if (p && fs.existsSync(p)) {\n      let base = JSON.parse(fs.readFileSync(p, 'utf8'));\n      const ov = String($env.CASTUO_GLOBAL_VARS_OVERRIDE_PATH || '').trim();\n      if (ov && fs.existsSync(ov)) base = deepMerge(base, JSON.parse(fs.readFileSync(ov, 'utf8')));\n      return base;\n    }\n  } catch (e) {\n    return null;\n  }\n  return null;\n}\n\nconst item = $input.first().json;\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst cfg = loadGlobalVarsOptional();\nconst db = (cfg && cfg.database) || {};\nconst notify = (cfg && cfg.notifications && cfg.notifications.slack) || {};\nconst ext = (cfg && cfg.external_services) || {};\n\nconst table =\n  String($env.N8N_DB_COSECHAS || '').trim() || db.cosechas || 'castuo_prod_cosechas';\n\nconst gaiaUrl =\n  String($env.N8N_GAIACHAIN_API || '').trim() || String(ext.gaiachain?.api_endpoint || '').trim();\nconst gaiaKey =\n  String($env.N8N_GAIACHAIN_API_KEY || '').trim() || String(ext.gaiachain?.api_key || '').trim();\n\nconst slackChannel =\n  String($env.N8N_SLACK_ALERTS || '').trim() || notify.slack_channel || '#alertas-castuo';\n\nconst now = new Date();\nconst fecha = body.fecha_cosecha || now.toISOString().split('T')[0];\nconst row = {\n  cultivo_id: String(body.cultivo_id || ''),\n  fecha_cosecha: fecha,\n  peso_total: Number(body.peso_total || 0),\n  calidad: String(body.calidad || 'A'),\n};\nif (!row.cultivo_id) throw new Error('cultivo_id requerido');\nconst canon = JSON.stringify(row);\nconst hash_trazabilidad = crypto.createHash('sha256').update(canon).digest('hex');\n\nlet gaia = {\n  skipped: true,\n  reason:\n    'Sin N8N_GAIACHAIN_API + clave (preferir Credencial Header Auth en n8n; no versionar API keys en .env en prod).',\n};\nif (gaiaUrl && gaiaKey) {\n  try {\n    const base = gaiaUrl.replace(/\\/$/, '');\n    const validatePath = String($env.N8N_GAIACHAIN_VALIDATE_PATH || '/validate').trim();\n    const suffix = validatePath.startsWith('/') ? validatePath : '/' + validatePath;\n    const r = await fetch(base + suffix, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        Authorization: 'Bearer ' + gaiaKey,\n      },\n      body: JSON.stringify({ hash: hash_trazabilidad, data: row }),\n    });\n    gaia = { http_status: r.status, text: await r.text() };\n  } catch (e) {\n    gaia = { error: e.message };\n  }\n}\n\nconst audit = {\n  timestamp: now.toISOString(),\n  operacion: 'Guardar Cosecha',\n  tabla_destino: table,\n  datos: { cultivo_id: row.cultivo_id, hash_trazabilidad },\n  usuario_workflow: 'CASTUO_Guardar_Cosechas',\n};\n\nreturn [\n  {\n    json: {\n      config_source: cfg ? 'global_vars_optional' : 'env_defaults',\n      castuo_global: cfg,\n      row: { ...row, hash_trazabilidad },\n      data_table: {\n        table,\n        note: 'Data Table / Postgres: insert con cultivo_id, fecha_cosecha, peso_total, calidad, hash_trazabilidad.',\n      },\n      gaia,\n      audit,\n      slack_preview: {\n        channel: slackChannel,\n        text: 'Nueva cosecha ' + row.cultivo_id + ' hash ' + hash_trazabilidad,\n      },\n    },\n  },\n];"
+      },
+      "id": "gc-code",
+      "name": "Env_Y_Optional_JSON_Hash",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, row: $json.row, audit: $json.audit, gaia: $json.gaia, data_table: $json.data_table, slack_preview: $json.slack_preview } }}",
+        "options": {}
+      },
+      "id": "gc-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [760, 320]
+    }
+  ],
+  "connections": {
+    "Webhook_Inicio": {
+      "main": [[{ "node": "Env_Y_Optional_JSON_Hash", "type": "main", "index": 0 }]]
+    },
+    "Env_Y_Optional_JSON_Hash": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Prioridad: $env.N8N_DB_COSECHAS, N8N_GAIACHAIN_*, N8N_SLACK_ALERTS; opcional CASTUO_GLOBAL_VARS_* JSON/archivo. Webhook POST .../webhook/guardar-cosechas. API keys: Credenciales n8n en producción."
+  }
+}

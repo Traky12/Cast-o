@@ -1,0 +1,27 @@
+{
+  "title": "CASTUO_GOLD_V1 NFT Testnet Dashboard",
+  "panels": [
+    {
+      "title": "Estado del contrato",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6 },
+      "targets": [{ "expr": "gaiachain_smart_contract_balance{address=\"$contract_address\"}", "legendFormat": "Balance (GAIA)" }]
+    },
+    {
+      "title": "Cumplimiento EU (referencial)",
+      "type": "text",
+      "gridPos": { "h": 6, "w": 12 },
+      "content": "# Cumplimiento declarado\n- **GDPR**: datos enmascarados en IPFS\n- **eIDAS2**: firma digital en metadatos\n- **NIS2**: infraestructura crítica\n- **EU AI Act**: transparencia en algoritmos\n\nReemplaza `$contract_address` con la dirección del contrato en testnet."
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "contract_address",
+        "label": "Dirección del contrato",
+        "type": "constant",
+        "current": { "value": "[CONTRACT_ADDRESS_HERE]" }
+      }
+    ]
+  }
+}

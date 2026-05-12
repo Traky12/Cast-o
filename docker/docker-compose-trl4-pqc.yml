@@ -1,0 +1,23 @@
+# CASTÚO-SYSTEM™ | TRL4 PQC — Benchmark NIST (ML-KEM, ML-DSA)
+# Uso: docker compose -f docker/docker-compose-trl4-pqc.yml up --build
+
+version: '3.8'
+
+services:
+  pqc-benchmark:
+    image: python:3.11-slim
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.pqc
+    command: python /app/scripts/pqc/benchmark_nist.py
+    volumes:
+      - ..:/app:ro
+    working_dir: /app
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_NICE
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PYTHONPATH=/app

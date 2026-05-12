@@ -1,0 +1,3 @@
+# Añadir aquí una clave pública por línea (ed25519 recomendado).
+# Ejemplo (no usar en producción):
+# ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleOnlyReplaceMe tecnico@ctaex.es

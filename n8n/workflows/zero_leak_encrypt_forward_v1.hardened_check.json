@@ -1,0 +1,291 @@
+{
+  "name": "Zero_Leak_Encrypt_Forward_v1",
+  "tags": [
+    "TRL9",
+    "CRYPTO-FORTALEZA",
+    "LOCAL-FIRST"
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "topic": "biohub/telemetry",
+        "qos": 0,
+        "retain": false,
+        "broker": {
+          "__rl": true,
+          "value": "mqtt://mqtt:1883",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT_Telemetria_BioHub",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  // Inicializamos tiempos para el Feedback Loop (sin revelar datos sensibles).\n  const startTime = Date.now();\n  return [{\n    json: {\n      telemetry_in: $json,\n      _zeroLeak_meta: {\n        startTime\n      }\n    }\n  }];\n} catch (e) {\n  // En caso de error interno, marcamos para ruta analoga.\n  return [{ json: { error: String(e), tierra_firme_alert_activado: true } }];\n}\n"
+      },
+      "name": "ZeroLeak_Init",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.telemetry_in || $json;\n+\n+// Limpieza: solo mantenemos indicadores operativos estrictamente necesarios.\n+// Objetivo: cifrar datos mínimos y preservar soberanía.\n+const sanitized = {\n+  hydrogen_pressure_bar: raw.hydrogen_pressure_bar ?? raw.hydrogen?.pressure_bar ?? null,\n+  biomass_reserve_pct: raw.biomass_reserve_pct ?? raw.biomass?.reserve_pct ?? null,\n+  ph: raw.ph ?? null,\n+  ec_ms_cm: raw.ec_ms_cm ?? null,\n+  timestamp: raw.timestamp ?? raw.ts ?? new Date().toISOString()\n+};\n+\n+// Preparar payload como texto JSON (para backend /encrypt).\n+const dataText = JSON.stringify(sanitized);\n+\n+return [{\n+  json: {\n+    sanitized,\n+    dataText,\n+    _zeroLeak_meta: $json._zeroLeak_meta\n+  }\n+}];\n"
+      },
+      "name": "ZeroLeak_Sanitize_MinData",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/encrypt",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ $json.dataText }}"
+            },
+            {
+              "name": "use_holography",
+              "value": "false"
+            }
+          ]
+        },
+        "timeout": 30000
+      },
+      "name": "Crypto_PQC_Encrypt_Lacre_CifradoReal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        860,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.ZERO_LEAK_OUT_URL }}",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ciphertext_json",
+              "value": "={{ JSON.stringify($json.result ?? $json) }}"
+            },
+            {
+              "name": "source",
+              "value": "zero-leak-biohub"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.sanitized?.timestamp || new Date().toISOString() }}"
+            }
+          ]
+        },
+        "timeout": 20000
+      },
+      "name": "ZeroLeak_External_Send_CiphertextOnly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  // Heuristica TRL9: si el envío externo falla (status 4xx/5xx) marcamos Modo Isla.\n  const statusCode = $json.statusCode ?? $json.status_code ?? $json.status ?? null;\n  const ok = (statusCode === null) ? true : Number(statusCode) < 400;\n\n  if (!ok) {\n    throw new Error('tierra_firme_alert: falla envio externo (statusCode=' + statusCode + ')');\n  }\n\n  // Feedback Loop anonimo (solo métricas, sin telemetría).\n  const executionTime = Date.now() - ($json._zeroLeak_meta?.startTime || Date.now());\n  const memoryUsed = process.memoryUsage().heapUsed / 1024 / 1024;\n\n  return [{\n    json: {\n      audit: { status: 'ok', encryption: 'backend:/encrypt', isla: false },\n      efficiency_metrics: {\n        ms: executionTime,\n        mb: memoryUsed.toFixed(2)\n      },\n      recommendation_request: 'optimizar_codigo_js'\n    }\n  }];\n} catch (e) {\n  const executionTime = Date.now() - ($json._zeroLeak_meta?.startTime || Date.now());\n  const memoryUsed = process.memoryUsage().heapUsed / 1024 / 1024;\n\n  return [{\n    json: {\n      audit: { status: 'blocked', isla: true, reason: 'tierra_firme_alert' },\n      tierra_firme_alert_activado: true,\n      efficiency_metrics: {\n        ms: executionTime,\n        mb: memoryUsed.toFixed(2)\n      },\n      recommendation_request: 'optimizar_codigo_js'\n    }\n  }];\n}\n"
+      },
+      "name": "ZeroLeak_ModoIsla_TryCatch_And_FeedbackLoop",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.tierra_firme_alert_activado }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "name": "IF_TierraFirme_Activado",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "topic": "tierra-firme/alert",
+        "qos": 0,
+        "retain": false,
+        "broker": {
+          "__rl": true,
+          "value": "mqtt://mqtt:1883",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT_Publish_TierraFirme",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "topic": "sabionda/telemetry_anon",
+        "qos": 0,
+        "retain": false,
+        "broker": {
+          "__rl": true,
+          "value": "mqtt://mqtt:1883",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT_Publish_FeedbackLoop",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "MQTT_Telemetria_BioHub": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Init",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Init": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_Sanitize_MinData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_Sanitize_MinData": {
+      "main": [
+        [
+          {
+            "node": "Crypto_PQC_Encrypt_Lacre_CifradoReal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto_PQC_Encrypt_Lacre_CifradoReal": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_External_Send_CiphertextOnly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_External_Send_CiphertextOnly": {
+      "main": [
+        [
+          {
+            "node": "ZeroLeak_ModoIsla_TryCatch_And_FeedbackLoop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZeroLeak_ModoIsla_TryCatch_And_FeedbackLoop": {
+      "main": [
+        [
+          {
+            "node": "IF_TierraFirme_Activado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_TierraFirme_Activado": {
+      "main": [
+        [
+          {
+            "node": "MQTT_Publish_TierraFirme",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MQTT_Publish_FeedbackLoop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "error_trl9_critical",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "castuo_trl9_hardening": {
+      "status": "ok",
+      "report": {
+        "generated_at": "2026-03-18T17:14:18.830836Z",
+        "trigger_nodes": [
+          "MQTT_Telemetria_BioHub"
+        ],
+        "encryption_nodes": [
+          "Crypto_PQC_Encrypt_Lacre_CifradoReal"
+        ],
+        "external_nodes": [
+          "ZeroLeak_External_Send_CiphertextOnly"
+        ],
+        "violations": [],
+        "warnings": []
+      }
+    }
+  }
+}

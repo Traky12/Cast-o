@@ -1,0 +1,11 @@
+groups:
+  - name: carbon-alerts
+    rules:
+      - alert: HighCarbonSavings
+        expr: carbon_credits_total > 1000
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "High carbon savings in {{ $labels.region }}"
+          description: "Carbon credits exceed 1 tonne (1000 kg CO₂ equivalent)"

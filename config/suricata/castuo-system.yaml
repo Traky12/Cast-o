@@ -1,0 +1,63 @@
+# CASTÚO-SYSTEM™ — Configuración Suricata para monitoreo avanzado
+# Referencia: incluir en suricata.yaml o usar como override
+# Copiar a /etc/suricata/ y ajustar default-rule-path / rule-files
+
+%YAML 1.1
+---
+
+default-rule-path: /var/lib/suricata/rules
+rule-files:
+  - castuo-system.rules
+  - emerging-threats.rules
+
+af-packet:
+  - interface: eth0
+    threads: auto
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+    use-mmap: yes
+    tpackets-v3: yes
+
+logging:
+  default-log-level: info
+  outputs:
+    - console:
+        enabled: yes
+    - file:
+        enabled: yes
+        filename: /var/log/suricata/castuo-system.log
+        append: yes
+    - syslog:
+        enabled: yes
+        facility: local5
+        level: info
+
+app-layer:
+  protocols:
+    http:
+      enabled: yes
+      libhtp:
+        default-config:
+          personality: IDS
+          request-body-limit: 100kb
+          response-body-limit: 100kb
+    tls:
+      enabled: yes
+      ja3-fingerprint: yes
+
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      types:
+        - alert:
+            payload: yes
+            payload-printable: yes
+            packet: yes
+            http: yes
+            tls: yes
+
+# Webhook a GaiaChain (configurar en deploy con GAIA_CHAIN_API_KEY)
+# eve-log no tiene webhook nativo; usar scripts/security/suricata_to_gaiachain.py

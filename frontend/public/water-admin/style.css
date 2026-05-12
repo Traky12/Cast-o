@@ -1,0 +1,28 @@
+/* CASTÚO water-admin — refuerzo sobre Tailwind CDN */
+:root {
+  --castuo-green: #228b22;
+  --castuo-holo: #00bfff;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--castuo-green);
+}
+
+.btn-castuo {
+  background-color: var(--castuo-green);
+}
+.btn-castuo:hover {
+  filter: brightness(0.92);
+}
+
+pre.json-out {
+  max-height: 28rem;
+  overflow: auto;
+  font-size: 0.75rem;
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}

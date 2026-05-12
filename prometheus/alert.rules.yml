@@ -1,0 +1,40 @@
+groups:
+  - name: thc-alerts
+    rules:
+      - alert: HighEstimationError
+        expr: rate(thc_estimation_errors_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate in THC estimations"
+          description: "Error rate is {{ $value }}. Check THC estimator logs."
+
+      - alert: MissingLIMSValidation
+        expr: thc_estimations_pending > 10
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pending LIMS validations"
+          description: "{{ $value }} estimations waiting for LIMS validation."
+
+  - name: hydroponics-saas-alerts
+    rules:
+      - alert: HydroponicsSaasHighPh
+        expr: max_over_time(hydroponics_saas_readings_total{sensor_type="ph"}[15m]) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hydroponics SaaS: pH readings received (review thresholds)"
+          description: "Se detectaron lecturas de pH; validar umbrales y outliers desde el pipeline de alertas."
+
+      - alert: HydroponicsSaasAnalysisStale
+        expr: changes(hydroponics_saas_analysis_total[24h]) == 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hydroponics SaaS: sin analisis diarios recientes"
+          description: "No se registran analisis diarios en las ultimas horas. Revisar job n8n o integracion."

@@ -1,0 +1,16 @@
+# CASTUO-SYSTEM™ | Alertas Git + BioCoin Castúo
+groups:
+  - name: git-alerts
+    rules:
+      - alert: GitCommitWithoutBioCoinTX
+        expr: git_commits_total{repo="castu-system", tx_hash=""} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Commit sin TX hash de BioCoin Castúo en {{ $labels.repo }}"
+          description: |
+            Commit: {{ $labels.commit }}
+            Autor: {{ $labels.author }}
+            **Acción requerida**: Añadir TX hash de BioCoin Castúo y re-hacer commit.
+            Ejemplo: `git commit --amend -m "feat: ... TX:[a1b2c3...]"`

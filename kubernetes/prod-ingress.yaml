@@ -1,0 +1,25 @@
+# Ingress de producción (ajustar host y TLS según el dominio)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: castuo-prod-ingress
+  namespace: castuo-prod
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - api.castuo-system.eu
+    secretName: castuo-prod-tls
+  rules:
+  - host: api.castuo-system.eu
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: secure-federated-coordinator
+            port:
+              number: 8000

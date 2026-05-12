@@ -1,0 +1,128 @@
+version: "3.8"
+
+# CASTUO-SYSTEM™ — CRM/ERP/LEGAL integrado (Hetzner)
+# Servicios: Odoo 17 + PostgreSQL, Nextcloud + MariaDB + Redis, EPCIS (OpenEPCIS)
+#
+# Uso:
+#   docker-compose -f docker-compose.odoo-erp-legal.yml --env-file .env.odoo up -d
+#
+# Puertos (host):
+#   - Odoo:      8069
+#   - Nextcloud: 8081
+#   - EPCIS:     8082
+#
+# Nota: este compose es independiente del stack actual (docker-compose.yml).
+
+services:
+  odoo-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${ODOO_DB_NAME:-odoo}
+      POSTGRES_USER: ${ODOO_DB_USER:-odoo}
+      POSTGRES_PASSWORD: ${ODOO_DB_PASSWORD:-odoo}
+    volumes:
+      - odoo_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - castuo_erp
+
+  odoo:
+    image: odoo:17.0
+    depends_on:
+      - odoo-db
+    ports:
+      - "8069:8069"
+    environment:
+      HOST: odoo-db
+      USER: ${ODOO_DB_USER:-odoo}
+      PASSWORD: ${ODOO_DB_PASSWORD:-odoo}
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - ./custom-addons:/mnt/extra-addons
+    restart: unless-stopped
+    networks:
+      - castuo_erp
+
+  nextcloud-db:
+    image: mariadb:lts
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    environment:
+      MYSQL_DATABASE: ${NEXTCLOUD_DB_NAME:-nextcloud}
+      MYSQL_USER: ${NEXTCLOUD_DB_USER:-nextcloud}
+      MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:-nextcloud}
+      MYSQL_ROOT_PASSWORD: ${NEXTCLOUD_DB_ROOT_PASSWORD:-nextcloud_root}
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - castuo_erp
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - nextcloud_redis:/data
+    restart: unless-stopped
+    networks:
+      - castuo_erp
+
+  nextcloud:
+    image: nextcloud:29-apache
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    ports:
+      - "8081:80"
+    environment:
+      MYSQL_HOST: nextcloud-db
+      MYSQL_DATABASE: ${NEXTCLOUD_DB_NAME:-nextcloud}
+      MYSQL_USER: ${NEXTCLOUD_DB_USER:-nextcloud}
+      MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:-nextcloud}
+      REDIS_HOST: nextcloud-redis
+    volumes:
+      - nextcloud_data:/var/www/html
+    restart: unless-stopped
+    networks:
+      - castuo_erp
+
+  # EPCIS repository (GS1 EPCIS) para trazabilidad europea
+  epcis-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${EPCIS_DB_NAME:-castuo_epcis}
+      POSTGRES_USER: ${EPCIS_DB_USER:-castuo_user}
+      POSTGRES_PASSWORD: ${EPCIS_DB_PASSWORD:-castuo_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=es_ES.UTF-8"
+    volumes:
+      - epcis_pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - castuo_erp
+
+  openepcis:
+    image: openepcis/openepcis:2.0.0
+    depends_on:
+      - epcis-db
+    environment:
+      DB_HOST: epcis-db
+      DB_PASSWORD: ${EPCIS_DB_PASSWORD:-castuo_password}
+      DB_DATABASE: ${EPCIS_DB_NAME:-castuo_epcis}
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8082:8080"
+    restart: unless-stopped
+    networks:
+      - castuo_erp
+
+volumes:
+  odoo_pgdata:
+  odoo_data:
+  nextcloud_db:
+  nextcloud_redis:
+  nextcloud_data:
+  epcis_pgdata:
+
+networks:
+  castuo_erp:
+    driver: bridge

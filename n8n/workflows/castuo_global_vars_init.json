@@ -1,0 +1,37 @@
+{
+  "name": "CASTUO_Inicializar_Configuracion_Global",
+  "active": false,
+  "tags": ["CASTUO", "config", "global-vars", "init"],
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "cgi-manual",
+      "name": "Iniciar_Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\n\nfunction deepMerge(a, b) {\n  if (!b) return a;\n  const out = { ...a };\n  for (const k of Object.keys(b)) {\n    if (\n      b[k] &&\n      typeof b[k] === 'object' &&\n      !Array.isArray(b[k]) &&\n      a[k] &&\n      typeof a[k] === 'object' &&\n      !Array.isArray(a[k])\n    ) {\n      out[k] = deepMerge(a[k], b[k]);\n    } else {\n      out[k] = b[k];\n    }\n  }\n  return out;\n}\n\nfunction loadGlobalVars() {\n  const envJson = String($env.CASTUO_GLOBAL_VARS_JSON || '').trim();\n  let base;\n  if (envJson) {\n    base = JSON.parse(envJson);\n  } else {\n    const p = String($env.CASTUO_GLOBAL_VARS_PATH || '').trim();\n    if (!p) {\n      throw new Error('CASTUO_GLOBAL_VARS_JSON o CASTUO_GLOBAL_VARS_PATH obligatorio (montar config/global_vars.json en el contenedor n8n).');\n    }\n    base = JSON.parse(fs.readFileSync(p, 'utf8'));\n  }\n  const ov = String($env.CASTUO_GLOBAL_VARS_OVERRIDE_PATH || '').trim();\n  if (ov && fs.existsSync(ov)) {\n    base = deepMerge(base, JSON.parse(fs.readFileSync(ov, 'utf8')));\n  }\n  return base;\n}\n\nconst cfg = loadGlobalVars();\nconst sd = $getWorkflowStaticData('global');\nsd.castuo_global_vars = cfg;\n\nasync function validate(c) {\n  const errors = [];\n  if (String($env.CASTUO_SKIP_EXTERNAL_VALIDATION || '') === '1') {\n    return { isValid: true, errors: [], skipped: true };\n  }\n  const slack = c.notifications?.slack?.slack_channel;\n  if (!slack || !String(slack).trim()) errors.push('Slack: slack_channel vacío');\n  const g = c.external_services?.gaiachain;\n  const gaiaUrl = g?.api_endpoint && String(g.api_endpoint).trim();\n  if (gaiaUrl) {\n    try {\n      const headers = {};\n      if (g.api_key) headers.Authorization = 'Bearer ' + g.api_key;\n      const r = await fetch(gaiaUrl, { method: 'GET', headers, redirect: 'manual' });\n      if (r.status >= 400) errors.push('GaiaChain HTTP ' + r.status);\n    } catch (e) {\n      errors.push('GaiaChain: ' + e.message);\n    }\n  }\n  const pbiUrl = c.external_services?.power_bi?.streaming_endpoint && String(c.external_services.power_bi.streaming_endpoint).trim();\n  if (pbiUrl) {\n    try {\n      const r = await fetch(pbiUrl, { method: 'HEAD', redirect: 'manual' });\n      if (r.status >= 400) errors.push('Power BI HTTP ' + r.status);\n    } catch (e) {\n      errors.push('Power BI: ' + e.message);\n    }\n  }\n  return { isValid: errors.length === 0, errors };\n}\n\nconst validation = await validate(cfg);\nreturn [\n  {\n    json: {\n      castuo: cfg,\n      validation,\n      persisted_workflow_static: true,\n      hint: 'Otros flujos: usar Execute Workflow que devuelva castuo, o CASTUO_GLOBAL_VARS_JSON en cada arranque.',\n      ts: new Date().toISOString(),\n    },\n  },\n];"
+      },
+      "id": "cgi-load",
+      "name": "Cargar_Y_Validar_GlobalVars",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    }
+  ],
+  "connections": {
+    "Iniciar_Manual": {
+      "main": [[{ "node": "Cargar_Y_Validar_GlobalVars", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "meta": {
+    "description": "Carga config/global_vars.json vía CASTUO_GLOBAL_VARS_PATH (ruta en volumen) o CASTUO_GLOBAL_VARS_JSON. Fusiona CASTUO_GLOBAL_VARS_OVERRIDE_PATH. Persiste en staticData global del workflow (solo este flujo). Validación externa opcional; CASTUO_SKIP_EXTERNAL_VALIDATION=1 para laboratorio. En n8n estándar no existe $global cross-workflow: usar variables de instancia, env, o Execute Workflow pasando item.json.castuo."
+  }
+}

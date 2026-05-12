@@ -1,0 +1,8 @@
+# Dependencias para usar el Mistral-CASTÚO Adapter (desarrollo local)
+# pip install -r requirements.txt
+# El adapter está en api/mistral_castuo_adapter.py (no es paquete PyPI)
+
+pandas>=2.0
+pyarrow>=14.0
+cryptography>=42.0
+requests>=2.31.0

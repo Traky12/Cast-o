@@ -1,0 +1,18 @@
+[Unit]
+Description=CASTUO-CTAEX PostgreSQL Watchdog
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+Environment="REPO_ROOT=/root/castuo-ctaex"
+Environment="COMPOSE_FILE=/root/castuo-ctaex/docker/docker-compose.ctaex.yml"
+Environment="NOTIFY_SCRIPT=/root/castuo-ctaex/scripts/notify_slack_ctaex.sh"
+ExecStart=/root/castuo-ctaex/scripts/postgres_watchdog_ctaex.sh
+Restart=always
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target

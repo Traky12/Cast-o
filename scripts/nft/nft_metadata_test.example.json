@@ -1,0 +1,17 @@
+{
+  "name": "CASTUO_GOLD_V1 (Testnet - Prueba)",
+  "description": "NFT de prueba para certificar la integridad del sistema CASTUO_GOLD_V1 en GaiaChain Testnet. Solo para pruebas técnicas.",
+  "image": "https://via.placeholder.com/600x400/228B22/FFFFFF?text=CASTUO+TEST",
+  "attributes": [
+    { "trait_type": "Zip Hash", "value": "[ZIP_SHA256_AQUI]" },
+    { "trait_type": "Compliance", "value": "GDPR (simulado), eIDAS2 (simulado), NIS2 (simulado), EU AI Act (simulado)" },
+    { "trait_type": "Files Audited", "value": "10 (simulados)" },
+    { "trait_type": "Purpose", "value": "Prueba técnica en GaiaChain Testnet" },
+    { "trait_type": "Timestamp", "value": "2026-03-18T00:00:00Z" }
+  ],
+  "properties": {
+    "contract": { "name": "CASTUO_NFT", "symbol": "CGV1", "tokenId": 1 },
+    "testnet": true,
+    "disclaimer": "Este NFT es solo para pruebas y no tiene valor legal o comercial."
+  }
+}

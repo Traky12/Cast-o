@@ -1,0 +1,13 @@
+---
+project_name: "forestownershiptoken"
+docker_network: "{{ project_name }}_net"
+docker_compose_version: "1.29.2"
+
+agent_sigpac_image: "registry.castuo-system.com/{{ project_name }}/sigpac-agent:latest"
+agent_subsidies_image: "registry.castuo-system.com/{{ project_name }}/subsidies-agent:latest"
+dashboard_image: "registry.castuo-system.com/{{ project_name }}/dashboard:latest"
+
+agent_sigpac_port: 8001
+agent_subsidies_port: 8003
+dashboard_port: 3000
+

@@ -1,0 +1,83 @@
+# CASTÚO-SYSTEM™ | TRL5 — BookStack + n8n + SABIONDA en finca simulada (volúmenes cifrados)
+# Objetivo: 1000 parcelas simuladas → 99.9% encriptadas, recuperación Shamir 3/5, latency < 50ms
+# Uso: docker compose -f docker/castuo-bookstack/docker-compose.yml -f docker/docker-compose-trl5.yml up -d
+
+version: '3.8'
+
+services:
+  bookstack-trl5:
+    image: lscr.io/linuxserver/bookstack:latest
+    container_name: castuo-bookstack-trl5
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - APP_URL=${BOOKSTACK_APP_URL:-http://localhost:8080}
+      - DB_HOST=mariadb
+      - DB_USER=bookstack
+      - DB_PASS=${BOOKSTACK_DB_PASS}
+      - DB_DATABASE=bookstack_app
+    volumes:
+      - encrypted_bookstack:/config
+    ports:
+      - "${BOOKSTACK_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:latest
+    container_name: castuo-trl5-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-castuo-trl5}
+      - MYSQL_DATABASE=bookstack_app
+      - MYSQL_USER=bookstack
+      - MYSQL_PASSWORD=${BOOKSTACK_DB_PASS:-bookstack}
+    volumes:
+      - trl5_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  sabionda-ia:
+    image: python:3.11-slim
+    container_name: castuo-sabionda-trl5
+    command: ["python", "-c", "import os; print('SABIONDA TRL5:', os.environ.get('CASTUO_CRYPTO_SHARDS'), os.environ.get('MASTER_KEY_SHAMIR')); import time; time.sleep(365d)"]
+    environment:
+      - CASTUO_CRYPTO_SHARDS=3/5
+      - MASTER_KEY_SHAMIR=true
+    volumes:
+      - encrypted_sabionda:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+volumes:
+  encrypted_bookstack:
+    driver: local
+  encrypted_sabionda:
+    driver: local
+  trl5_db_data:
+    driver: local

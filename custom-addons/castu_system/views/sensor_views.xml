@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_drone_sensor_tree" model="ir.ui.view">
+        <field name="name">castu.drone.sensor.tree</field>
+        <field name="model">castu.drone.sensor</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="granja_id"/>
+                <field name="tipo"/>
+                <field name="valor_actual"/>
+                <field name="umbral_min"/>
+                <field name="umbral_max"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_drone_sensor_form" model="ir.ui.view">
+        <field name="name">castu.drone.sensor.form</field>
+        <field name="model">castu.drone.sensor</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="granja_id"/>
+                        <field name="tipo"/>
+                        <field name="valor_actual"/>
+                        <field name="umbral_min"/>
+                        <field name="umbral_max"/>
+                    </group>
+                    <group string="Alertas">
+                        <field name="alert_ids" nolabel="1">
+                            <tree>
+                                <field name="tipo"/>
+                                <field name="valor"/>
+                                <field name="fecha"/>
+                                <field name="resuelta"/>
+                            </tree>
+                        </field>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_drone_sensor" model="ir.actions.act_window">
+        <field name="name">Sensores IoT</field>
+        <field name="res_model">castu.drone.sensor</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_drone_sensors" name="Sensores IoT" parent="menu_castu_drones" action="action_castu_drone_sensor" sequence="40"/>
+</odoo>

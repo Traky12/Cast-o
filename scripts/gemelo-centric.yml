@@ -1,0 +1,39 @@
+# Arquitectura GEMelo-céntrica: NTN/Sateliot → GEMelo (SoT) → CASTÚO por pull.
+# Imágenes `castuo/*` deben existir en el registry o sustituirse por build local antes de producción.
+# NextEPC solo con perfil fiveg (laboratorio; validar upstream).
+#
+#   docker compose -f scripts/gemelo-centric.yml up -d
+#   docker compose -f scripts/gemelo-centric.yml --profile fiveg up -d
+
+name: castuo-gemelo-centric
+
+services:
+  gemelo-digital:
+    image: castuo/gemelo-digital:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - gemelo_encrypted:/data
+    environment:
+      TZ: UTC
+
+  # Debe ejecutar el consumidor NTN→GEMELO (p. ej. entrypoint al bridge). Si la imagen no existe, omitir y usar desde el host:
+  #   $env:GEMELO_BASE_URL="http://127.0.0.1:8001"; python scripts/sateliot_gemelo_bridge.py ingest
+  sateliot-bridge:
+    image: castuo/sateliot-bridge:latest
+    depends_on:
+      - gemelo-digital
+    environment:
+      GEMELO_BASE_URL: http://gemelo-digital:8001
+      GEMELO_INGEST_PATH: /agents/gemelo/ingest
+      GEMELO_CASTUO_PATH_TEMPLATE: /agents/gemelo/{gemelo_id}/castuo
+
+  nextepc-amf:
+    image: nextepc/nextepc-amf:latest
+    depends_on:
+      - gemelo-digital
+    profiles:
+      - fiveg
+
+volumes:
+  gemelo_encrypted: {}

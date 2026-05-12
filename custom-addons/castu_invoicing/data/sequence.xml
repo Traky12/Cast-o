@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="seq_castu_material_invoice" model="ir.sequence">
+        <field name="name">Secuencia Factura Materiales</field>
+        <field name="code">castu.material.invoice</field>
+        <field name="prefix">FACT-</field>
+        <field name="padding">5</field>
+    </record>
+</odoo>

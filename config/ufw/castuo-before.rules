@@ -1,0 +1,23 @@
+# CASTÚO-SYSTEM™ — Reglas UFW de referencia (protección adicional)
+# Añadir a /etc/ufw/before.rules dentro de *filter o usar como plantilla
+# Ajustar HOME_NET y puertos según despliegue
+
+# *filter
+# :ufw-user-input - [0:0]
+# :ufw-user-output - [0:0]
+# :ufw-user-forward - [0:0]
+#
+# Bloquear IPs maliciosas (ejemplo; actualizar desde Suricata/Snort)
+# -A ufw-before-input -s 192.168.1.100 -j DROP
+# -A ufw-before-input -s 10.0.0.5 -j DROP
+#
+# Permitir tráfico legítimo
+# -A ufw-before-input -p tcp --dport 8000 -j ACCEPT
+# -A ufw-before-input -p tcp --dport 8080 -j ACCEPT
+# -A ufw-before-input -p tcp --dport 22 -s 192.168.1.0/24 -j ACCEPT
+#
+# -A ufw-before-input -j LOG --log-prefix "[UFW BLOCK] "
+# -A ufw-before-input -j DROP
+# COMMIT
+
+# Uso: revisar y pegar las líneas descomentadas en la sección *filter de before.rules

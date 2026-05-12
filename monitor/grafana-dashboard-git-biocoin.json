@@ -1,0 +1,96 @@
+{
+  "title": "CASTUO-SYSTEM™ | Git + BioCoin Castúo",
+  "tags": ["castuo", "git", "biocoin", "trazabilidad"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Commits con TX hash de BioCoin Castúo",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "expr": "git_commits_total{repo=\"castu-system\", tx_hash!=\"\"}",
+          "legendFormat": "{{commit}} | TX: {{tx_hash}}",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "${datasource}" }
+    },
+    {
+      "id": 2,
+      "title": "Alertas: Commits sin TX hash",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "expr": "git_commits_total{repo=\"castu-system\", tx_hash=\"\"} > 0",
+          "legendFormat": "{{commit}} (Autor: {{author}})",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}] } } }
+    },
+    {
+      "id": 3,
+      "title": "Commits por día",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "increase(git_commits_total{repo=\"castu-system\"}[1d])",
+          "legendFormat": "{{author}}",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "${datasource}" }
+    },
+    {
+      "id": 4,
+      "title": "Trazabilidad BioCoin Castúo (commits con TX)",
+      "type": "table",
+      "gridPos": { "x": 12, "y": 6, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "git_commits_total{repo=\"castu-system\", tx_hash!=\"\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "${datasource}" }
+    },
+    {
+      "id": 5,
+      "title": "Merge conflicts (últimos 7 días)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 4 },
+      "targets": [
+        {
+          "expr": "increase(git_merge_conflicts_total{repo=\"castu-system\"}[7d])",
+          "legendFormat": "{{resolved_by}}",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "${datasource}" }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus"
+      },
+      {
+        "name": "repo",
+        "type": "constant",
+        "query": "castu-system",
+        "label": "Repo"
+      }
+    ]
+  },
+  "schemaVersion": 38,
+  "version": 1
+}

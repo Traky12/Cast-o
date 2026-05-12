@@ -1,0 +1,33 @@
+#!/bin/bash
+# CASTÚO-SYSTEM™ | Pre-commit TRL10: verificación criptográfica e integridad 100% inmutable
+# Instalar: cp scripts/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -e
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+BOOKSTACK_DIR="docker/castuo-bookstack"
+if [ ! -d "$BOOKSTACK_DIR" ]; then
+  echo "⚠️ $BOOKSTACK_DIR no encontrado. Saltando verificación TRL10."
+  exit 0
+fi
+
+cd "$BOOKSTACK_DIR"
+if [ ! -f "./verify-integrity.sh" ]; then
+  echo "⚠️ verify-integrity.sh no encontrado."
+  exit 0
+fi
+
+./verify-integrity.sh || {
+  echo "❌ TRL10 VIOLADO: Integridad comprometida. Ejecute ./sign-all.sh en $BOOKSTACK_DIR y vuelva a commitear."
+  exit 1
+}
+
+if [ -f "./sign-all.sh" ]; then
+  ./sign-all.sh
+fi
+cd "$REPO_ROOT"
+git add "$BOOKSTACK_DIR"/*.sig 2>/dev/null || true
+
+echo "✅ Código firmado TRL10"
+exit 0

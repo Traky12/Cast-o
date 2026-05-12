@@ -1,0 +1,6 @@
+{
+  "security.workspace.trust.enabled": true,
+  "security.workspace.trust.untrustedFiles": "prompt",
+  "cursor.mcp.autoApprove": false,
+  "files.autoSave": "off"
+}

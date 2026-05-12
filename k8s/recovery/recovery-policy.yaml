@@ -1,0 +1,43 @@
+# CASTÚO-SYSTEM™ — Recuperación automática (anti-hacking v1.0)
+# PodDisruptionBudget + CronJob de health check con rollback a estado válido
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sabionda-recovery
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sabionda-core
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sabionda-health-check
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: health-check
+            image: curlimages/curl:latest
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                set -e
+                if ! curl -sf http://sabionda-core:8000/health | grep -q "ok\|healthy"; then
+                  echo "Sabionda Core no saludable. Ejecutar rollback manual: scripts/recovery/emergency-recovery.sh sabionda-core <revision>"
+                  exit 1
+                fi
+                echo "OK"
+            env:
+            - name: GAIA_CHAIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gaiachain-api
+                  key: api_key
+                  optional: true
+          restartPolicy: OnFailure
+      backoffLimit: 2

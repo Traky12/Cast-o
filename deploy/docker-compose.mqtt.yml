@@ -1,0 +1,27 @@
+# Mosquitto MQTT: 1883 (solo localhost en el host) + 8883 TLS.
+# Ejecutar desde el directorio deploy/:
+#   docker compose -f docker-compose.mqtt.yml up -d
+#
+# Prerrequisitos: deploy/mqtt-tls/scripts/gen-certs.sh y passwd (init-passwd).
+
+version: "3.8"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.15
+    container_name: mosquitto-tls
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1883:1883"
+      - "8883:8883"
+    volumes:
+      - ./mqtt-tls/mosquitto/config:/mosquitto/config:ro
+      - ./mqtt-tls/mosquitto/certs:/mosquitto/certs:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    environment:
+      - TZ=Europe/Madrid
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:

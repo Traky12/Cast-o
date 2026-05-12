@@ -1,0 +1,64 @@
+{
+  "name": "CASTUO_Satellite_Neuro_Infer_Webhook",
+  "tags": ["CASTUO", "robotics-lab", "n8n", "webhook"],
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "receive",
+        "responseMode": "responseNode",
+        "path": "castuo-neuro-infer",
+        "method": "POST"
+      },
+      "name": "Webhook_In",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst b = item.body ?? item;\nconst ndvi = parseFloat(b.ndvi_mean ?? b.ndvi ?? 'NaN');\nlet luz = parseFloat(b.luz_umol);\nif (Number.isNaN(luz) && !Number.isNaN(ndvi)) {\n  luz = Math.min(2000, Math.max(0, ndvi * 2000));\n}\nconst base = ($env.CASTUO_API_URL || 'http://127.0.0.1:8000').replace(/\\/$/, '');\nconst token = ($env.CASTUO_ROBOTICS_LAB_BEARER_TOKEN || $env.CASTUO_API_TOKEN || '').trim();\nif (!token) throw new Error('CASTUO_ROBOTICS_LAB_BEARER_TOKEN o CASTUO_API_TOKEN requerido');\nconst payload = {\n  humedad: Number(b.humedad ?? 65),\n  ph: Number(b.ph ?? 5.8),\n  ec: Number(b.ec ?? 1.2),\n  luz_umol: Number.isNaN(luz) ? 1200 : luz,\n};\nconst url = `${base}/api/robotics/lab/neuromorphic/hydroponics/infer`;\nconst res = await fetch(url, {\n  method: 'POST',\n  headers: {\n    Authorization: `Bearer ${token}`,\n    'Content-Type': 'application/json',\n  },\n  body: JSON.stringify(payload),\n});\nconst text = await res.text();\nlet data;\ntry { data = JSON.parse(text); } catch { data = { raw: text }; }\nreturn [{ json: { http_status: res.status, infer: data, request: payload, url } }];\n"
+      },
+      "name": "Map_And_Infer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "name": "Respond_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_In": {
+      "main": [
+        [
+          {
+            "node": "Map_And_Infer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map_And_Infer": {
+      "main": [
+        [
+          {
+            "node": "Respond_Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true
+  }
+}

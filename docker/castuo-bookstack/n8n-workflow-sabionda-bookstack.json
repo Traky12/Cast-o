@@ -1,0 +1,47 @@
+{
+  "name": "SABIONDA → BookStack",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "={{ $vars.BOOKSTACK_URL }}/api/pages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $secrets.BOOKSTACK_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "book_id",
+              "value": "={{ $json.parcela_id }}"
+            },
+            {
+              "name": "name",
+              "value": "=B001-{{ $now.format('yyyy-MM-dd') }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.mistral_analysis }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 0],
+      "name": "SABIONDA → BookStack"
+    }
+  ],
+  "connections": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

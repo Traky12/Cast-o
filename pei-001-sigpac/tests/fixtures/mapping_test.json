@@ -1,0 +1,16 @@
+{
+  "usos_declarados": {
+    "cannabis_medicinal": ["cultivo_herbaceo", "cultivo_leñoso"],
+    "agrovoltaica": ["invernadero", "otras_instalaciones", "energias_renovables"],
+    "barbecho": ["barbecho", "descanso"]
+  },
+  "usos_sigpac": {
+    "cultivo_herbaceo": ["cannabis_medicinal", "cereales"],
+    "invernadero": ["agrovoltaica", "hortalizas"],
+    "cultivo_leñoso": ["olivar", "viñedo"]
+  },
+  "codigos_sigpac": {
+    "111": "cultivo_herbaceo",
+    "112": "cultivo_leñoso"
+  }
+}

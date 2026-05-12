@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_material_production" model="ir.sequence">
+            <field name="name">Lote Producción Material</field>
+            <field name="code">castu.material.production</field>
+            <field name="prefix">LOT-</field>
+            <field name="padding">5</field>
+        </record>
+        <record id="seq_material_sale" model="ir.sequence">
+            <field name="name">Venta Material</field>
+            <field name="code">castu.material.sale</field>
+            <field name="prefix">VTA-</field>
+            <field name="padding">5</field>
+        </record>
+        <record id="seq_material_certification" model="ir.sequence">
+            <field name="name">Certificación Material</field>
+            <field name="code">castu.material.certification</field>
+            <field name="prefix">CERT-</field>
+            <field name="padding">5</field>
+        </record>
+    </data>
+</odoo>

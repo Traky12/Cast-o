@@ -1,0 +1,80 @@
+{
+  "name": "CASTUO_Enterprise_Cursor_Bridge",
+  "active": false,
+  "tags": ["CASTUO", "enterprise", "cursor", "langgraph"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "enterprise/cursor-bridge",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ecb-wh",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [200, 320],
+      "webhookId": "castuo-enterprise-cursor-bridge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst body = j.body && typeof j.body === 'object' ? j.body : j;\nconst payload = body.payload && typeof body.payload === 'object' ? body.payload : body;\nreturn [{ json: { payload, meta: { source: 'cursor-bridge', received_at: new Date().toISOString() } } }];"
+      },
+      "id": "ecb-code",
+      "name": "Normalizar_Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_BASE_URL || 'http://castuo-api:8000').replace(/\\/$/, '') + '/langgraph/castuo/run' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $json.payload } }}",
+        "options": { "timeout": 180000 }
+      },
+      "id": "ecb-http",
+      "name": "POST_LangGraph",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [680, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "ecb-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [920, 320]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Normalizar_Payload", "type": "main", "index": 0 }]]
+    },
+    "Normalizar_Payload": {
+      "main": [[{ "node": "POST_LangGraph", "type": "main", "index": 0 }]]
+    },
+    "POST_LangGraph": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Puente HTTP: Cursor u otras herramientas llaman al webhook; n8n reenvía a FastAPI LangGraph. NO sustituye al protocolo MCP de Cursor (ver docs/deploy/CASTUO-ENTERPRISE-HETZNER-ARSYS.md)."
+  }
+}

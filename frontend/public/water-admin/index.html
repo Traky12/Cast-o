@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CASTÚO-SYSTEM | Water / CTAEX — Administración</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="bg-gray-50 text-gray-900" x-data="{ page: 'dashboard' }">
+  <div class="flex min-h-screen">
+    <aside class="w-64 bg-white shadow-lg flex-shrink-0">
+      <div class="p-4 border-b">
+        <h1 class="text-xl font-bold" style="color:#228B22">CASTÚO-SYSTEM</h1>
+        <p class="text-xs text-gray-500">Water / CTAEX · Admin</p>
+      </div>
+      <nav class="mt-4">
+        <a href="#" @click.prevent="page = 'dashboard'" :class="page === 'dashboard' ? 'bg-green-100 text-green-900' : ''" class="block px-4 py-2 hover:bg-green-50">Dashboard</a>
+        <a href="#" @click.prevent="page = 'clients'" :class="page === 'clients' ? 'bg-green-100 text-green-900' : ''" class="block px-4 py-2 hover:bg-green-50">Clientes</a>
+        <a href="#" @click.prevent="page = 'billing'" :class="page === 'billing' ? 'bg-green-100 text-green-900' : ''" class="block px-4 py-2 hover:bg-green-50">Facturación</a>
+        <a href="#" @click.prevent="page = 'reports'" :class="page === 'reports' ? 'bg-green-100 text-green-900' : ''" class="block px-4 py-2 hover:bg-green-50">Informes</a>
+        <a href="#" @click.prevent="page = 'ai'" :class="page === 'ai' ? 'bg-green-100 text-green-900' : ''" class="block px-4 py-2 hover:bg-green-50">Roles IA</a>
+        <a href="#" @click.prevent="page = 'settings'" :class="page === 'settings' ? 'bg-green-100 text-green-900' : ''" class="block px-4 py-2 hover:bg-green-50">Configuración</a>
+      </nav>
+    </aside>
+
+    <main class="flex-1 overflow-auto">
+      <!-- Dashboard -->
+      <section x-show="page === 'dashboard'" x-cloak class="p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Dashboard</h2>
+          <div class="flex gap-2">
+            <button id="refresh-dashboard" type="button" class="btn-castuo text-white px-4 py-2 rounded">Actualizar</button>
+            <button type="button" class="bg-gray-200 px-4 py-2 rounded text-sm" id="btn-health-public">GET /health (público)</button>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">Métricas del mes actual (UTC) vía <code class="bg-gray-100 px-1 rounded">billing-summary</code> y actividad vía <code class="bg-gray-100 px-1 rounded">usage-report</code>.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Clientes (billing)</h3>
+            <p class="text-3xl font-bold" style="color:#228B22" id="active-clients">0</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Facturación mes (EUR)</h3>
+            <p class="text-3xl font-bold" style="color:#228B22" id="monthly-revenue">€0</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Requests (suma período)</h3>
+            <p class="text-3xl font-bold" style="color:#228B22" id="total-requests">0</p>
+          </div>
+        </div>
+        <div class="mt-8 bg-white p-6 rounded-lg shadow">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">Trazas recientes</h3>
+          <div id="recent-activity"><p class="text-gray-500">Cargando…</p></div>
+        </div>
+        <div class="mt-6 bg-white p-6 rounded-lg shadow">
+          <h3 class="text-lg font-semibold mb-2 text-gray-800">Demo HTMX (endpoint público)</h3>
+          <p class="text-sm text-gray-600 mb-2">Sin cabeceras secretas; útil para comprobar CORS y que el origen del panel llega al API.</p>
+          <button type="button" class="bg-gray-800 text-white px-4 py-2 rounded text-sm"
+            hx-get="http://127.0.0.1:8000/water/ctaex/health"
+            hx-target="#htmx-health-slot"
+            hx-swap="innerHTML"
+            id="htmx-health-btn">Cargar Health CTAEX</button>
+          <div id="htmx-health-slot" class="mt-3 text-sm font-mono bg-gray-100 p-3 rounded min-h-[3rem]"></div>
+        </div>
+      </section>
+
+      <!-- Clientes -->
+      <section x-show="page === 'clients'" x-cloak class="p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Clientes</h2>
+          <button id="refresh-clients" type="button" class="btn-castuo text-white px-4 py-2 rounded">Actualizar</button>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <div id="clients-list"><p class="text-gray-500">Pulsa Actualizar.</p></div>
+        </div>
+      </section>
+
+      <!-- Facturación -->
+      <section x-show="page === 'billing'" x-cloak class="p-8">
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-6">
+          <h2 class="text-2xl font-bold">Facturación</h2>
+          <div>
+            <button id="refresh-invoices" type="button" class="btn-castuo text-white px-4 py-2 rounded mr-2">Actualizar</button>
+            <button id="generate-invoices" type="button" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generar facturas (mes actual)</button>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">Listado desde <code class="bg-gray-100 px-1 rounded">GET /subscription/certification</code> (facturas del mes).</p>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <div id="invoices-list"><p class="text-gray-500">Pulsa Actualizar.</p></div>
+        </div>
+      </section>
+
+      <!-- Informes -->
+      <section x-show="page === 'reports'" x-cloak class="p-8">
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-6">
+          <h2 class="text-2xl font-bold">Informes</h2>
+          <div class="flex flex-wrap gap-2 items-center">
+            <input type="number" id="report-year" class="p-2 border rounded w-28" min="2020" max="2100" placeholder="Año">
+            <select id="report-month" class="p-2 border rounded">
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+            <button id="generate-report" type="button" class="btn-castuo text-white px-4 py-2 rounded">Certificación (JSON)</button>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <div id="monthly-report"><p class="text-gray-500">Elige año/mes y genera.</p></div>
+        </div>
+      </section>
+
+      <!-- Roles IA -->
+      <section x-show="page === 'ai'" x-cloak class="p-8">
+        <h2 class="text-2xl font-bold mb-2">Roles IA</h2>
+        <p class="text-sm text-gray-600 mb-6">Requiere <code class="bg-gray-100 px-1 rounded">AI_INTEGRATION_KEY</code> en el servidor y la misma clave en <strong>Configuración → X-AI-KEY</strong>. Habilitar flags <code class="bg-gray-100 px-1">AI_*_ENABLED</code> según necesidad.</p>
+        <div class="grid gap-4 md:grid-cols-3">
+          <div class="bg-white p-4 rounded-lg shadow">
+            <h3 class="font-semibold mb-2">Monitoring financiero</h3>
+            <button type="button" id="btn-ai-monitoring" class="btn-castuo text-white px-3 py-2 rounded text-sm w-full">GET /subscription/ai/monitoring</button>
+            <div id="ai-monitoring-out" class="mt-3"></div>
+          </div>
+          <div class="bg-white p-4 rounded-lg shadow">
+            <h3 class="font-semibold mb-2">Health (vía API_BASE_URL)</h3>
+            <button type="button" id="btn-ai-health" class="btn-castuo text-white px-3 py-2 rounded text-sm w-full">GET /subscription/ai/health</button>
+            <div id="ai-health-out" class="mt-3"></div>
+          </div>
+          <div class="bg-white p-4 rounded-lg shadow">
+            <h3 class="font-semibold mb-2">Blueprint EU</h3>
+            <button type="button" id="btn-ai-blueprint" class="btn-castuo text-white px-3 py-2 rounded text-sm w-full">GET /subscription/ai/enterprise-blueprint</button>
+            <div id="ai-blueprint-out" class="mt-3"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Configuración -->
+      <section x-show="page === 'settings'" x-cloak class="p-8">
+        <h2 class="text-2xl font-bold mb-6">Configuración</h2>
+        <div class="bg-white p-6 rounded-lg shadow max-w-xl">
+          <p class="text-sm text-gray-600 mb-4">Las claves se guardan solo en <strong>localStorage</strong> de este navegador. No las subas a git.</p>
+          <label class="block text-sm font-medium mb-1">API base</label>
+          <input id="cfg-api-base" type="text" class="w-full p-2 border rounded mb-3" placeholder="Vacío = mismo origen (producción) o http://127.0.0.1:8000">
+          <label class="block text-sm font-medium mb-1">X-USAGE-REPORT-KEY</label>
+          <input id="cfg-usage-key" type="password" class="w-full p-2 border rounded mb-3" autocomplete="off">
+          <label class="block text-sm font-medium mb-1">X-AI-KEY (roles IA)</label>
+          <input id="cfg-ai-key" type="password" class="w-full p-2 border rounded mb-4" autocomplete="off">
+          <button type="button" id="save-settings" class="btn-castuo text-white px-4 py-2 rounded">Guardar</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <style>[x-cloak]{display:none!important}</style>
+  <script src="./admin.js"></script>
+</body>
+</html>

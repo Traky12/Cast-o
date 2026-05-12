@@ -1,0 +1,14 @@
+[
+  {
+    "question": "¿Cómo accedo a mis cursos?",
+    "answer": "Puedes acceder a tus cursos desde el menú 'Mis Cursos' en la plataforma. Si no ves tus cursos, verifica que hayas iniciado sesión con la cuenta correcta."
+  },
+  {
+    "question": "¿Cómo puedo contactar al soporte técnico?",
+    "answer": "Puedes contactar al soporte técnico a través del chat en vivo en la plataforma o enviando un correo a soporte@educanova.ai. Nuestro horario de atención es de lunes a viernes, 9:00 a 18:00."
+  },
+  {
+    "question": "¿Qué hago si olvido mi contraseña?",
+    "answer": "Si olvidaste tu contraseña, haz clic en '¿Olvidaste tu contraseña?' en la página de inicio de sesión. Recibirás instrucciones por correo para restablecerla de forma segura."
+  }
+]

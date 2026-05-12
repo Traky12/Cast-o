@@ -1,0 +1,239 @@
+{
+  "name": "CASTÚO - OpEx a Trillizo (auditoría humana)",
+  "tags": [
+    "CASTUO",
+    "opex",
+    "trillizo",
+    "auditoria",
+    "excelencia-operativa"
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "castuo/opex-audit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "03-webhook-opex",
+      "name": "Webhook_Opex_Audit",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "castuo-opex-audit-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nfunction stableStringify(v) {\n  if (v === null || v === undefined) return 'null';\n  const t = typeof v;\n  if (t === 'number' || t === 'boolean') return JSON.stringify(v);\n  if (t === 'string') return JSON.stringify(v);\n  if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';\n  if (t === 'object') {\n    const keys = Object.keys(v).sort();\n    return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify(v[k])).join(',') + '}';\n  }\n  return JSON.stringify(String(v));\n}\n\nconst row = $input.first().json;\nconst body = row.body && typeof row.body === 'object' ? row.body : row;\nconst out = body.output && typeof body.output === 'object' ? body.output : body;\n\nconst sectorEnv = String($env.SECTOR_ID || 'SECTOR-DESCONOCIDO').trim();\nconst coreId = String($env.CORE_ID || 'nucleo-opex').trim();\nconst sectorTag = sectorEnv.replace(/\\s+/g, '-');\n\nlet ef = out.eficiencia_general_pct;\nif (ef == null && typeof out.oee_score === 'number') {\n  ef = out.oee_score <= 1 ? out.oee_score * 100 : out.oee_score;\n}\nconst conf = ef != null ? Math.max(0, Math.min(100, Math.round(Number(ef)))) : 55;\n\nconst recs = Array.isArray(out.recomendaciones_opex) ? out.recomendaciones_opex.slice(0, 12) : [];\nconst decisionText =\n  'OpEx ' +\n  coreId +\n  ' @ ' +\n  sectorEnv +\n  ' | eficiencia_pct=' +\n  (ef != null ? String(ef) : 'n/a') +\n  ' | oee=' +\n  (out.oee_score != null ? String(out.oee_score) : 'n/a');\n\nconst snapshot = {\n  consumo_energia_kwh: out.consumo_energia_kwh,\n  consumo_agua_litros: out.consumo_agua_litros,\n  coste_operativo_eur: out.coste_operativo_eur,\n  mtbf_horas: out.mtbf_horas,\n  mttr_horas: out.mttr_horas,\n  roi_estimado_mejoras: out.roi_estimado_mejoras\n};\nlet ctx = JSON.stringify(snapshot);\nif (ctx.length > 1900) ctx = ctx.slice(0, 1900) + '…';\n\nconst auditBody = {\n  kind: 'ia',\n  agente_id: coreId,\n  actor: coreId,\n  decision: decisionText,\n  confianza: conf,\n  tags: ['#ia-decision', '#opex', '#sector-' + sectorTag],\n  contexto: 'OPEX_ANALYSIS ' + ctx,\n  status: ef != null && Number(ef) < 60 ? 'WARNING' : 'OK',\n  event: 'OPEX_ANALYSIS',\n  details: {\n    sector_id: sectorEnv,\n    core_id: coreId,\n    recomendaciones_opex: recs,\n    fuente: 'excelencia_operativa'\n  }\n};\n\nconst secret = String($env.CASTUO_AUDIT_WEBHOOK_SECRET || '').trim();\nlet signature = '';\nif (secret) {\n  signature = crypto.createHmac('sha256', secret).update(stableStringify(auditBody), 'utf8').digest('hex');\n}\n\nreturn [\n  {\n    json: {\n      auditBody,\n      hmacSignature: signature,\n      hmacRequired: !!secret,\n      auditUrl: String($env.CASTUO_TRILLIZO_AUDIT_URL || 'http://n8n-trillizo:5678/webhook/audit-trigger')\n    }\n  }\n];"
+      },
+      "id": "03-code-opex-payload",
+      "name": "Preparar_Audit_Opex_Trillizo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "03-if-hmac",
+              "leftValue": "={{ $json.hmacRequired }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "03-if-hmac",
+      "name": "IF_HMAC_Activo",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.auditUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Castuo-Signature",
+              "value": "={{ $json.hmacSignature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.auditBody) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "03-http-hmac",
+      "name": "HTTP_Trillizo_Con_HMAC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        280
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.auditUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.auditBody) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "03-http-plain",
+      "name": "HTTP_Trillizo_Sin_HMAC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        520
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"trillizo_url\": $('Preparar_Audit_Opex_Trillizo').item.json.auditUrl, \"hmac\": $('Preparar_Audit_Opex_Trillizo').item.json.hmacRequired, \"http_status\": $json.statusCode ?? $json.code ?? null } }}",
+        "options": {}
+      },
+      "id": "03-respond",
+      "name": "Responder_Webhook_Opex",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "height": 560,
+        "width": 460,
+        "color": 5,
+        "content": "## CASTÚO 03 — Excelencia operativa → Trillizo\n\n**Entrada:** POST `…/webhook/castuo/opex-audit` con JSON del agente OpEx (`output` o plano).\n\n**Campos usados (si existen):** `eficiencia_general_pct`, `oee_score`, `recomendaciones_opex`, `consumo_energia_kwh`, `consumo_agua_litros`, `coste_operativo_eur`, `mtbf_horas`, `mttr_horas`, `roi_estimado_mejoras`.\n\n**Salida Trillizo:** `kind: ia`, `tags`: `#ia-decision`, `#opex`, `#sector-…`. HMAC = **todo** `auditBody` (`stableStringify` alineado a `01`/`02` y `sign_audit_webhook_body.py`). Cabecera **`X-Castuo-Signature`**.\n\n**Desde tu mega-workflow:** nodo HTTP Request tras **Agente Análisis OpEx** (idealmente **antes** de Guardrails si este ofusca números), URL = esta instancia + path, body = `{{ $json }}`.\n\n**Variables:** `SECTOR_ID`, `CORE_ID`, `CASTUO_TRILLIZO_AUDIT_URL`, `CASTUO_AUDIT_WEBHOOK_SECRET`."
+      },
+      "id": "03-sticky",
+      "name": "Nota_Opex_Trillizo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        40,
+        160
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook_Opex_Audit": {
+      "main": [
+        [
+          {
+            "node": "Preparar_Audit_Opex_Trillizo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar_Audit_Opex_Trillizo": {
+      "main": [
+        [
+          {
+            "node": "IF_HMAC_Activo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_HMAC_Activo": {
+      "main": [
+        [
+          {
+            "node": "HTTP_Trillizo_Con_HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP_Trillizo_Sin_HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_Trillizo_Con_HMAC": {
+      "main": [
+        [
+          {
+            "node": "Responder_Webhook_Opex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_Trillizo_Sin_HMAC": {
+      "main": [
+        [
+          {
+            "node": "Responder_Webhook_Opex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "OpEx → diario Markdown Trillizo; contrato HMAC idéntico a 02; webhook interno para mega-orquestación."
+  }
+}

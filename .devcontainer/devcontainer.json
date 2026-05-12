@@ -1,0 +1,26 @@
+{
+  "name": "Castúo-System Secure Node",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {}
+  },
+  "runArgs": [
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges",
+    "--security-opt=seccomp=unconfined"
+  ],
+  "mounts": [
+    "source=${localWorkspaceFolder}/scripts/crypto,target=/workspace/crypto,type=bind,consistency=cached"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "security.workspace.trust.enabled": true,
+        "security.workspace.trust.untrustedFiles": "prompt",
+        "python.analysis.typeCheckingMode": "basic"
+      },
+      "extensions": ["ms-python.python"]
+    }
+  },
+  "postCreateCommand": "pip install --user -r scripts/crypto/requirements.txt -r web/requirements.txt"
+}

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASTUO-SYSTEM v4.6 | Hidropónica + Agrovoltaics | CTAEX</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: white; min-height: 100vh;
+        }
+        .hetzner-badge {
+            background: linear-gradient(90deg, #00d4aa, #00b894);
+            padding: 12px 20px; text-align: center; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,212,170,0.4);
+        }
+        .dashboard {
+            max-width: 1200px; margin: 30px auto; padding: 0 20px;
+        }
+        .ctaex-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px; padding: 30px; margin: 20px 0;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .metric { text-align: center; padding: 20px; background: rgba(0,212,170,0.2); border-radius: 15px; }
+        .status-up { color: #00d4aa; font-size: 2em; }
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none; padding: 15px 30px; border-radius: 50px;
+            color: white; font-weight: bold; cursor: pointer;
+            transition: all 0.3s; margin: 10px;
+        }
+        button:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(255,107,107,0.4); }
+        @media (max-width: 768px) { .metrics-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="hetzner-badge">
+        🚀 CAX21 #118296333 | TCP 80 ✓ | 89.167.5.233 | JEREMIE 605K€ READY
+    </div>
+
+    <div class="dashboard">
+        <div class="ctaex-card">
+            <h1>🌱 CASTUO-SYSTEM v4.6</h1>
+            <p><strong>Hidropónica + Agrovoltaics SaaS Plataforma</strong> | CTAEX Demo 17/03</p>
+        </div>
+
+        <div class="ctaex-card">
+            <h2>📊 Infraestructura LIVE</h2>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="status-up">🖥️</div>
+                    <h3>CAX21 Helsinki</h3>
+                    <p>4 ARM vCPU | 8GB RAM | 80GB NVMe</p>
+                    <p><strong>€7.25/mes | 20ms España</strong></p>
+                </div>
+                <div class="metric">
+                    <div class="status-up">🌐</div>
+                    <h3>Network Status</h3>
+                    <p>Traffic: <strong>0/20TB</strong></p>
+                    <p>Firewall: <strong>TCP 80 ✓</strong></p>
+                    <p>IP: <strong>89.167.5.233</strong></p>
+                </div>
+                <div class="metric">
+                    <div class="status-up">🐳</div>
+                    <h3>Docker Status</h3>
+                    <p>Frontend: <strong>nginx UP</strong></p>
+                    <p>Assets: <strong>/sabionda/ ✓</strong></p>
+                </div>
+                <div class="metric">
+                    <div class="status-up">🏆</div>
+                    <h3>CTAEX Ready</h3>
+                    <p>JEREMIE: <strong>605K€ Compliant</strong></p>
+                    <p>Demo: <strong>17/03 Badajoz</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="ctaex-card">
+            <h2>🎮 Interactividad v4.6 (NUEVA)</h2>
+            <button onclick="testHetzner()">🧪 Test CAX21 LIVE</button>
+            <button onclick="simulateDocker()">🐳 Docker Status</button>
+            <button onclick="ctaexDemo()">📱 CTAEX Demo</button>
+            <div id="output" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 10px;"></div>
+        </div>
+
+        <div class="ctaex-card">
+            <h2>🖼️ Assets Sabionda</h2>
+            <img src="/assets/sabionda/sabionda-tech.jpg" alt="Sabionda Tech" style="width:100%; border-radius:15px; max-width:400px;">
+            <p><em>/assets/sabionda/sabionda-tech.jpg → LIVE en CAX21</em></p>
+            <img src="/assets/sabionda/sabionda-profile.jpg" alt="Sabionda Profile" style="width:100%; border-radius:15px; max-width:400px; margin-top:15px;">
+            <p><em>/assets/sabionda/sabionda-profile.jpg</em></p>
+        </div>
+    </div>
+
+    <script>
+        function testHetzner() {
+            document.getElementById("output").innerHTML = `
+                ✅ <strong>CAX21 #118296333</strong> → <span style="color:#00d4aa">REACHABLE</span><br>
+                📍 Helsinki DC2 → 20ms Torrijos<br>
+                🔥 CPU: 2.97% | RAM: 1.2GB/8GB | Disk: 2GB/80GB<br>
+                🌐 http://89.167.5.233/ → <span style="color:#00d4aa">200 OK</span>
+            `;
+        }
+
+        function simulateDocker() {
+            document.getElementById("output").innerHTML = `
+                🐳 <strong>docker ps</strong><br>
+                <pre style="background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;">
+frontend    nginx:alpine   0.0.0.0:80→80/tcp   Up 2h
+sabionda   busybox        3000/tcp             Up 2h
+                </pre>
+            `;
+        }
+
+        function ctaexDemo() {
+            document.getElementById("output").innerHTML = `
+                🎬 <strong>CTAEX 17/03 Demo Script</strong><br>
+                1️⃣ Hetzner Console → CAX21 Metrics LIVE<br>
+                2️⃣ http://89.167.5.233/ → Castuo-SYSTEM v4.6<br>
+                3️⃣ F12 Network → assets/sabionda/ → 200 OK<br>
+                4️⃣ "JEREMIE 605K€ → EU Compliant Infra" ✅
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CASTÚO-SYSTEM — Dashboard</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; }
+    .hub { background: #161b22; border-bottom: 1px solid #30363d; padding: 1rem 1.5rem 1.5rem; }
+    .hub h2 { margin: 0 0 0.75rem; font-size: 1rem; color: #8b949e; }
+    .endpoints { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; }
+    .card { background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 0.75rem 1rem; }
+    .card a { color: #58a6ff; text-decoration: none; font-weight: 600; }
+    .card a:hover { text-decoration: underline; }
+    .card p { margin: 0.35rem 0 0; font-size: 0.85rem; color: #8b949e; }
+    .tag { float: right; font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 6px; background: #238636; color: #fff; }
+    .live { padding: 1.5rem; }
+    .metric { font-size: 2.25rem; font-weight: bold; }
+    .green { color: #00ff88; }
+    .red { color: #f85149; }
+    #log { height: 220px; overflow-y: scroll; background: #000; color: #0f0; padding: 10px; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    a.inline { color: #58a6ff; }
+    button { background: #238636; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; margin-top: 0.5rem; }
+    .metric-row { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+    .metric-card.camera { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; max-width: 420px; }
+    .metric-card.camera img { max-width: 100%; height: auto; margin-top: 0.5rem; border-radius: 4px; background: #000; }
+    pre.ingest { font-size: 0.75rem; background: #010409; padding: 0.5rem; border-radius: 4px; overflow-x: auto; color: #c9d1d9; }
+  </style>
+</head>
+<body>
+  <section class="hub" aria-label="Enlaces rápidos">
+    <h2>Enlaces y documentación</h2>
+    <div class="endpoints">
+      <div class="card">
+        <span class="tag">OpenAPI</span>
+        <a href="/docs">Swagger /docs</a>
+        <p>Explorar y probar la API.</p>
+      </div>
+      <div class="card">
+        <span class="tag">ReDoc</span>
+        <a href="/redoc">ReDoc /redoc</a>
+        <p>Documentación alternativa.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Prometheus</span>
+        <a href="/metrics">Métricas /metrics</a>
+        <p>Scrape si el instrumentador está activo.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Health</span>
+        <a href="/agents/system/health">Salud /agents/system/health</a>
+        <p>Estado de servicios críticos (según despliegue).</p>
+      </div>
+      <div class="card">
+        <span class="tag">Gemelo</span>
+        <a href="/agents/gemelo/dashboard">Demo gemelo</a>
+        <p>Ingestión: <code>POST /agents/gemelo/ingest</code></p>
+        <pre class="ingest">{"agent_type":"agrovoltaico","sensor_data":{"temperature":25.5,"humidity":60}}</pre>
+      </div>
+      <div class="card">
+        <span class="tag">API</span>
+        <a href="/docs">Vegetal alloys (OpenAPI)</a>
+        <p>CRUD vía OpenAPI (ruta bajo <code>/vegetal-alloys/</code>).</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="live">
+    <h1 style="margin-top:0;">SSE en vivo (métricas + cámara)</h1>
+
+    <div class="metric green" id="cpu">--</div>
+    <div class="metric green" id="memory">--</div>
+    <div class="metric green" id="health">--</div>
+
+    <div class="metric-row">
+      <div class="metric-card camera">
+        <h3 style="margin-top:0;">Cámara (MotionEye)</h3>
+        <div>Estado: <span id="camera-status">—</span></div>
+        <div>Salud: <span id="camera-health">—</span></div>
+        <div>Latencia: <span id="camera-latency">—</span></div>
+        <img src="/agents/camera/frame/latest?camera_id=1" alt="snapshot" id="camera-frame" width="320" height="240" />
+      </div>
+    </div>
+
+    <div id="log"></div>
+
+    <p>
+      <a class="inline" href="/docs">Swagger</a> |
+      <a class="inline" href="/agents/gemelo/dashboard">Demo gemelo</a> |
+      <button type="button" onclick="testGemelo()">Test gemelo</button>
+    </p>
+  </div>
+
+  <script>
+    const eventSource = new EventSource('/agents/dashboard/stream');
+
+    eventSource.addEventListener('metric_update', function (event) {
+      const data = JSON.parse(event.data);
+      document.getElementById('cpu').textContent = 'CPU: ' + Number(data.cpu).toFixed(1) + '%';
+      document.getElementById('memory').textContent = 'Mem: ' + Number(data.memory).toFixed(1) + '%';
+      document.getElementById('health').textContent = 'Health: ' + data.health;
+      document.getElementById('health').className = data.health === 'operational' ? 'metric green' : 'metric red';
+      var log = document.getElementById('log');
+      log.innerHTML += '<div>[' + new Date().toLocaleTimeString() + '] CPU:' + data.cpu + '% Mem:' + data.memory + '% ' + data.health + '</div>';
+      log.scrollTop = log.scrollHeight;
+    });
+
+    eventSource.onerror = function () { console.log('SSE dashboard reconnecting...'); };
+
+    var cameraSource = new EventSource('/agents/camera/stream');
+    cameraSource.addEventListener('camera_update', function (e) {
+      var d = JSON.parse(e.data);
+      document.getElementById('camera-status').textContent = d.online ? d.camera + ' en línea' : d.camera + ' (' + d.reason + ')';
+      document.getElementById('camera-health').textContent = d.health;
+      document.getElementById('camera-latency').textContent = d.latency_ms != null ? d.latency_ms + ' ms' : '—';
+      var log = document.getElementById('log');
+      log.innerHTML += '<div>[' + new Date().toLocaleTimeString() + '] cam ' + d.health + ' ' + (d.latency_ms || '') + 'ms</div>';
+      log.scrollTop = log.scrollHeight;
+    });
+    cameraSource.onerror = function () { console.log('camera SSE reconnecting...'); };
+
+    setInterval(function () {
+      var img = document.getElementById('camera-frame');
+      if (img) { img.src = '/agents/camera/frame/latest?camera_id=1&t=' + Date.now(); }
+    }, 3000);
+
+    function testGemelo() {
+      fetch('/agents/gemelo/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_type: 'dashboard_test', sensor_data: { temperature: 22, humidity: 55 } })
+      }).then(function (r) { return r.json(); }).then(function (j) { alert('Gemelo: ' + (j.gemelo_id || j.detail)); }).catch(alert);
+    }
+  </script>
+</body>
+</html>

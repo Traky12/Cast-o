@@ -1,0 +1,55 @@
+# n8n CASTÚO — Plan Pro: contenedor n8n en la MISMA red Docker que `api` (p. ej. ya levantado con docker-compose.prod.yml).
+#
+# Requisitos:
+#   1) El stack prod (u otro) debe estar arriba; la red interna debe existir.
+#   2) Ajusta CASTUO_DOCKER_NETWORK en .env.n8n-castuo al nombre real:
+#        docker network ls | findstr castuo
+#      Si usas `docker compose -p castuo -f docker-compose.prod.yml`, suele ser: castuo_castuo_internal
+#
+# Uso:
+#   docker compose -f docker-compose.n8n-castuo.pro.yml --env-file .env.n8n-castuo up -d
+#
+# Nota: Si ya tienes el servicio `n8n` dentro de docker-compose.prod.yml, no necesitas este fichero salvo que quieras un n8n separado en el mismo proyecto de red.
+
+version: "3.8"
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-castuo-pro
+    env_file:
+      - .env.n8n-castuo
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Europe/Madrid}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env.n8n-castuo}
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-${N8N_USER:-admin}}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:?set N8N_PASSWORD in .env.n8n-castuo}
+      - CASTUO_BASE_URL=${CASTUO_BASE_URL:-http://api:8000}
+      - CASTUO_API_KEY=${CASTUO_API_KEY:-}
+      - CASTUO_ZONE_ID=${CASTUO_ZONE_ID:-zone_cannabis_1}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - CASTUO_API_URL=${CASTUO_API_URL:-http://api:8000}
+      - CASTUO_ALLOWED_IP_CIDRS=${CASTUO_ALLOWED_IP_CIDRS:-}
+      - IPFS_API_KEY=${IPFS_API_KEY:-}
+      - IPFS_API_SECRET=${IPFS_API_SECRET:-}
+      - POWER_BI_INVESTOR_METRICS_URL=${POWER_BI_INVESTOR_METRICS_URL:-}
+      - POWER_BI_API_KEY=${POWER_BI_API_KEY:-}
+    volumes:
+      - castuo_n8n_pro_data:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro
+    networks:
+      - castuo_internal
+
+volumes:
+  castuo_n8n_pro_data:
+
+networks:
+  castuo_internal:
+    external: true
+    name: ${CASTUO_DOCKER_NETWORK:-castuo_castuo_internal}

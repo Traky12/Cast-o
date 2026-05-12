@@ -1,0 +1,24 @@
+# CASTÚO-SYSTEM™ | TRL8 PQC — Migración total post-cuántica (ML-KEM-1024, ML-DSA-65)
+# CASTÚO-SYSTEM PQC LIVE 15/09/2026 | 100% Post-Quantum
+# Uso: docker compose -f docker/docker-compose-trl8-pqc.yml up -d
+
+version: '3.8'
+
+services:
+  castuo-pqc:
+    image: castuo/system:trl8.pqc@${IMAGE_DIGEST:-sha256:0000000000000000000000000000000000000000000000000000000000000000}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.pqc
+    container_name: castuo-pqc
+    environment:
+      - CRYPTO_MODE=pqc_only
+      - PQC_KEM=ML-KEM-1024
+      - PQC_SIG=ML-DSA-65
+      - CASTUO_CRYPTO_MODE=hybrid_pqc
+      - PQC_ALG=ML-KEM_768+ML-DSA_44
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped

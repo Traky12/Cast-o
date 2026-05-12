@@ -1,0 +1,38 @@
+# Deployment del coordinador federado con cifrado E2E y trazabilidad
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-federated-coordinator
+  namespace: castuo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: secure-federated-coordinator
+  template:
+    metadata:
+      labels:
+        app: secure-federated-coordinator
+    spec:
+      containers:
+      - name: coordinator
+        image: ghcr.io/tu-organizacion/castuo-system:v2.1-secure
+        envFrom:
+        - configMapRef:
+            name: encryption-config
+        volumeMounts:
+        - name: encryption-keys
+          mountPath: /etc/encryption-keys
+          readOnly: true
+        - name: traceability-data
+          mountPath: /var/traceability
+        securityContext:
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+      volumes:
+      - name: encryption-keys
+        secret:
+          secretName: he-keys
+      - name: traceability-data
+        emptyDir: {}

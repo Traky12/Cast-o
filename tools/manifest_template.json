@@ -1,0 +1,9 @@
+{
+  "schema": "castuo.gemelo.manifest.v1",
+  "gemelo_id": "JARAPLOT-0000",
+  "snapshot": "1",
+  "territory": "EXT-ES",
+  "timestamp_utc": "",
+  "artifacts_sha256": {},
+  "extensions": {}
+}

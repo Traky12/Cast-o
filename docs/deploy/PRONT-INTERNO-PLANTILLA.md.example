@@ -1,0 +1,24 @@
+# PRONT INTERNO — plantilla (no commitear datos reales)
+
+Renombrar a `PRONT-INTERNO-<TEMA>-vX-AAAA.md` y **mantener fuera del remoto público** si incluye PII.
+
+| Campo | Valor |
+|-------|--------|
+| **Responsable** | [Nombre completo] |
+| **Email** | [correo] |
+| **Teléfono** | [opcional] |
+| **Organización** | [CTAEX / operador / …] |
+
+**Firma / fecha:** _______________________
+
+---
+
+(Cuerpo: mismo contenido que el PRONT público correspondiente + anexos operativos restringidos.)
+
+## Impresión a PDF (opcional)
+
+```bash
+pandoc PRONT-INTERNO-*.md -o PRONT-INTERNO.pdf --pdf-engine=xelatex
+```
+
+(Ajustar motor según tu entorno: `weasyprint`, `wkhtmltopdf`, etc.)

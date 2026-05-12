@@ -1,0 +1,42 @@
+#!/bin/sh
+# Pre-commit: conflictos, linters, tests, Mistral (copiar a .git/hooks/pre-commit)
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+echo "Ejecutando pre-commit (Mistral AI opcional)..."
+
+# 1. Conflictos de merge sin resolver
+if ! git diff --check 2>/dev/null; then
+  echo "Hay conflictos de merge sin resolver. Resuélvelos antes de hacer commit."
+  exit 1
+fi
+
+# 2. Linters y tests (si existe npm)
+if command -v npm >/dev/null 2>&1 && [ -f package.json ]; then
+  echo "Ejecutando linters..."
+  npm run lint 2>/dev/null || true
+  echo "Ejecutando tests..."
+  npm test 2>/dev/null || true
+fi
+
+# 3. Análisis Mistral por archivo Python
+CHANGED=$(git diff --cached --name-only --diff-filter=ACM)
+for FILE in $CHANGED; do
+  case "$FILE" in
+    *.py)
+      if [ -f "$ROOT/backend/scripts/analyze_with_mistral.py" ]; then
+        echo "Analizando $FILE con Mistral AI..."
+        python3 "$ROOT/backend/scripts/analyze_with_mistral.py" "$FILE" 2>/dev/null || true
+      fi
+      ;;
+  esac
+done
+
+# 4. Optimización (no fallar commit si falla)
+if [ -f "$ROOT/backend/scripts/optimize_code.py" ]; then
+  echo "Optimizando código..."
+  python3 "$ROOT/backend/scripts/optimize_code.py" 2>/dev/null || echo "Optimización omitida o fallida."
+fi
+
+echo "Pre-commit completado."

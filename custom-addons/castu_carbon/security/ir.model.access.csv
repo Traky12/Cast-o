@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_castu_carbon_credit,castu.carbon.credit,model_castu_carbon_credit,,1,1,1,1
+access_castu_carbon_report,castu.carbon.report,model_castu_carbon_report,,1,1,1,1
+access_castu_carbon_credit_sell_wizard,castu.carbon.credit.sell.wizard,model_castu_carbon_credit_sell_wizard,,1,1,1,1

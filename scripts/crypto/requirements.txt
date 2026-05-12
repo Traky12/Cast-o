@@ -1,0 +1,5 @@
+# Cifrado autenticado (siempre): AES-256-GCM vía cryptography
+cryptography>=42.0.0
+
+# PQC Kyber768 (opcional): requiere liboqs en el sistema; ver https://github.com/open-quantum-safe/liboqs-python
+# oqs>=0.10.0

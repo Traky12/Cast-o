@@ -1,0 +1,82 @@
+[
+  {
+    "id": "hydro_analysis",
+    "name": "Análisis Hidropónico",
+    "description": "EC, pH, tendencias y prioridad (n8n + Mistral).",
+    "status": "active",
+    "icon": "fa-water",
+    "color": "#228B22",
+    "lastUpdated": null,
+    "metrics": {"priority_queue": 0}
+  },
+  {
+    "id": "crop_management",
+    "name": "Gestión de Cultivos",
+    "description": "Etapas, nutrientes y riesgos.",
+    "status": "active",
+    "icon": "fa-seedling",
+    "color": "#00BFFF",
+    "lastUpdated": null,
+    "metrics": {}
+  },
+  {
+    "id": "resource_optimization",
+    "name": "Optimización de Recursos",
+    "description": "Agua, energía agrovoltaica, ROI operativo.",
+    "status": "active",
+    "icon": "fa-chart-line",
+    "color": "#FFD700",
+    "lastUpdated": null,
+    "metrics": {}
+  },
+  {
+    "id": "supervisor",
+    "name": "Supervisor Maestro",
+    "description": "KPIs ejecutivos y salud del sistema.",
+    "status": "active",
+    "icon": "fa-eye",
+    "color": "#8B4513",
+    "lastUpdated": null,
+    "metrics": {}
+  },
+  {
+    "id": "orchestrator",
+    "name": "Orquestador CASTÚO",
+    "description": "Gateway n8n / webhooks internos.",
+    "status": "active",
+    "icon": "fa-network-wired",
+    "color": "#00FFFF",
+    "lastUpdated": null,
+    "metrics": {}
+  },
+  {
+    "id": "audit_trace",
+    "name": "Auditor Trazabilidad",
+    "description": "Cumplimiento y datos sensibles (marco legal).",
+    "status": "active",
+    "icon": "fa-search",
+    "color": "#228B22",
+    "lastUpdated": null,
+    "metrics": {}
+  },
+  {
+    "id": "n8n_panel",
+    "name": "Panel Agentes n8n",
+    "description": "HTML estático frontend/public/sabionda-n8n-agents-dashboard.html",
+    "status": "active",
+    "icon": "fa-project-diagram",
+    "color": "#00BFFF",
+    "lastUpdated": null,
+    "metrics": {}
+  },
+  {
+    "id": "holobrain_stub",
+    "name": "Holobrain / 3D",
+    "description": "Visualización avanzada: integrar Three.js en app React existente si se escoge subproyecto.",
+    "status": "idle",
+    "icon": "fa-cube",
+    "color": "#4169E1",
+    "lastUpdated": null,
+    "metrics": {}
+  }
+]

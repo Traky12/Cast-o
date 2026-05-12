@@ -1,0 +1,72 @@
+{
+  "name": "CASTUO_Hydro_Sensor_Mistral_Min",
+  "tags": ["CASTUO", "hydroponics-saas", "Mistral", "n8n", "Hetzner"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hydro-sensor-ingest",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh-hydro-min",
+      "name": "Webhook_Sensor",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320],
+      "webhookId": "castuo-hydro-sensor-mistral-min"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst b = item.body ?? item;\nconst base = String($env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://api:8000').replace(/\\/+$/, '');\nconst apiKey = String($env.CASTUO_API_KEY || '').trim();\nif (!apiKey) throw new Error('CASTUO_API_KEY requerido en entorno n8n');\n\nconst rawType = String(b.sensor_type || 'ph');\nconst sensor_type =\n  rawType === 'temperatura' ? 'temperature' :\n  rawType === 'humedad' ? 'humidity' :\n  rawType === 'luz' ? 'light' :\n  rawType;\nconst zone = String($env.CASTUO_ZONE_ID || 'zone_default');\nconst sensor_id = String(b.sensor_id || `sensor_${rawType}_${zone}`);\nconst value = Number(b.value);\nif (Number.isNaN(value)) throw new Error('value numérico requerido');\nconst ts = b.timestamp || new Date().toISOString();\nconst location = String(b.location || 'default');\nconst unit =\n  rawType === 'ph' ? 'pH' :\n  rawType === 'temperatura' ? '°C' :\n  rawType === 'humedad' ? '%' :\n  rawType === 'ec' ? 'mS/cm' :\n  'lux';\n\nconst reading = {\n  sensor_id,\n  sensor_type,\n  value,\n  timestamp: ts,\n  location,\n  unit,\n  zone_id: zone,\n};\n\nconst r1 = await fetch(`${base}/hydroponics-saas/sensor-readings`, {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json',\n    'X-API-KEY': apiKey,\n  },\n  body: JSON.stringify(reading),\n});\nconst t1 = await r1.text();\nlet castuo;\ntry {\n  castuo = JSON.parse(t1);\n} catch {\n  castuo = { raw: t1 };\n}\n\nlet mistral = { skipped: true, reason: 'MISTRAL_API_KEY vacío' };\nconst mk = String($env.MISTRAL_API_KEY || '').trim();\nif (mk) {\n  const summary = `Lectura: ${sensor_type}=${value} ${unit} zona=${zone} location=${location}. JSON bruto: ${JSON.stringify(b)}`;\n  const r2 = await fetch('https://api.mistral.ai/v1/chat/completions', {\n    method: 'POST',\n    headers: {\n      Authorization: `Bearer ${mk}`,\n      'Content-Type': 'application/json',\n    },\n    body: JSON.stringify({\n      model: 'mistral-small-latest',\n      messages: [\n        {\n          role: 'system',\n          content:\n            'Eres agrónomo hidroponía UE. Respuesta breve, accionable, sin diagnóstico médico.',\n        },\n        { role: 'user', content: summary },\n      ],\n    }),\n  });\n  const t2 = await r2.text();\n  try {\n    mistral = JSON.parse(t2);\n  } catch {\n    mistral = { raw: t2, http_status: r2.status };\n  }\n}\n\nreturn [\n  {\n    json: {\n      hydro_request: reading,\n      castuo_http_status: r1.status,\n      castuo_response: castuo,\n      mistral,\n    },\n  },\n];\n"
+      },
+      "id": "code-castuo-mistral",
+      "name": "POST_Castuo_And_Mistral",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-wh",
+      "name": "Respond_OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [760, 320]
+    }
+  ],
+  "connections": {
+    "Webhook_Sensor": {
+      "main": [
+        [
+          {
+            "node": "POST_Castuo_And_Mistral",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST_Castuo_And_Mistral": {
+      "main": [
+        [
+          {
+            "node": "Respond_OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true
+  },
+  "meta": {
+    "description": "Webhook IoT → POST /hydroponics-saas/sensor-readings + análisis opcional Mistral. Requiere CASTUO_BASE_URL, CASTUO_API_KEY, CASTUO_ZONE_ID, MISTRAL_API_KEY (opcional) en el contenedor n8n."
+  }
+}

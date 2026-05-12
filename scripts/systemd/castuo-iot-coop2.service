@@ -1,0 +1,16 @@
+[Unit]
+Description=IoT Monitor Cooperativa #2 (Vid)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/castuo-system/backend
+ExecStart=/usr/bin/python3 scripts/iot_monitor_3_coops.py --coop 2
+Restart=always
+RestartSec=10
+Environment=BACKEND_URL=http://localhost:8001
+Environment=IOT_MONITOR_LOG=/root/castuo-system/backend/logs/iot-monitor.log
+
+[Install]
+WantedBy=multi-user.target

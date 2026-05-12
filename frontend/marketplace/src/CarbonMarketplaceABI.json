@@ -1,0 +1,6 @@
+[
+  { "inputs": [{ "name": "kgCO2", "type": "uint256" }, { "name": "pricePerKgBioCoin", "type": "uint256" }], "name": "createListing", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "name": "listingId", "type": "uint256" }], "name": "buyListing", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "name": "listingId", "type": "uint256" }], "name": "getListing", "outputs": [{ "name": "seller", "type": "address" }, { "name": "kgCO2", "type": "uint256" }, { "name": "pricePerKgBioCoin", "type": "uint256" }, { "name": "sold", "type": "bool" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "listingCount", "outputs": [{ "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }
+]

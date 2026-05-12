@@ -1,0 +1,46 @@
+# Reglas de alerta de producción para FL y coordinador seguro
+# Requiere Prometheus Operator (monitoring.coreos.com/v1)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: castuo-prod-alerts
+  namespace: castuo-prod
+  labels:
+    app: prometheus
+    release: prometheus
+spec:
+  groups:
+  - name: fl-alerts
+    rules:
+    - alert: HighFLLatency
+      expr: fl_aggregation_latency_ms > 100
+      for: 5m
+      labels:
+        severity: critical
+        team: ai
+      annotations:
+        summary: "Alta latencia en agregación FL ({{ $value }}ms)"
+        description: "La latencia de agregación FL ha superado 100ms durante 5 minutos"
+        runbook: "https://docs.castuo-system.eu/alerts/high_fl_latency"
+
+    - alert: LowFLThroughput
+      expr: fl_models_per_second < 2000
+      for: 10m
+      labels:
+        severity: warning
+        team: ai
+      annotations:
+        summary: "Bajo rendimiento en FL ({{ $value }} modelos/s)"
+        description: "El throughput de modelos ha caído por debajo de 2000 modelos/segundo"
+        runbook: "https://docs.castuo-system.eu/alerts/low_fl_throughput"
+
+    - alert: FLAggregationErrorRate
+      expr: rate(fl_aggregation_errors_total[5m]) / rate(fl_aggregation_total[5m]) > 0.01
+      for: 5m
+      labels:
+        severity: critical
+        team: reliability
+      annotations:
+        summary: "Alta tasa de errores en agregación FL ({{ $value }})"
+        description: "Más del 1% de las agregaciones FL están fallando"
+        runbook: "https://docs.castuo-system.eu/alerts/fl_aggregation_errors"

@@ -1,0 +1,50 @@
+{
+  "France": {
+    "strategy": "Alianza con BayWa para distribución",
+    "legal": {
+      "certifications": ["GlobalGAP", "HVE3"],
+      "compliance": ["RGPD", "Loi AGEC"]
+    },
+    "pilot": {
+      "region": "Provence-Alpes-Côte d'Azur",
+      "cooperative": "Coopérative Agricole de Vaucluse",
+      "farms": 50
+    }
+  },
+  "Germany": {
+    "strategy": "Integración con ERP de cooperativas (SAP)",
+    "legal": {
+      "certifications": ["QS", "EU Organic"],
+      "compliance": ["DSGVO", "Düngeverordnung"]
+    },
+    "pilot": {
+      "region": "Bavaria",
+      "cooperative": "Raiffeisen Warengenossenschaft",
+      "farms": 80
+    }
+  },
+  "USA": {
+    "strategy": "Enfoque en cannabis medicinal (California)",
+    "legal": {
+      "certifications": ["USDA Organic", "CCOF"],
+      "compliance": ["Farm Bill 2018", "California Proposition 64"]
+    },
+    "pilot": {
+      "region": "Central Valley",
+      "cooperative": "Sunrise Growers Cooperative",
+      "farms": 100
+    }
+  },
+  "Japan": {
+    "strategy": "Agrovoltaica + arroz ecológico",
+    "legal": {
+      "certifications": ["JAS Organic", "GAP"],
+      "compliance": ["Food Sanitation Act", "Plant Protection Act"]
+    },
+    "pilot": {
+      "region": "Niigata",
+      "cooperative": "JA Zen-Noh Niigata",
+      "farms": 60
+    }
+  }
+}

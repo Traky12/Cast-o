@@ -1,0 +1,34 @@
+{
+  "@context": "https://ref.gs1.org/standards/epcis/2.0.0/context.jsonld",
+  "type": "ObjectEvent",
+  "eventTime": "2026-03-15T10:00:00+09:00",
+  "eventTimeZoneOffset": "+09:00",
+  "epcList": [
+    {
+      "epc": "urn:epc:id:sgtin:0614141.100123.400"
+    }
+  ],
+  "action": "OBSERVE",
+  "bizStep": "urn:epcglobal:cbv:bizStep:shipping",
+  "disposition": "urn:epcglobal:cbv:disp:in_transit",
+  "readPoint": {
+    "id": "urn:epc:id:sgln:0614141.00001.0"
+  },
+  "bizLocation": {
+    "id": "urn:epc:id:sgln:0614141.00001.0"
+  },
+  "extension": {
+    "compliance": {
+      "standard": "JGS_2023",
+      "region": "JP",
+      "certification": {
+        "mhlw": "APPROVED_2026_001",
+        "jas": "CERTIFIED_2026_001"
+      }
+    },
+    "sustainability": {
+      "carbon_footprint": "12 kg CO2/ha",
+      "water_usage": "15 L/ha"
+    }
+  }
+}

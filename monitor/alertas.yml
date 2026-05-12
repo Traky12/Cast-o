@@ -1,0 +1,31 @@
+# CASTUO-SYSTEM — Reglas de alerta Prometheus
+groups:
+  - name: castuo_alerts
+    rules:
+      - alert: ApiHighLatency
+        expr: histogram_quantile(0.95, rate(castuo_request_duration_seconds_bucket[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API latency alta (P95 > 500ms)"
+          description: "CASTUO API latency P95 {{ $value | humanize }}s"
+
+      - alert: LERBajo
+        expr: castuo_ler < 1.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LER por debajo del target"
+          description: "LER actual {{ $value }} < 1.2 (ROI impactado)"
+
+      # Requiere git-exporter con métricas git_commits_total{tx_hash=""}
+      - alert: GitCommitWithoutBioCoinTX
+        expr: git_commits_total{repo="castu-system", tx_hash=""} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Commit sin TX hash de BioCoin Castúo"
+          description: "El commit {{ $labels.commit }} no incluye TX hash. Revisar: {{ $labels.author }}"

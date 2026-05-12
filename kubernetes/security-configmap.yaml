@@ -1,0 +1,37 @@
+# ConfigMap de seguridad avanzada (integración completa)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-config
+  namespace: castuo-prod
+data:
+  ENCRYPTION_ALGORITHM: "RSA4096_AES256_GCM_Kyber1024_SECURE"
+  KEY_ROTATION_INTERVAL: "90"
+  KEY_USAGE_LOG_RETENTION: "365"
+  FORENSIC_ENABLED: "true"
+  DEFENSE_ENABLED: "true"
+  ALERT_THRESHOLD_NETWORK: "0.001"
+  ALERT_THRESHOLD_BEHAVIOR: "0.0005"
+  MAX_EVIDENCE_RETENTION: "90"
+  LEGAL_COMPLIANCE_MODE: "strict"
+  DEFENSE_POLICY: "default"
+  RESPONSE_TIME_TARGET: "100"
+  FALSE_POSITIVE_TARGET: "0.001"
+  ESCALATION_PATH: "security-team,devops-team,legal-team,executive-team"
+  TRACEABILITY_HASH_ALGORITHM: "BLAKE3"
+  TRACEABILITY_SIGNATURE_ALGORITHM: "Dilithium5"
+  MAX_BLOCK_SIZE: "1048576"
+  TRACEABILITY_RETENTION_POLICY: "365"
+  LEGAL_HOLD_ENABLED: "false"
+  GAIA_CHAIN_URL: "http://gaiachain-service.gaiachain.svc.cluster.local:8080"
+  MONITORING_INTERVAL: "15s"
+  ALERT_EVALUATION_INTERVAL: "30s"
+  METRICS_RETENTION: "90d"
+  HE_PARAMETERS: |
+    {"poly_modulus_degree":16384,"coeff_mod_bit_sizes":[60,40,40,60,60],"security_level":192,"global_scale":1125899906842624,"key_rotation_policy":{"interval":"90d","algorithm":"Kyber1024+RSA4096","backup":{"locations":3,"geographic_distribution":true}}}
+  GAIA_CHAIN_RETENTION_POLICY: |
+    {"forensic_evidence":3650,"legal_reports":10950,"audit_trails":2555}
+  GAIA_CHAIN_ENCRYPTION: |
+    {"evidence":{"algorithm":"AES-256-GCM+Kyber1024","key_rotation":"90d"},"reports":{"algorithm":"AES-256-GCM+RSA4096","key_rotation":"180d"}}
+  COMPLIANCE_STANDARDS: |
+    [{"standard":"ISO_27001","controls":["A.10.1.1","A.12.4.1","A.12.6.1","A.16.1.1","A.16.1.4","A.18.1.4"],"compliance":true},{"standard":"GDPR","articles":["Art.5","Art.25","Art.30","Art.32","Art.33","Art.34"],"compliance":true},{"standard":"NIST","standards":["SP_800-53","SP_800-61","SP_800-86","SP_800-171"],"compliance":true},{"standard":"EU_AI_Act","annexes":["III","IV"],"compliance":true},{"standard":"eIDAS","articles":["Art.3","Art.4","Art.25"],"compliance":true}]

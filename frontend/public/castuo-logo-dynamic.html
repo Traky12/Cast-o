@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASTÚO-SYSTEM — Logotipo oficial activo y dinámico</title>
+    <style>
+        :root {
+            --castuo-green: #228B22;
+            --castuo-holo: #00BFFF;
+            --castuo-cyber: #00FFFF;
+            --castuo-soil: #8B4513;
+            --castuo-sovereign: #FFD700;
+            --castuo-bg: #0a0e0b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: var(--castuo-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        .castuo-logo-wrap {
+            position: relative;
+            padding: 2rem;
+        }
+
+        /* Contenedor del logo con glow pulsante */
+        .castuo-logo-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: castuo-glow-pulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes castuo-glow-pulse {
+            0%, 100% {
+                filter: drop-shadow(0 0 20px rgba(34, 139, 34, 0.6))
+                        drop-shadow(0 0 40px rgba(0, 191, 255, 0.3));
+            }
+            50% {
+                filter: drop-shadow(0 0 35px rgba(34, 139, 34, 0.9))
+                        drop-shadow(0 0 60px rgba(0, 191, 255, 0.5));
+            }
+        }
+
+        .castuo-logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            border-radius: 50%;
+        }
+
+        /* Halo holográfico detrás del logo */
+        .castuo-holo-ring {
+            position: absolute;
+            inset: -15px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                var(--castuo-holo),
+                var(--castuo-green),
+                var(--castuo-cyber),
+                var(--castuo-sovereign),
+                var(--castuo-holo)
+            );
+            opacity: 0.35;
+            animation: castuo-ring-rotate 8s linear infinite;
+            z-index: 0;
+        }
+        .castuo-holo-ring::after {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            background: var(--castuo-bg);
+            z-index: 1;
+        }
+
+        @keyframes castuo-ring-rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Overlay de brillo holográfico sobre el logo */
+        .castuo-holo-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: linear-gradient(
+                135deg,
+                transparent 30%,
+                rgba(0, 191, 255, 0.15) 50%,
+                transparent 70%
+            );
+            background-size: 200% 200%;
+            animation: castuo-shimmer 3s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        @keyframes castuo-shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Partículas flotantes */
+        .castuo-particles {
+            position: absolute;
+            inset: -30px;
+            pointer-events: none;
+            z-index: 4;
+            overflow: visible;
+        }
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--castuo-sovereign);
+            opacity: 0.8;
+            animation: castuo-float 4s ease-in-out infinite;
+        }
+        .particle:nth-child(1) { left: 20%; top: 15%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 80%; top: 25%; animation-delay: 0.5s; background: var(--castuo-holo); }
+        .particle:nth-child(3) { left: 50%; top: 5%; animation-delay: 1s; }
+        .particle:nth-child(4) { left: 10%; top: 50%; animation-delay: 1.2s; background: var(--castuo-cyber); }
+        .particle:nth-child(5) { left: 90%; top: 60%; animation-delay: 0.3s; }
+        .particle:nth-child(6) { left: 30%; top: 85%; animation-delay: 1.8s; background: var(--castuo-green); }
+        .particle:nth-child(7) { left: 70%; top: 90%; animation-delay: 0.8s; }
+
+        @keyframes castuo-float {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+            33% { transform: translate(5px, -8px) scale(1.2); opacity: 1; }
+            66% { transform: translate(-5px, 4px) scale(0.9); opacity: 0.8; }
+        }
+
+        /* Texto CASTÚO-SYSTEM bajo el logo */
+        .castuo-brand-text {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            background: linear-gradient(
+                90deg,
+                var(--castuo-green),
+                var(--castuo-holo),
+                var(--castuo-sovereign),
+                var(--castuo-green)
+            );
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: castuo-text-gradient 4s ease infinite;
+        }
+
+        @keyframes castuo-text-gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .castuo-tagline {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: rgba(0, 191, 255, 0.9);
+            letter-spacing: 0.1em;
+        }
+
+        /* Fallback cuando no hay imagen: SVG del C con hojas */
+        .castuo-logo-fallback {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #1a4d1a, #0d260d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+        .castuo-logo-fallback svg {
+            width: 75%;
+            height: 75%;
+            opacity: 0.95;
+        }
+        .castuo-logo-fallback .c-letter { fill: url(#castuo-metal); }
+        .castuo-logo-fallback .leaf { fill: url(#castuo-leaf); }
+        .castuo-logo-fallback .glow { fill: none; stroke: var(--castuo-holo); stroke-width: 2; opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div class="castuo-logo-wrap">
+        <div class="castuo-logo-container">
+            <div class="castuo-holo-ring" aria-hidden="true"></div>
+            <img
+                id="castuo-official-logo"
+                src="assets/castuo/logotipo-oficial.png"
+                alt="CASTÚO-SYSTEM — Logotipo oficial"
+                onerror="this.style.display='none'; document.getElementById('castuo-fallback').style.display='flex';"
+            >
+            <div id="castuo-fallback" class="castuo-logo-fallback" style="display: none;" aria-hidden="true">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="castuo-metal" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#c0c0c0"/>
+                            <stop offset="50%" stop-color="#ffffff"/>
+                            <stop offset="100%" stop-color="#808080"/>
+                        </linearGradient>
+                        <linearGradient id="castuo-leaf" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#228B22"/>
+                            <stop offset="100%" stop-color="#0d4d0d"/>
+                        </linearGradient>
+                    </defs>
+                    <path class="leaf" d="M50 15 Q85 30 75 65 Q50 85 25 65 Q15 35 50 15Z"/>
+                    <path class="leaf" d="M50 85 Q15 70 25 35 Q50 15 75 35 Q85 65 50 85Z"/>
+                    <path class="c-letter" d="M65 25 A25 25 0 0 0 65 75 A25 25 0 0 0 65 25 M55 30 A15 15 0 0 1 55 70" fill="url(#castuo-metal)" stroke="#228B22" stroke-width="1"/>
+                </svg>
+            </div>
+            <div class="castuo-holo-overlay" aria-hidden="true"></div>
+            <div class="castuo-particles" aria-hidden="true">
+                <span class="particle"></span>
+                <span class="particle"></span>
+                <span class="particle"></span>
+                <span class="particle"></span>
+                <span class="particle"></span>
+                <span class="particle"></span>
+                <span class="particle"></span>
+            </div>
+        </div>
+        <p class="castuo-brand-text">CASTÚO-SYSTEM</p>
+        <p class="castuo-tagline">TRL9 Federada · Agrovoltaica · CTAEX</p>
+    </div>
+</body>
+</html>

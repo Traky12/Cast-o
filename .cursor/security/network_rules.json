@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CASTÚO network policy (reference for gateway / WAF / reverse proxy)",
+  "description": "No sustituye a nginx/Traefik/Cloudflare: define intención (rate limit, geo, TLS). Aplicar en el borde real.",
+  "version": "1.0.0",
+  "rate_limiting": {
+    "enabled": true,
+    "window_seconds": 60,
+    "max_requests_per_ip": 120,
+    "burst": 30,
+    "paths": ["/webhook/", "/api/"],
+    "notes": "Ajustar por instancia n8n/API; medir antes de endurecer."
+  },
+  "geo_blocking": {
+    "enabled": false,
+    "mode": "allowlist",
+    "allowed_country_codes": ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "IS", "LI", "NO", "CH"],
+    "block_unknown_geo": false,
+    "notes": "Activar solo con fuente de país fiable (CDN/geo-IP); false por defecto para no cortar laboratorios."
+  },
+  "tls": {
+    "min_version": "TLS1.2",
+    "prefer_tls13": true,
+    "hsts_seconds": 31536000
+  },
+  "headers": {
+    "recommend": [
+      "Strict-Transport-Security",
+      "X-Content-Type-Options: nosniff",
+      "X-Frame-Options: DENY",
+      "Referrer-Policy: strict-origin-when-cross-origin"
+    ]
+  }
+}

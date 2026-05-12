@@ -1,0 +1,32 @@
+# CASTÚO-SYSTEM™ — Cursor sandbox (anti-hacking v1.0)
+# Pod aislado: readOnlyRootFilesystem, capabilities drop ALL, tmpfs /tmp
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cursor-sandbox
+  labels:
+    app: cursor
+    tier: backend
+spec:
+  containers:
+  - name: cursor
+    image: ghcr.io/castuo-system/cursor:latest
+    securityContext:
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    volumeMounts:
+    - name: tmpfs
+      mountPath: /tmp
+  volumes:
+  - name: tmpfs
+    emptyDir:
+      medium: Memory
+      sizeLimit: 100Mi
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+    fsGroup: 2000

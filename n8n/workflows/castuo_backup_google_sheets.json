@@ -1,0 +1,35 @@
+{
+  "name": "CASTUO_Backup_Google_Sheets",
+  "active": false,
+  "tags": ["CASTUO", "google-sheets", "backup", "schedule"],
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "gs-manual",
+      "name": "Manual_Prueba",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 360],
+      "notes": "Añadir Schedule 02:00 si aplica."
+    },
+    {
+      "parameters": {
+        "jsCode": "const sid = String($env.N8N_GS_BACKUP_SPREADSHEET || $env.BACKUP_SPREADSHEET || '').trim();\nconst sheet = String($env.N8N_GS_BACKUP_SHEET || $env.BACKUP_SHEET || 'Respaldo_Sensores').trim();\nconst rows = [\n  ['ts', 'tabla', 'filas'],\n  [new Date().toISOString(), String($env.N8N_DB_COSECHAS || 'castuo_prod_cosechas'), '0'],\n];\nconst report_hash = require('crypto')\n  .createHash('sha256')\n  .update(JSON.stringify(rows))\n  .digest('hex');\nreturn [\n  {\n    json: {\n      spreadsheetId: sid,\n      sheetName: sheet,\n      values: rows,\n      report_hash,\n      note: 'Añadir nodo Google Sheets (OAuth2) operation append/update con credencial. No exponer refresh token en JSON exportado.',\n    },\n  },\n];"
+      },
+      "id": "gs-code",
+      "name": "Formatear_Filas_Placeholder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 360]
+    }
+  ],
+  "connections": {
+    "Manual_Prueba": {
+      "main": [[{ "node": "Formatear_Filas_Placeholder", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Credencial googleSheetsOAuth2Api en UI. range p.ej. A1:C10 según datos reales desde Postgres/Data Table."
+  }
+}

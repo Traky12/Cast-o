@@ -1,0 +1,71 @@
+{
+  "name": "Notion Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "receive",
+        "responseMode": "respond",
+        "path": "notion-webhook",
+        "method": "POST"
+      },
+      "name": "Notion Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "database": "Notion",
+        "operation": "createPage",
+        "pageName": "={{$node[\"Notion Webhook\"].json[\"body\"][\"title\"]}}",
+        "parentId": {
+          "type": "database",
+          "value": "YOUR_NOTION_DATABASE_ID"
+        },
+        "properties": {
+          "Name": {
+            "title": [
+              {
+                "text": {
+                  "content": "={{$node[\"Notion Webhook\"].json[\"body\"][\"title\"]}}"
+                }
+              }
+            ]
+          },
+          "Description": {
+            "rich_text": [
+              {
+                "text": {
+                  "content": "={{$node[\"Notion Webhook\"].json[\"body\"][\"description\"]}}"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "name": "Create Notion Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "notionApi": {
+          "integrationType": "oAuth2",
+          "authentication": "oAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Notion Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create Notion Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

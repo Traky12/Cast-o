@@ -1,0 +1,19 @@
+# Ejemplo: copiar a un workflow privado y ajustar secrets (no activar tal cual en forks públicos).
+# El despliegue real del stack sigue en n8n-deploy.yml (Hetzner / docker compose).
+
+name: n8n workflows sync (example)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copiar workflows al servidor (plantilla)
+        run: |
+          echo "Define secrets: SSH_HOST, SSH_USER, SSH_KEY, REMOTE_N8N_WORKFLOWS_DIR"
+          # scp -o StrictHostKeyChecking=yes -i "$SSH_KEY_PATH" n8n/workflows/*.json "${SSH_USER}@${SSH_HOST}:${REMOTE_N8N_WORKFLOWS_DIR}/"
+          # ssh "${SSH_USER}@${SSH_HOST}" "systemctl restart n8n || docker compose -f /opt/castuo/n8n/docker-compose.yml restart n8n"
+          echo "Plantilla sin ejecución real."

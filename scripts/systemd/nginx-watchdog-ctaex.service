@@ -1,0 +1,14 @@
+[Unit]
+Description=CASTUO-CTAEX Nginx Watchdog
+After=network.target nginx.service
+
+[Service]
+Type=simple
+User=root
+Environment="NOTIFY_SCRIPT=/root/castuo-ctaex/scripts/notify_slack_ctaex.sh"
+ExecStart=/root/castuo-ctaex/scripts/nginx_watchdog_ctaex.sh
+Restart=always
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target

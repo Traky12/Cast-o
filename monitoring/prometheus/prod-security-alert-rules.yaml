@@ -1,0 +1,117 @@
+# Reglas de alerta de seguridad para defensa y forense
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: castuo-prod-security-alerts
+  namespace: castuo-prod
+  labels:
+    app: prometheus
+    release: prometheus
+spec:
+  groups:
+  - name: security-alerts
+    rules:
+    - alert: HighSecurityLatency
+      expr: defense_response_latency_ms > 100
+      for: 1m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: "Alta latencia en respuesta de seguridad ({{ $value }}ms)"
+        description: |
+          La latencia en la respuesta del sistema de defensa ha superado 100ms.
+          Impacto: Degradación en la capacidad de respuesta a amenazas.
+          Acción: Verificar carga en pods de defensa; revisar logs; considerar escalado.
+        runbook: "https://docs.castuo-system.eu/alerts/high_security_latency"
+
+    - alert: DefenseSystemFailure
+      expr: increase(defense_system_errors_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+        team: devops
+      annotations:
+        summary: "Fallo en el sistema de defensa detectado"
+        description: |
+          Se han detectado errores en el sistema de defensa.
+          Acción: Verificar logs; reiniciar pods; notificar #security-alerts.
+        runbook: "https://docs.castuo-system.eu/alerts/defense_system_failure"
+
+    - alert: HighAnomalyDetectionRate
+      expr: rate(forensic_anomalies_detected_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+      annotations:
+        summary: "Alta tasa de detección de anomalías ({{ $value }}/s)"
+        description: |
+          Número anormalmente alto de anomalías. Posibles causas: ataque, falsos positivos, error en modelos.
+          Acción: Verificar evidencias recientes; ajustar umbrales o activar modo paranoico.
+        runbook: "https://docs.castuo-system.eu/alerts/high_anomaly_rate"
+
+    - alert: ForensicChainIntegrityViolation
+      expr: forensic_chain_integrity == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: "Violación de integridad en la cadena forense"
+        description: |
+          La cadena de trazabilidad forense ha perdido integridad.
+          Acción: Verificar cadena; restaurar desde backup; notificar equipo legal.
+        runbook: "https://docs.castuo-system.eu/alerts/forensic_chain_violation"
+
+    - alert: LegalComplianceIssue
+      expr: legal_compliance_status != 1
+      for: 1m
+      labels:
+        severity: critical
+        team: legal
+      annotations:
+        summary: "Problema de cumplimiento legal detectado"
+        description: |
+          El sistema ha detectado un problema de cumplimiento con normativas.
+          Acción: Generar informe de cumplimiento; revisar con equipo legal.
+        runbook: "https://docs.castuo-system.eu/alerts/legal_compliance_issue"
+
+    - alert: ForensicChainQuorumFailure
+      expr: gaiachain_quorum_health < 3
+      for: 1m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: "Fallo en el quorum de GaiaChain ({{ $value }} nodos disponibles)"
+        description: |
+          El quorum de nodos de GaiaChain ha caído por debajo del mínimo (3).
+          Acción: Verificar nodos; notificar blockchain; activar GAIA_CHAIN_MODE=degraded si persiste.
+        runbook: "https://docs.castuo-system.eu/alerts/gaiachain_quorum_failure"
+
+    - alert: KeyRotationFailure
+      expr: increase(key_rotation_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: "Fallo en rotación de claves ({{ $value }} fallos)"
+        description: |
+          La rotación automática de claves ha fallado.
+          Acción: Verificar logs; rotar manualmente con CronJob; notificar seguridad.
+        runbook: "https://docs.castuo-system.eu/alerts/key_rotation_failure"
+
+    - alert: DynamicThresholdAdjustmentFailure
+      expr: increase(dynamic_threshold_adjustment_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: warning
+        team: security
+      annotations:
+        summary: "Fallo en ajuste dinámico de umbrales ({{ $value }} fallos)"
+        description: |
+          El sistema no ha podido ajustar umbrales dinámicamente.
+          Acción: Verificar métricas históricas; reiniciar defense-system si procede.
+        runbook: "https://docs.castuo-system.eu/alerts/dynamic_threshold_failure"

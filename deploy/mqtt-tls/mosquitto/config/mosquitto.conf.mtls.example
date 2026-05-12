@@ -1,0 +1,6 @@
+# Opcional: activar mTLS en el listener 8883
+# 1) En mosquitto.conf, en el bloque listener 8883:
+#    require_certificate true
+#    use_identity_as_username true
+# 2) Generar certificado de cliente: CLIENT_CN=esp32-water-01 ./scripts/gen-certs.sh
+# 3) El CN del certificado debe coincidir con el usuario en acl.conf / passwd.

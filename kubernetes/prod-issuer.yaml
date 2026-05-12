@@ -1,0 +1,16 @@
+# ClusterIssuer para Let's Encrypt (producción)
+# Requiere cert-manager instalado y un solucionador HTTP-01 o DNS-01 configurado.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@castuo-system.eu
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx

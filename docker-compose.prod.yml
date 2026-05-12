@@ -1,0 +1,56 @@
+# Producción (Hetzner u otro servidor). Uso:
+#   docker-compose -f docker-compose.prod.yml up -d nginx api
+# Certbot: docker-compose -f docker-compose.prod.yml --profile certbot run --rm certbot
+version: '3.9'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/public:/usr/share/nginx/html:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - MISTRAL_API_URL=${MISTRAL_API_URL}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - VECHAIN_GATEWAY_URL=${VECHAIN_GATEWAY_URL}
+      - VECHAIN_API_KEY=${VECHAIN_API_KEY}
+      - CASTUO_TOKEN_GATEWAY_URL=${CASTUO_TOKEN_GATEWAY_URL}
+      - CASTUO_TOKEN_API_KEY=${CASTUO_TOKEN_API_KEY}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID_B001=${TELEGRAM_CHAT_ID_B001}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_PASSWORD=${GMAIL_PASSWORD}
+      - WHATSAPP_BUSINESS_TOKEN=${WHATSAPP_BUSINESS_TOKEN}
+      - WHATSAPP_BUSINESS_PHONE_ID=${WHATSAPP_BUSINESS_PHONE_ID}
+      - NOTION_API_KEY=${NOTION_API_KEY}
+      - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
+      - LONDBOT_API_URL=${LONDBOT_API_URL}
+      - LONDBOT_API_KEY=${LONDBOT_API_KEY}
+      - ARSYS_API_URL=${ARSYS_API_URL}
+      - ARSYS_API_KEY=${ARSYS_API_KEY}
+      - MONEY_API_URL=${MONEY_API_URL}
+      - MONEY_API_KEY=${MONEY_API_KEY}
+    volumes:
+      - ./backend:/app
+    restart: always
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./certbot/www:/var/www/certbot:rw
+      - ./certbot/conf:/etc/letsencrypt:rw
+    command: certonly --webroot -w /var/www/certbot --email ${CERTBOT_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN} --force-renewal
+    profiles: ["certbot"]

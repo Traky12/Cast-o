@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SABIONDA IA | CASTUO-SYSTEM</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #22c55e; --secondary: #16a34a; --dark: #064e3b; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: var(--dark); }
+        .sidebar { background: linear-gradient(to bottom, var(--primary), var(--secondary)); color: white; }
+        .card { background: white; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="flex h-screen bg-gray-50">
+    <div class="sidebar w-64 space-y-6 py-7 px-2 fixed inset-y-0 left-0">
+        <div class="text-center"><h1 class="text-2xl font-bold">🌿 CASTUO</h1><p class="text-sm">Cultivos sin químicos</p></div>
+        <nav class="space-y-3">
+            <a href="index.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-home mr-3"></i> Inicio</a>
+            <a href="grid-iot.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-th-large mr-3"></i> Grid IoT</a>
+            <a href="catalogo.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-seedling mr-3"></i> Catálogo</a>
+            <a href="control-rpi.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-microchip mr-3"></i> Control RPi</a>
+            <a href="cuaderno.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-book mr-3"></i> Cuaderno</a>
+            <a href="qr-trazabilidad.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-qrcode mr-3"></i> QR Trazabilidad</a>
+            <a href="3d-virtual.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-cube mr-3"></i> 3D Virtual</a>
+            <a href="escalado.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-chart-line mr-3"></i> Escalado</a>
+            <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-shopping-cart mr-3"></i> Marketplace</a>
+            <a href="metricas.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-chart-bar mr-3"></i> Métricas</a>
+            <a href="sabionda-ia.html" class="flex items-center px-4 py-2 bg-green-700 rounded text-white"><i class="fas fa-brain mr-3"></i> SABIONDA IA</a>
+            <a href="ayuda.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-question-circle mr-3"></i> Ayuda / FAQ</a>
+            <a href="mi-cuenta.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-user mr-3"></i> Mi cuenta</a>
+        </nav>
+    </div>
+    <div class="ml-64 p-8 w-full">
+        <div class="flex items-center gap-6 mb-8">
+            <img src="/assets/sabionda/sabionda-oficial.png" alt="Sabionda IA" class="w-24 h-24 rounded-xl object-cover shadow-lg ring-2 ring-green-500/50" onerror="this.style.display='none'">
+            <div>
+                <h2 class="text-2xl font-bold">SABIONDA IA</h2>
+                <p class="text-gray-600 text-sm">Experta en agrovoltaica y administración del sistema · Imagen oficial única</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="card p-6">
+                <h3 class="font-bold mb-4">Recomendaciones de Cultivo</h3>
+                <p class="mb-4">Basado en los datos de tus sensores, Sabionda recomienda ajustar el riego para optimizar el crecimiento de la rúcula.</p>
+                <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Ver Recomendaciones</button>
+            </div>
+            <div class="card p-6">
+                <h3 class="font-bold mb-4">Alertas</h3>
+                <p class="mb-4">Sabionda ha detectado que la humedad en el lote LOT-2026-0002 está por debajo del nivel óptimo.</p>
+                <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">Ver Alertas</button>
+            </div>
+        </div>
+        <div class="card p-6 mt-6">
+            <h3 class="font-bold mb-4">Predicciones de Cosecha</h3>
+            <div class="bg-gray-100 p-4 rounded">
+                <p class="text-center py-10">Gráfico de Predicciones de Cosecha</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

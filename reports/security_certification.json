@@ -1,0 +1,28 @@
+{
+  "title": "Informe Estratégico: Seguridad del Sistema",
+  "date": "2026-03-29",
+  "highlights": {
+    "active_sessions": 0,
+    "recent_alerts": 0,
+    "auth_attempts": 0,
+    "blockchain_status": "healthy"
+  },
+  "recommendations": [
+    "Revisar sesiones activas con más de 8 horas de duración.",
+    "Actualizar certificados de seguridad en 30 días.",
+    "Auditar acceso a módulos críticos (blockchain, security)."
+  ],
+  "detailed_data": {
+    "active_sessions": [],
+    "recent_alerts": [],
+    "auth_attempts_last_24h": 0,
+    "blockchain_status": {
+      "last_block": {
+        "block_id": "gaia-latest",
+        "timestamp": "2026-03-29T17:26:39.751391"
+      },
+      "pending_transactions": [],
+      "consensus_health": "healthy"
+    }
+  }
+}

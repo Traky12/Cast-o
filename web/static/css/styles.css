@@ -1,0 +1,109 @@
+:root {
+  --castuo-green: #228b22;
+  --castuo-holo: #00bfff;
+  --castuo-bg: #0d1117;
+  --castuo-surface: #161b22;
+  --castuo-text: #e6edf3;
+  --castuo-muted: #8b949e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--castuo-bg);
+  color: var(--castuo-text);
+  line-height: 1.55;
+}
+
+.hero {
+  padding: 1.5rem 1.25rem;
+  background: linear-gradient(120deg, var(--castuo-green), #145214);
+  border-bottom: 2px solid var(--castuo-holo);
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.tagline {
+  margin: 0.5rem 0 1rem;
+  opacity: 0.95;
+}
+
+nav a {
+  color: #fff;
+  margin-right: 1rem;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+nav a:hover {
+  border-color: var(--castuo-holo);
+}
+
+.content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.md {
+  background: var(--castuo-surface);
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.md pre {
+  overflow: auto;
+  padding: 0.75rem;
+  background: var(--castuo-bg);
+  border-radius: 8px;
+}
+
+.banner {
+  background: #2d2a1f;
+  border-left: 4px solid #d4a017;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  color: #f0e6c8;
+}
+
+.nodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.node-card {
+  background: var(--castuo-surface);
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border-top: 3px solid var(--castuo-holo);
+}
+
+.node-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  color: var(--castuo-holo);
+}
+
+.node-card p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+  color: var(--castuo-muted);
+}
+
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--castuo-muted);
+  font-size: 0.85rem;
+}

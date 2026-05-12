@@ -1,0 +1,5 @@
+# CASTÚO-SYSTEM™ | Imagen PQC (NIST ML-KEM / ML-DSA) para benchmark y TRL4/TRL8
+FROM python:3.11-slim
+RUN pip install --no-cache-dir cryptography oqs-python 2>/dev/null || pip install --no-cache-dir cryptography
+WORKDIR /app
+CMD ["python", "/app/scripts/pqc/benchmark_nist.py"]

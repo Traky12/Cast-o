@@ -1,0 +1,33 @@
+# CASTÚO-SYSTEM™ v2.0 — Alertmanager (agrupación por normativa)
+# Ubicación típica: mismo directorio que prometheus.yml o en config de Alertmanager
+
+route:
+  group_by: ["alertname", "normative"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  receiver: slack-notifications
+
+receivers:
+  - name: slack-notifications
+    slack_configs:
+      - channel: "#alerts-castuo"
+        api_url: "${SLACK_WEBHOOK_URL}"
+        title: "{{ .CommonAnnotations.summary }}"
+        text: |
+          {{ .CommonAnnotations.description }}
+          **Normativa**: {{ .CommonLabels.normative }}
+          **Severidad**: {{ .CommonLabels.severity }}
+          **Runbook**: {{ .CommonAnnotations.runbook_url }}
+        send_resolved: true
+
+  - name: email-notifications
+    email_configs:
+      - to: "devops@castuo-system.eu"
+        from: "alertmanager@castuo-system.eu"
+        smarthost: "smtp.castuo-system.eu:587"
+        auth_username: "alertmanager@castuo-system.eu"
+        auth_password: "${SMTP_PASSWORD}"
+        require_tls: true
+        headers:
+          Subject: "[CASTÚO] {{ .CommonAnnotations.summary }}"

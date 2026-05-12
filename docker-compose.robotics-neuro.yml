@@ -1,0 +1,17 @@
+# Build desde la raíz del repo:
+#   docker compose -f docker-compose.robotics-neuro.yml build
+#   docker compose -f docker-compose.robotics-neuro.yml up
+#
+# Define CASTUO_ROBOTICS_LAB_BEARER_TOKEN en .env (no commits).
+
+services:
+  robotics-lab:
+    build:
+      context: .
+      dockerfile: backend/integrations/robotics/Dockerfile.lab
+    ports:
+      - "8011:80"
+    environment:
+      CASTUO_ECO_ALLOY: ${CASTUO_ECO_ALLOY:-Cs2AgBiBr6}
+      CASTUO_ROBOTICS_LAB_BEARER_TOKEN: ${CASTUO_ROBOTICS_LAB_BEARER_TOKEN:-dev-docker-change-me}
+      CASTUO_ROBOTICS_LAB: ${CASTUO_ROBOTICS_LAB:-0}

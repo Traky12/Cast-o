@@ -1,0 +1,33 @@
+---
+module: "autonomous-teams"
+version: "1.0.0"
+description: |
+  Sistema de equipos autónomos de IA para mejora continua.
+  Integra:
+  - Agentes especializados (CodeAgent, YieldMaster, LexCheck).
+  - Validación con Sabionda-Omega y gemelos digitales.
+  - Trazabilidad en GaiaChain.
+jurisdictions:
+  - "EU"
+  - "ES"
+  - "GLOBAL"
+security_controls:
+  encryption: "AES-512 + Kyber-1024"
+  access: "Shamir-7/11"
+  audit: "Gemelos Digitales + GaiaChain"
+evidence_checks:
+  - command: >-
+      curl -X POST http://localhost:8000/agents/autonomous-improvement
+      -H "Content-Type: application/json"
+      -d "{\"metric\": \"yield\", \"current_value\": 98.5, \"target_value\": 99.0}"
+    description: "Prueba el endpoint de mejoras autónomas."
+    output: "response.json"
+  - command: "python -m pytest backend/agents_autonomous/ -v --tb=short 2>&1 || true"
+    description: "Ejecuta pruebas unitarias de los agentes."
+    output: "test_results.json"
+runbook_commands:
+  - "docker compose -f docker/docker-compose.webcheck-bunker.yml up -d"
+  - "uvicorn backend.main:app --reload"
+dependencies:
+  - "digital-twins"
+  - "gaiachain"

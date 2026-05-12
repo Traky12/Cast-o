@@ -1,0 +1,16 @@
+# CASTÚO-SYSTEM — Edge agent hidroponía (RPi en invernadero)
+# Publica EC/pH/DO/temp vía MQTT y envía a backend /hidroponia/sensores
+FROM python:3.11-slim
+
+WORKDIR /app
+RUN pip install --no-cache-dir paho-mqtt requests
+
+ENV MQTT_BROKER=mqtt
+ENV MQTT_PORT=1883
+ENV BACKEND_URL=http://backend:8000
+ENV HIDRO_SYSTEM_ID=1
+ENV HIDRO_CULTIVO=lechuga
+
+COPY docker/edge_hidro.py /app/edge_hidro.py
+
+CMD ["python", "/app/edge_hidro.py"]

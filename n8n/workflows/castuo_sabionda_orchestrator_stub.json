@@ -1,0 +1,55 @@
+{
+  "name": "CASTUO_Sabionda_Orchestrator_Stub",
+  "active": false,
+  "tags": ["CASTUO", "sabionda", "orchestrator", "webhook"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sabionda/orchestrator",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "so-wh",
+      "name": "Webhook_Orchestrator",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [200, 320],
+      "webhookId": "castuo-sabionda-orchestrator"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst agent_id = String(body.agent_id || '').trim();\nconst action = String(body.action || '').trim();\nif (!agent_id || !action) {\n  throw new Error('agent_id y action requeridos');\n}\nconst base = String($env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://localhost:8000').replace(/\\/$/, '');\nlet backend_put = { skipped: true };\nif (base) {\n  try {\n    const r = await fetch(base + '/workspace/agents', { method: 'GET' });\n    backend_put = { http_status: r.status, note: 'Listado workspace; PUT por agente no implementado en stub' };\n  } catch (e) {\n    backend_put = { error: e.message };\n  }\n}\nlet gaia = { skipped: true };\nconst gurl = String($env.N8N_GAIACHAIN_API || '').trim();\nconst gkey = String($env.N8N_GAIACHAIN_API_KEY || '').trim();\nif (gurl && gkey) {\n  try {\n    const r = await fetch(gurl.replace(/\\/$/, ''), {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        Authorization: 'Bearer ' + gkey,\n      },\n      body: JSON.stringify({\n        agent_id,\n        action,\n        timestamp: new Date().toISOString(),\n        data: body,\n      }),\n    });\n    gaia = { http_status: r.status, text: await r.text() };\n  } catch (e) {\n    gaia = { error: e.message };\n  }\n}\nreturn [\n  {\n    json: {\n      agent_id,\n      action,\n      status: 'accepted',\n      slack_text: 'Agente ' + agent_id + ' acción ' + action,\n      slack_channel: String($env.N8N_SLACK_ALERTS || '').trim(),\n      powerbi_url: String($env.N8N_POWERBI_ENDPOINT || '').trim(),\n      gaia,\n      backend_probe: backend_put,\n    },\n  },\n];"
+      },
+      "id": "so-code",
+      "name": "Validar_Ruta_Gaia_Backend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "so-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [760, 320]
+    }
+  ],
+  "connections": {
+    "Webhook_Orchestrator": {
+      "main": [[{ "node": "Validar_Ruta_Gaia_Backend", "type": "main", "index": 0 }]]
+    },
+    "Validar_Ruta_Gaia_Backend": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "POST /webhook/sabionda/orchestrator. Sustituir Switch+Execute Workflow por agente. Slack/Power BI: nodos dedicados con credenciales."
+  }
+}

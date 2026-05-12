@@ -1,0 +1,25 @@
+{
+  "usos_declarados": {
+    "cannabis_medicinal": ["cultivo_herbaceo", "cultivo_protecido"],
+    "agrovoltaica": ["invernadero", "otras_instalaciones", "energias_renovables"],
+    "barbecho": ["barbecho", "descanso"],
+    "olivar": ["cultivo_leñoso"],
+    "pastos": ["pastos", "prados"]
+  },
+  "usos_sigpac": {
+    "cultivo_herbaceo": ["cannabis_medicinal", "cereales", "leguminosas"],
+    "invernadero": ["agrovoltaica", "hortalizas"],
+    "otras_instalaciones": ["agrovoltaica", "naves_ganaderas"],
+    "energias_renovables": ["agrovoltaica", "placas_solares"],
+    "cultivo_leñoso": ["olivar", "viñedo", "frutales"]
+  },
+  "codigos_sigpac": {
+    "111": "cultivo_herbaceo",
+    "112": "cultivo_leñoso",
+    "121": "invernadero",
+    "130": "otras_instalaciones",
+    "140": "energias_renovables",
+    "200": "barbecho",
+    "210": "pastos"
+  }
+}

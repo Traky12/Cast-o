@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Castúo — Laboratorio HRI (stub)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 1rem; background: #0b1220; color: #e8eef8; }
+    video { max-width: 100%; border: 1px solid #334; border-radius: 8px; background: #111; }
+    button { margin: 0.25rem; padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #446; background: #1a2744; color: #e8eef8; cursor: pointer; }
+    pre { background: #111; padding: 0.75rem; border-radius: 6px; overflow: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Laboratorio HRI (WebRTC + Three.js — esqueleto)</h1>
+  <p>Estático servido desde <code>/robotics-lab/</code>. Conectar signaling y backend antes de uso real.</p>
+  <video id="robotVideo" playsinline autoplay muted></video>
+  <div>
+    <button type="button" id="btnPing">Ping canal datos</button>
+  </div>
+  <pre id="log"></pre>
+  <script src="./webrtc_client.js"></script>
+  <script src="./robot_control.js"></script>
+</body>
+</html>

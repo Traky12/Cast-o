@@ -1,0 +1,57 @@
+zap:
+  proxy:
+    host: "zap"
+    port: 8080
+    api_key: "${ZAP_API_KEY}"
+
+  scans:
+    baseline:
+      target_url: "https://api.castuo-system.eu"
+      max_duration: 30
+      include_paths:
+        - "/api/.*"
+      exclude_paths:
+        - "/api/docs"
+        - "/api/redoc"
+        - "/openapi.json"
+      policies:
+        - "baseline-policy"
+
+    full:
+      target_url: "https://api.castuo-system.eu"
+      max_duration: 120
+      include_paths:
+        - ".*"
+      policies:
+        - "full-policy"
+
+    api:
+      target_url: "https://api.castuo-system.eu"
+      max_duration: 60
+      openapi_spec: "https://api.castuo-system.eu/openapi.json"
+      policies:
+        - "api-policy"
+
+  severity_thresholds:
+    critical: 0
+    high: 5
+    medium: 20
+    low: 50
+
+  alerts:
+    slack:
+      enabled: true
+      channel: "#security-alerts"
+      min_severity: "high"
+
+  gaiachain:
+    enabled: true
+    register_vulnerabilities: true
+    register_scan_results: true
+
+  reports:
+    formats: ["html", "json", "md"]
+    output_dir: "../reports"
+    include_evidence: true
+    include_request_response: true
+

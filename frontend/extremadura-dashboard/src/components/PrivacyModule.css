@@ -1,0 +1,136 @@
+/* PrivacyModule.css */
+.privacy-module {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.privacy-module h2 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.privacy-module .description {
+  background: #e9ecef;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.privacy-module .token-selector {
+  margin-bottom: 1.5rem;
+}
+
+.privacy-module .token-selector label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.privacy-module .token-selector input {
+  width: 100%;
+  max-width: 200px;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.privacy-module .property-preview {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.privacy-module .property-preview h3 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.privacy-module .property-preview p {
+  margin: 0.5rem 0;
+}
+
+.privacy-module .metadata-button,
+.privacy-module .erasure-button,
+.privacy-module .download-button {
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 1rem;
+  transition: background 0.2s;
+}
+
+.privacy-module .metadata-button {
+  background: #28a745;
+}
+
+.privacy-module .metadata-button:hover {
+  background: #218838;
+}
+
+.privacy-module .erasure-button {
+  background: #dc3545;
+}
+
+.privacy-module .erasure-button:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.privacy-module .erasure-button:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+.privacy-module .download-button {
+  background: #007bff;
+}
+
+.privacy-module .download-button:hover {
+  background: #0069d9;
+}
+
+.privacy-module .error-message {
+  color: #721c24;
+  background: #f8d7da;
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.privacy-module .success-message {
+  color: #155724;
+  background: #d4edda;
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.privacy-module .success-message h3 {
+  margin-top: 0;
+}
+
+.privacy-module .success-message a {
+  color: #0056b3;
+}
+
+.privacy-module .back-button {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+.privacy-module .back-button:hover {
+  background: #5a6268;
+}

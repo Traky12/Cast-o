@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gemelo digital 4D - auditoria energetica (Castuo)</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: system-ui, sans-serif; }
+    #info {
+      position: absolute; top: 10px; left: 10px; color: #fff;
+      background: rgba(0,0,0,0.55); padding: 12px; border-radius: 6px; max-width: 320px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">Cargando gemelo digital...</div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a2e);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    camera.position.set(8, 6, 8);
+    controls.target.set(0, 1, 0);
+    controls.update();
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const sun = new THREE.DirectionalLight(0xfff5e6, 0.9);
+    sun.position.set(5, 12, 3);
+    scene.add(sun);
+
+    async function loadTwin() {
+      try {
+        const r = await fetch('/api/energy_audit/twin_data');
+        if (r.ok) return r.json();
+      } catch (e) { /* mock */ }
+      const r2 = await fetch('./mock_twin_data.json');
+      return r2.json();
+    }
+
+    function buildScene(data) {
+      const sp = data.solar_panels;
+      const g = sp.geometry;
+      const panelGeo = new THREE.BoxGeometry(g.width, g.height, g.depth);
+      const panelMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(sp.material.color),
+        metalness: sp.material.metallic,
+        roughness: 0.35
+      });
+      const panel = new THREE.Mesh(panelGeo, panelMat);
+      panel.position.set(...sp.position);
+      scene.add(panel);
+
+      const cg = data.crops.geometry;
+      const cropGeo = new THREE.PlaneGeometry(cg.width, cg.height);
+      const cropMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(data.crops.material.color),
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: data.crops.material.opacity
+      });
+      const crop = new THREE.Mesh(cropGeo, cropMat);
+      crop.rotation.x = -Math.PI / 2;
+      crop.position.set(...data.crops.position);
+      scene.add(crop);
+
+      const t = data.thermal_data;
+      const eff = (data.energy_efficiency.efficiency * 100).toFixed(1);
+      document.getElementById('info').innerHTML =
+        '<strong>Gemelo digital 4D</strong><br>' +
+        'Temp: ' + t.temperature + ' C<br>' +
+        'Radiacion: ' + t.radiation + ' W/m2<br>' +
+        'Humedad: ' + t.humidity + ' %<br>' +
+        'Eficiencia (indice): ' + eff + ' %';
+    }
+
+    loadTwin().then(buildScene).catch(() => {
+      document.getElementById('info').textContent = 'Error cargando datos; sirve mock_twin_data.json via HTTP.';
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

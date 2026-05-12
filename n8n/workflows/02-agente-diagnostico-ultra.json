@@ -1,0 +1,232 @@
+{
+  "name": "CASTÚO - Diagnóstico Ultra (paralelizado SECTOR_ID)",
+  "tags": [
+    "CASTUO",
+    "agri-brain",
+    "diagnostico",
+    "sector",
+    "trillizo"
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "hoursH": 0,
+              "minutesM": 1
+            }
+          ]
+        }
+      },
+      "id": "02-sch-60s",
+      "name": "Intervalo_60s",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"SELECT sector_id, AVG(humedad) AS h, AVG(temp) AS t FROM telemetria WHERE sector_id = '\" + String($env.SECTOR_ID || '').replace(/'/g, \"''\") + \"' AND fecha > NOW() - INTERVAL '5 minutes' GROUP BY sector_id\" }}",
+        "options": {}
+      },
+      "id": "02-pg-telemetria",
+      "name": "Cerebro_Operativo_Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nfunction stableStringify(v) {\n  if (v === null || v === undefined) return 'null';\n  const t = typeof v;\n  if (t === 'number' || t === 'boolean') return JSON.stringify(v);\n  if (t === 'string') return JSON.stringify(v);\n  if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';\n  if (t === 'object') {\n    const keys = Object.keys(v).sort();\n    return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify(v[k])).join(',') + '}';\n  }\n  return JSON.stringify(String(v));\n}\n\nconst sectorEnv = String($env.SECTOR_ID || '').trim();\nif (!sectorEnv) {\n  return [];\n}\n\nconst row = $input.first().json;\nconst h = row.h != null ? Number(row.h) : null;\nconst t = row.t != null ? Number(row.t) : null;\nconst sector = row.sector_id != null ? String(row.sector_id).trim() : sectorEnv;\n\nif (sector !== sectorEnv) {\n  return [];\n}\n\nlet diag = 'Normal';\nlet crit = false;\nif (h != null && t != null && h < 25 && t > 35) {\n  diag = 'Estres hidrico critico (umbral demo, ventana 5 min)';\n  crit = true;\n}\n\nconst decision = crit ? '[CRITICAL] ' + diag : diag;\nconst confianza = crit ? 72 : h != null && t != null ? 90 : 55;\n\nconst coreId = String($env.CORE_ID || 'nucleo-alpha').trim() || 'nucleo-alpha';\nconst sectorTag = sectorEnv.replace(/\\s+/g, '-');\nconst tags = ['#ia-decision', '#sector-' + sectorTag];\n\nconst auditBody = {\n  kind: 'ia',\n  agente_id: coreId,\n  actor: coreId,\n  decision,\n  confianza,\n  tags,\n  contexto:\n    'DIAGNOSTICO_IA sector=' +\n    sector +\n    ' humedad=' +\n    h +\n    ' temp=' +\n    t +\n    ' criticidad=' +\n    (crit ? 'CRITICAL' : 'OK'),\n  status: crit ? 'CRITICAL' : 'OK',\n  event: 'DIAGNOSTICO_IA',\n  details: {\n    sector_id: sector,\n    humedad: h,\n    temp: t,\n    tipo_evento: 'DIAGNOSTICO_IA',\n    ventana_minutos: 5,\n    core_id: coreId\n  }\n};\n\nconst secret = String($env.CASTUO_AUDIT_WEBHOOK_SECRET || '').trim();\nlet signature = '';\nif (secret) {\n  signature = crypto.createHmac('sha256', secret).update(stableStringify(auditBody), 'utf8').digest('hex');\n}\n\nreturn [\n  {\n    json: {\n      auditBody,\n      hmacSignature: signature,\n      hmacRequired: !!secret,\n      auditUrl: String($env.CASTUO_TRILLIZO_AUDIT_URL || 'http://n8n-trillizo:5678/webhook/audit-trigger')\n    }\n  }\n];"
+      },
+      "id": "02-code-audit-payload",
+      "name": "Inferencia_Local_Auditoria",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "02-if-hmac",
+              "leftValue": "={{ $json.hmacRequired }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "02-if-hmac",
+      "name": "IF_HMAC_Activo",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.auditUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Castuo-Signature",
+              "value": "={{ $json.hmacSignature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.auditBody) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "02-http-audit-hmac",
+      "name": "HTTP_Auditoria_Con_HMAC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1200,
+        280
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.auditUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.auditBody) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "02-http-audit-plain",
+      "name": "HTTP_Auditoria_Sin_HMAC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1200,
+        520
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "height": 640,
+        "width": 480,
+        "color": 5,
+        "content": "## CASTÚO 02 — Diagnóstico sector (producción / enjambre)\n\n**Identidad:** `SECTOR_ID` obligatorio (sin POST al Trillizo si falta). `CORE_ID` = `actor` / `agente_id`.\n\n**Query blindada:** comillas simples en `SECTOR_ID` duplicadas para SQL; ver expresión en el nodo Postgres.\n\n**Body:** `kind: ia`, `tags: [#ia-decision, #sector-…]`, HMAC-SHA256 de **todo** `auditBody` si hay secreto compartido con Trillizo.\n\n**Postgres:** credencial n8n con `POSTGRES_HOST` / `POSTGRES_PORT` (ver `.env.n8n-multi.example`). DDL: `n8n/sql/telemetria_sector_template.sql`.\n\n**Trillizo:** `CASTUO_TRILLIZO_AUDIT_URL`.\n\n**SilverBullet:** `n8n/templates/silverbullet-control-panel-lql.example.md`. Rendimiento: medir en despliegue real; el repo no publica SLO numéricos."
+      },
+      "id": "02-sticky",
+      "name": "Nota_Diagnostico_Ultra",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        40,
+        160
+      ]
+    }
+  ],
+  "connections": {
+    "Intervalo_60s": {
+      "main": [
+        [
+          {
+            "node": "Cerebro_Operativo_Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerebro_Operativo_Postgres": {
+      "main": [
+        [
+          {
+            "node": "Inferencia_Local_Auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inferencia_Local_Auditoria": {
+      "main": [
+        [
+          {
+            "node": "IF_HMAC_Activo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_HMAC_Activo": {
+      "main": [
+        [
+          {
+            "node": "HTTP_Auditoria_Con_HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP_Auditoria_Sin_HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "AGRI-BRAIN: SECTOR_ID + CORE_ID, query blindada, tags en auditBody, HMAC alineado a 01; sanity antes del POST."
+  }
+}

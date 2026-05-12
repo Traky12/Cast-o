@@ -1,0 +1,37 @@
+# SABION_OMEGA_2040 — Puerto 10000 EXCLUSIVO GREGORIO J JIMÉNEZ BODES
+# Uso: docker-compose -f docker-compose.omega.yml up -d
+# Auth: curl -X POST http://localhost:10000/omega/auth -d '{"token":"CASTUO_360_GREGORIO_2040_KYBER2048_TRL9"}'
+
+version: "3.8"
+
+services:
+  sabion-omega-2040:
+    build:
+      context: ./backend/sabion_omega_2040
+      dockerfile: Dockerfile
+    image: castuo-omega-2040:latest
+    container_name: sabion-omega-2040
+    ports:
+      - "10000:10000"
+    environment:
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-CASTUO_360_GREGORIO_2040_KYBER2048_TRL9}
+      - BIOMETRIC_HASH=${BIOMETRIC_HASH}
+      - KYBER_LEVEL=2048
+      - GOD_MODE=ENABLED
+      - OMEGA_REVENUE_TARGET=${OMEGA_REVENUE_TARGET:-50000000}
+      - OMEGA_NODES_TOTAL=50
+      - OMEGA_AGENTS_TOTAL=150
+      - OMEGA_NODES_ONLINE=47
+      - OMEGA_AGENTS_ACTIVE=148
+    volumes:
+      - omega_admin_data:/data/admin_exclusivo
+    networks:
+      - omega_network
+    restart: unless-stopped
+
+volumes:
+  omega_admin_data:
+
+networks:
+  omega_network:
+    driver: bridge

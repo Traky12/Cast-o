@@ -1,0 +1,32 @@
+# Nodo GaiaChain para región Europa (castuo-eu)
+# Aplicar en el cluster castuo-eu: kubectl apply -f castuo-eu.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gaiachain-node
+  namespace: castuo-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gaiachain-node
+  template:
+    metadata:
+      labels:
+        app: gaiachain-node
+    spec:
+      containers:
+      - name: gaiachain
+        image: ghcr.io/castuo-system/gaiachain:v2.0
+        ports:
+        - containerPort: 8545
+        - containerPort: 30303
+        env:
+        - name: REGION
+          value: "eu"
+        - name: BOOTNODES
+          value: "enode://eu@1.2.3.4:30303,enode://latam@5.6.7.8:30303"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"

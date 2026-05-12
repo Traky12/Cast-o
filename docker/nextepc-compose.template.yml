@@ -1,0 +1,12 @@
+# Plantilla: laboratorio nucleo 5G open source (NextEPC / open5gs / similar).
+# Copiar a docker/nextepc.local.yml (no commitear secretos). Validar imagenes oficiales.
+# docker compose -f nextepc.local.yml --profile lab up -d
+#
+# Sateliot / RAN / SIM reales exigen proyecto de integracion aparte; esto no certifica 3GPP.
+
+services:
+  fiveg-lab-placeholder:
+    image: alpine:3.20
+    command: ["sleep", "infinity"]
+    profiles:
+      - lab

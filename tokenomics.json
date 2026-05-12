@@ -1,0 +1,30 @@
+{
+  "token": {
+    "name": "Castuo Token",
+    "symbol": "CASTUO",
+    "total_supply": 28000000
+  },
+  "allocation": {
+    "farming_rewards": {
+      "percentage": 40,
+      "description": "Recompensas por yield de microgreens y buenas prácticas agronómicas"
+    },
+    "liquidity": {
+      "percentage": 20,
+      "description": "Liquidez inicial para DEX / CEX"
+    },
+    "team": {
+      "percentage": 15,
+      "vesting_years": 4
+    },
+    "ctaex_jeremie": {
+      "percentage": 15,
+      "description": "Certificación, I+D agroalimentario"
+    },
+    "marketing": {
+      "percentage": 10,
+      "description": "Difusión UE Agrovoltaics / Castuo System"
+    }
+  }
+}
+

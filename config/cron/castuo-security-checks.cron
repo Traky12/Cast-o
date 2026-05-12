@@ -1,0 +1,14 @@
+# CASTÚO-SYSTEM™ — Tareas cron de seguridad (copiar a /etc/cron.d/castuo-security-checks)
+# Ajustar rutas /opt/castuo según instalación y permisos (root)
+
+# Verificación completa del sistema cada 4 horas
+0 */4 * * * root /opt/castuo/scripts/security/full-system-verification.sh >> /var/log/castuo/security-checks.log 2>&1
+
+# Verificación de firmas TPM cada hora (si existe script y lista de dispositivos)
+# 0 * * * * root /opt/castuo/scripts/iot/verify-all-tpm-signatures.sh >> /var/log/castuo/tpm-verification.log 2>&1
+
+# Backup de configuraciones críticas cada día a las 3 AM
+0 3 * * * root /opt/castuo/scripts/gaiachain/immutable-backup.sh >> /var/log/castuo/backup.log 2>&1
+
+# Rotación de logs de seguridad (archivos >7 días → gzip y mover a archives)
+# 0 4 * * * root mkdir -p /var/log/castuo/archives && find /var/log/castuo -maxdepth 1 -type f -name "*.log" -mtime +7 -exec gzip {} \; -exec mv {}.gz /var/log/castuo/archives/ \;

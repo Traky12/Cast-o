@@ -1,0 +1,53 @@
+<odoo>
+    <record id="view_castu_epcis_event_tree" model="ir.ui.view">
+        <field name="name">castu.epcis.event.tree</field>
+        <field name="model">castu.epcis.event</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="event_time"/>
+                <field name="event_type"/>
+                <field name="biz_step"/>
+                <field name="epc"/>
+                <field name="granja_id"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_castu_epcis_event_form" model="ir.ui.view">
+        <field name="name">castu.epcis.event.form</field>
+        <field name="model">castu.epcis.event</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_send_to_epcis" type="object" string="Enviar a EPCIS" class="btn-primary"
+                            attrs="{'invisible': [('state', '=', 'sent')]}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,sent"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="event_time"/>
+                        <field name="event_type"/>
+                        <field name="biz_step"/>
+                        <field name="epc"/>
+                        <field name="granja_id"/>
+                    </group>
+                    <group>
+                        <field name="tx_hash"/>
+                        <field name="git_commit"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_castu_epcis_event" model="ir.actions.act_window">
+        <field name="name">Eventos EPCIS</field>
+        <field name="res_model">castu.epcis.event</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_castu_epcis" name="EPCIS" parent="menu_castu_root" action="action_castu_epcis_event" sequence="30"/>
+</odoo>
+

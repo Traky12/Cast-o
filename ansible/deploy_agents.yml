@@ -1,0 +1,7 @@
+---
+- name: Desplegar agentes ForestOwnershipToken
+  hosts: agents
+  become: yes
+  roles:
+    - agents
+

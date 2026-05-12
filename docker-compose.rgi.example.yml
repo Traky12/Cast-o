@@ -1,0 +1,19 @@
+# Ejemplo: servicio RGI en edge (no activo en producción por defecto).
+# Ajustar imagen, MQTT, Influx y secretos antes de usar.
+#
+# docker compose -f docker-compose.rgi.example.yml up -d
+#
+version: "3.9"
+
+services:
+  rgi-edge:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - ./models/rg:/app/models/rg:ro
+      - ./scripts/ai/generative:/app/generative:ro
+    environment:
+      MQTT_BROKER: ""
+      INFLUX_URL: ""
+    command: ["sleep", "infinity"]
+    restart: "no"

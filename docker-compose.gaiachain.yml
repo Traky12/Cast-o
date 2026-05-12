@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  gaiachain-node:
+    image: gaiachain/gaiachain-node:3.0
+    volumes:
+      - ./gaiachain/data:/data
+    ports:
+      - "30303:30303"
+      - "30303:30303/udp"
+    environment:
+      - NODE_ENV=production
+      # Clave privada del nodo. Debe venir del entorno (no incluir en el repo).
+      - NODE_KEY=${NODE_KEY}
+      # Bootnodes: lista de enodes separada por comas (ejemplo: enode://...:30303,enode://...:30303)
+      - BOOTNODES=${BOOTNODES}
+    # El comando exacto depende de la distribucion del contenedor gaiachain-node:3.0
+    command: >
+      --rpc --rpcaddr 0.0.0.0
+      --rpcapi eth,net,web3,personal,admin,miner
+      --rpccorsdomain "*"
+    restart: unless-stopped
+

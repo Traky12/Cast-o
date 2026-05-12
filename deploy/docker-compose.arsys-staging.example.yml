@@ -1,0 +1,53 @@
+# Staging en hosting tipo Arsys (SSH + Docker). MySQL para n8n; puerto 5679 en host para no chocar con dev local.
+# Ajustar imágenes y volúmenes según panel Arsys.
+#
+#   docker compose -f deploy/docker-compose.arsys-staging.example.yml --env-file deploy/.env.arsys-staging.example up -d
+
+version: "3.8"
+
+networks:
+  castuo_staging:
+    driver: bridge
+
+volumes:
+  mysql_staging_data:
+  n8n_staging_data:
+
+services:
+  mysql-dev:
+    image: mysql:8.0
+    container_name: castuo-staging-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sabionda_dev}
+      MYSQL_USER: ${MYSQL_USER:-dev_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_staging_data:/var/lib/mysql
+    networks: [castuo_staging]
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4
+
+  n8n-staging:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: castuo-staging-n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_STAGING_PORT:-5679}:5678"
+    environment:
+      N8N_HOST: ${N8N_STAGING_HOST:-localhost}
+      N8N_PROTOCOL: ${N8N_STAGING_PROTOCOL:-http}
+      WEBHOOK_URL: ${N8N_STAGING_WEBHOOK_URL:-http://localhost:5679/}
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Europe/Madrid}
+      N8N_ENCRYPTION_KEY: ${N8N_STAGING_ENCRYPTION_KEY:?set N8N_STAGING_ENCRYPTION_KEY}
+      DB_TYPE: mysqldb
+      DB_MYSQLDB_HOST: mysql-dev
+      DB_MYSQLDB_PORT: 3306
+      DB_MYSQLDB_DATABASE: ${MYSQL_DATABASE:-sabionda_dev}
+      DB_MYSQLDB_USER: ${MYSQL_USER:-dev_user}
+      DB_MYSQLDB_PASSWORD: ${MYSQL_PASSWORD:?}
+    volumes:
+      - n8n_staging_data:/home/node/.n8n
+    networks: [castuo_staging]
+    depends_on:
+      - mysql-dev

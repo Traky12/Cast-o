@@ -1,0 +1,46 @@
+{
+  "id": "GRAB-2026-04-15-001",
+  "fecha": "2026-04-15",
+  "hora_inicio": "10:00:00",
+  "hora_fin": "11:30:00",
+  "ubicacion": "Oficina CASTÚO-SYSTEM™ (Cáceres)",
+  "equipo_presente": [
+    {
+      "nombre": "Gregorio Jiménez Bodes",
+      "rol": "Responsable",
+      "dni": "12345678A",
+      "firma_digital": "0x123...456"
+    },
+    {
+      "nombre": "María López",
+      "rol": "Técnica de grabación",
+      "dni": "87654321B"
+    }
+  ],
+  "material_grabado": [
+    {
+      "tipo": "vídeo tutorial",
+      "duracion": "5:00",
+      "hash_ipfs": "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
+      "metadatos_legales": {
+        "copyright": "Junta de Extremadura 2026",
+        "uso_permitido": "formativo",
+        "consentimiento": "GDPR-2026-04-15"
+      }
+    }
+  ],
+  "almacenamiento": [
+    {
+      "ubicacion": "servidor_local",
+      "cifrado": "AES-256",
+      "responsable": "Gregorio Jiménez Bodes"
+    },
+    {
+      "ubicacion": "IPFS",
+      "hash": "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
+      "fecha_subida": "2026-04-15T11:30:00Z"
+    }
+  ],
+  "firma_responsable": "0x789...abc",
+  "notas": "Plantilla. Sustituir hashes, fechas y firmas por los valores reales tras la grabación."
+}

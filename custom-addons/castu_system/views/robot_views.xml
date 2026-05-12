@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_robot_tree" model="ir.ui.view">
+        <field name="name">castu.robot.tree</field>
+        <field name="model">castu.robot</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="granja_id"/>
+                <field name="tipo"/>
+                <field name="estado"/>
+                <field name="coordenadas"/>
+                <field name="ultimo_contacto"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_robot_form" model="ir.ui.view">
+        <field name="name">castu.robot.form</field>
+        <field name="model">castu.robot</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="granja_id"/>
+                        <field name="tipo"/>
+                        <field name="estado"/>
+                        <field name="coordenadas"/>
+                        <field name="ultimo_contacto"/>
+                        <field name="mqtt_topic" readonly="1"/>
+                        <field name="biocoin_tx"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_start_patrol" string="Iniciar Patrulla" type="object" class="btn-primary" invisible="estado != 'standby' and estado != 'error'"/>
+                    <button name="action_stop" string="Detener" type="object" invisible="estado != 'patrulla'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_robot" model="ir.actions.act_window">
+        <field name="name">Robots Agrícolas</field>
+        <field name="res_model">castu.robot</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_robot" name="Robots" parent="menu_castu_root" action="action_castu_robot" sequence="25"/>
+</odoo>

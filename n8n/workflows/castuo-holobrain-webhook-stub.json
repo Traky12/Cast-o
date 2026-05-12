@@ -1,0 +1,78 @@
+{
+  "name": "CASTUO_Holobrain_Webhook_Stub",
+  "tags": ["CASTUO", "holobrain", "demo", "holographic"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "holobrain-display",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "holo-wh",
+      "name": "Webhook_Holobrain",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "castuo-holobrain-display"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst item = $input.first().json;\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst m = body.metrics && typeof body.metrics === 'object' ? body.metrics : {};\n\nconst status = String(m.plant_status || m.status || 'unknown').toLowerCase();\nconst signingInput = JSON.stringify({ metrics: m, plant_status: status });\nconst secret = String($env.HOLOBRAIN_HMAC_SECRET || '').trim();\nconst hdrRaw = item.headers || {};\nconst headerSig = hdrRaw['x-holobrain-hmac'] || hdrRaw['X-Holobrain-HMAC'];\n\nif (secret && headerSig) {\n  const expected = crypto.createHmac('sha256', secret).update(signingInput, 'utf8').digest('hex');\n  let ok = false;\n  if (typeof headerSig === 'string' && headerSig.length === expected.length && /^[0-9a-f]+$/i.test(headerSig)) {\n    try {\n      ok = crypto.timingSafeEqual(Buffer.from(headerSig, 'hex'), Buffer.from(expected, 'hex'));\n    } catch (e) {\n      ok = false;\n    }\n  }\n  if (!ok) {\n    return [{\n      json: {\n        error: 'invalid_hmac',\n        code: 'HOLO_HMAC_001',\n        timestamp: new Date().toISOString(),\n      },\n    }];\n  }\n}\n\nconst colors = { optimal: '228B22', warning: 'FFD700', critical: 'DC143C', unknown: '808080' };\nconst color = colors[status] || colors.unknown;\n\nlet hmac_signature = '';\nif (secret) {\n  hmac_signature = crypto.createHmac('sha256', secret).update(signingInput, 'utf8').digest('hex');\n}\n\nconst hologramData = {\n  visualization: {\n    type: '3d_plant',\n    status,\n    color,\n    hmac_signature,\n  },\n  metrics: {\n    ph: m.ph != null ? Number(m.ph) : null,\n    ec: m.ec != null ? Number(m.ec) : null,\n    temperature: m.temperature != null ? Number(m.temperature) : null,\n    sensor_id: m.sensor_id != null ? String(m.sensor_id) : null,\n  },\n  narration_hint: status === 'critical'\n    ? 'Alerta crítica. Revisar actuadores y protocolo de contención antes de acción automática.'\n    : 'Estado dentro de banda operativa documentada.',\n};\n\nreturn [{ json: hologramData }];"
+      },
+      "id": "holo-code",
+      "name": "Code_Holobrain_Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.HOLOGRAM_RENDER_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "holo-http",
+      "name": "HTTP_Hologram_Optional",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 200],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "Habilitar cuando HOLOGRAM_RENDER_URL apunte a un servicio real. Si está vacío, el nodo fallaría."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "holo-respond",
+      "name": "Respond_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [700, 380]
+    }
+  ],
+  "connections": {
+    "Webhook_Holobrain": {
+      "main": [[{ "node": "Code_Holobrain_Payload", "type": "main", "index": 0 }]]
+    },
+    "Code_Holobrain_Payload": {
+      "main": [[{ "node": "Respond_Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Stub Holobrain: POST /webhook/holobrain-display con { metrics }. Si HOLOBRAIN_HMAC_SECRET está definido y el cliente envía X-Holobrain-HMAC, se valida con timingSafeEqual. Sin cabecera, el flujo sigue (compat). HTTP a render deshabilitado por defecto."
+  }
+}

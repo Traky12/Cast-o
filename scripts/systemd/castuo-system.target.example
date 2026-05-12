@@ -1,0 +1,9 @@
+# PLANTILLA — copiar a /etc/systemd/system/castuo-system.target
+# Agrupa unidades Castúo (p. ej. castuo-autonomous-agents.service con PartOf=).
+
+[Unit]
+Description=Castúo-System target (agrupación de servicios)
+Documentation=file:///opt/castuo-system/docs/ops/ARTEFACTOS-SYSTEMD-MONITORING-SPINOFFS.md
+
+[Install]
+WantedBy=multi-user.target

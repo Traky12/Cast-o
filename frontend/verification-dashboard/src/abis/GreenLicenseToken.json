@@ -1,0 +1,22 @@
+[
+  {
+    "inputs": [{"name": "tokenId", "type": "uint256"}],
+    "name": "getDocumentMetadata",
+    "outputs": [
+      {"name": "documentHash", "type": "string"},
+      {"name": "documentType", "type": "string"},
+      {"name": "ipfsHash", "type": "string"},
+      {"name": "timestamp", "type": "uint256"},
+      {"name": "responsible", "type": "string"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "tokenId", "type": "uint256"}, {"name": "documentHash", "type": "string"}],
+    "name": "verifyDocument",
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

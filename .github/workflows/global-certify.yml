@@ -1,0 +1,80 @@
+# CASTÚO Global v9.0 | Certificación por continente (Cursor/GitHub Actions)
+# Matriz: ES, US, JP, ZA, AU — validate local → GaiaChain → issue certificate
+
+name: Global Certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_id:
+        description: 'Batch ID to certify'
+        required: true
+        type: string
+      country:
+        description: 'Country code (ES, US, JP, ZA, AU)'
+        required: true
+        type: choice
+        options:
+          - ES
+          - US
+          - JP
+          - ZA
+          - AU
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/validate_*.py'
+      - 'scripts/register_gaiachain.py'
+      - 'scripts/issue_certificate*.py'
+
+jobs:
+  certify:
+    strategy:
+      fail-fast: false
+      matrix:
+        country: [ES, US, JP, ZA, AU]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install httpx python-dotenv --quiet
+
+      - name: Validate with Local Standards
+        env:
+          BATCH_ID: ${{ github.event.inputs.batch_id || 'demo-batch' }}
+          COUNTRY: ${{ matrix.country }}
+        run: |
+          if [ -f "scripts/validate_$COUNTRY.py" ]; then
+            python "scripts/validate_$COUNTRY.py" "$BATCH_ID" || true
+          else
+            python scripts/validate_lims.py "$BATCH_ID" || true
+          fi
+
+      - name: Register in GaiaChain
+        env:
+          BATCH_ID: ${{ github.event.inputs.batch_id || 'demo-batch' }}
+          COUNTRY: ${{ matrix.country }}
+        run: |
+          python scripts/register_gaiachain.py "$BATCH_ID" || true
+
+      - name: Issue Local Certificate
+        env:
+          BATCH_ID: ${{ github.event.inputs.batch_id || 'demo-batch' }}
+          COUNTRY: ${{ matrix.country }}
+        run: |
+          if [ -f "scripts/issue_certificate_$COUNTRY.py" ]; then
+            python "scripts/issue_certificate_$COUNTRY.py" "$BATCH_ID" || true
+          else
+            python scripts/issue_certificate.py "$BATCH_ID" || true
+          fi
+
+      - name: Summary
+        run: |
+          echo "Global certification completed for country ${{ matrix.country }}"

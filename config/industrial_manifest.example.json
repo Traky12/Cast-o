@@ -1,0 +1,22 @@
+{
+  "schema": "castuo.industrial_manifest.v1",
+  "zip_root_label": "CASTUO_Soberania_Total_v5_PRO",
+  "assets": [
+    {
+      "logical_name": "Mistral-LoRA",
+      "path_in_zip": "02_Inteligencia_IA_Soberana/Mistral8x7B_Rural_LoRA.bin",
+      "sha256_expected": "REEMPLAZAR_TRAS_GENERAR_SHA256_REAL"
+    },
+    {
+      "logical_name": "Driver-QAOA-runtime",
+      "path_in_zip": "03_Optimizador_Cuantico_QAOA/qaoa_optimizer_v5.py",
+      "sha256_expected": "REEMPLAZAR"
+    },
+    {
+      "logical_name": "root-ca-pem",
+      "path_in_zip": "07_Certificaciones_y_Legal/root_ca.pem",
+      "sha256_expected": "REEMPLAZAR"
+    }
+  ],
+  "notes": "Copiar a industrial_manifest.json (fuera de Git) y rellenar hashes tras build oficial. python scripts/rebuild_system.py --generate-manifest --zip-path archivo.zip"
+}

@@ -1,0 +1,5 @@
+# pip install -r backend/integrations/robotics/requirements-optional.txt
+deap>=1.4.1
+numpy>=1.26.0
+redis>=5.0.0
+prometheus_client>=0.20.0

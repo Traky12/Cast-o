@@ -1,0 +1,30 @@
+# CASTUO-SYSTEM™ | Alertas Drones + Sensores IoT
+groups:
+  - name: drones-sensors
+    rules:
+      - alert: DronesBatteryLow
+        expr: castu_drones_battery < 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Batería de drone por debajo del 20%"
+          description: "Drone {{ $labels.drone_id }} tiene {{ $value }}% de batería. Ruta a estación recomendada."
+
+      - alert: SensorTemperatureOutOfRange
+        expr: castu_sensor_temperature > 35 or castu_sensor_temperature < 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Temperatura fuera de rango (Emergency Stop si > 35°C)"
+          description: "Sensor {{ $labels.sensor_id }} en granja {{ $labels.farm }}: {{ $value }}°C"
+
+      - alert: SensorSoilMoistureCritical
+        expr: castu_sensor_soil_moisture < 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Humedad del suelo crítica"
+          description: "Sensor {{ $labels.sensor_id }} (granja {{ $labels.farm }}): {{ $value }}%"

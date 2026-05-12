@@ -1,0 +1,79 @@
+{
+  "title": "CASTÚO-SYSTEM™ - Métricas de Negocio",
+  "tags": ["castuo", "business", "recommendations"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Conversiones vs. Recomendaciones",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(ecommerce_conversions_total[1m])) by (product_type)",
+          "legendFormat": "{{ product_type }} (Conversiones)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(ai_recommendations_total[1m])) by (product_type)",
+          "legendFormat": "{{ product_type }} (Recomendaciones)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Tasa de Errores por Tipo de Producto",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 4},
+      "targets": [
+        {
+          "expr": "sum(rate(ai_recommendation_errors_total[5m])) by (product_type) / sum(rate(ai_recommendations_total[5m])) by (product_type)",
+          "format": "percentunit",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.02},
+              {"color": "red", "value": 0.05}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Disponibilidad Recomendaciones (SLO 99.5%)",
+      "type": "gauge",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 4},
+      "targets": [
+        {
+          "expr": "slo:ai_recommendation_availability",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.99},
+              {"color": "green", "value": 0.995}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1
+}

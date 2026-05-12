@@ -1,0 +1,31 @@
+# backend/maya_segura/docker-compose.maya.yml
+# 49 NODOS ENCRIPTADOS — Torus 7x7 + ZK. GREGORIO J JIMÉNEZ BODES.
+
+version: "3.9"
+
+services:
+  maya-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.maya
+    image: castuo/maya-master:trl9
+    container_name: maya-master
+    ports:
+      - "12000:12000"
+    environment:
+      - MAYA_POSITION=0_0
+      - KYBER_MODE=2048
+      - SHAMIR_SHARES=3_5
+      - MAYA_PORT=12000
+    networks:
+      - maya_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:12000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  maya_net:
+    driver: bridge

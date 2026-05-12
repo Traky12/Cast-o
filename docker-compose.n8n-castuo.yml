@@ -1,0 +1,64 @@
+# n8n CASTÚO — orquestación STANDALONE (API en el host u otro servidor; red propia bridge).
+# Uso: copy .env.n8n-castuo.example .env.n8n-castuo && docker compose -f docker-compose.n8n-castuo.yml --env-file .env.n8n-castuo up -d
+# env_file inyecta todas las claves del .env.n8n-castuo al contenedor (incl. N8N_DB_*, N8N_SLACK_*, CASTUO_*).
+#
+# Plan Pro (n8n + api misma red Docker): docker-compose.n8n-castuo.pro.yml
+# Workflows: n8n/workflows/castuo_hydro_full_integration.json + castuo_n8n_import_guide.json
+
+version: "3.8"
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-castuo
+    env_file:
+      - .env.n8n-castuo
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Europe/Madrid}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env.n8n-castuo (openssl rand -hex 24)}
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-${N8N_USER:-admin}}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:?set N8N_PASSWORD in .env.n8n-castuo}
+      # Hydro SaaS; sin barra final en BASE. Standalone: host.docker.internal
+      - CASTUO_BASE_URL=${CASTUO_BASE_URL:-http://host.docker.internal:8000}
+      - CASTUO_API_KEY=${CASTUO_API_KEY:-default_n8n_key_123}
+      - CASTUO_ZONE_ID=${CASTUO_ZONE_ID:-zone_cannabis_1}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - CASTUO_API_URL=${CASTUO_API_URL:-http://host.docker.internal:8000}
+      - CASTUO_ROBOTICS_LAB_BEARER_TOKEN=${CASTUO_ROBOTICS_LAB_BEARER_TOKEN:-}
+      - CASTUO_API_TOKEN=${CASTUO_API_TOKEN:-}
+      - COPERNICUS_USER=${COPERNICUS_USER:-}
+      - COPERNICUS_PASSWORD=${COPERNICUS_PASSWORD:-}
+      - CASTUO_DEFAULT_HUMEDAD=${CASTUO_DEFAULT_HUMEDAD:-65}
+      - CASTUO_DEFAULT_PH=${CASTUO_DEFAULT_PH:-5.8}
+      - CASTUO_DEFAULT_EC=${CASTUO_DEFAULT_EC:-1.2}
+      - CASTUO_DEFAULT_LUZ_UMOL=${CASTUO_DEFAULT_LUZ_UMOL:-1200}
+      - SLACK_WEBHOOK=${SLACK_WEBHOOK:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - SMTP_CASTUO_USER=${SMTP_CASTUO_USER:-}
+      - SMTP_CASTUO_PASS=${SMTP_CASTUO_PASS:-}
+      - GAIACHAIN_RPC_URL=${GAIACHAIN_RPC_URL:-}
+      - CASTUO_ALLOWED_IP_CIDRS=${CASTUO_ALLOWED_IP_CIDRS:-}
+      - IPFS_API_KEY=${IPFS_API_KEY:-}
+      - IPFS_API_SECRET=${IPFS_API_SECRET:-}
+      - POWER_BI_INVESTOR_METRICS_URL=${POWER_BI_INVESTOR_METRICS_URL:-}
+      - POWER_BI_API_KEY=${POWER_BI_API_KEY:-}
+    volumes:
+      - castuo_n8n_data:/home/node/.n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - castuo_network
+    restart: unless-stopped
+
+volumes:
+  castuo_n8n_data:
+
+networks:
+  castuo_network:
+    driver: bridge

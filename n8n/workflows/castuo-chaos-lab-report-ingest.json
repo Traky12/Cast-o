@@ -1,0 +1,54 @@
+{
+  "name": "CASTUO_Chaos_Lab_Report_Ingest",
+  "tags": ["CASTUO", "chaos", "resilience", "lab"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chaos-lab-report",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "chaos-wh",
+      "name": "Webhook_Chaos_Report",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "castuo-chaos-lab-report"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst kind = String(body.kind || 'chaos_report_adhoc');\nconst ts = new Date().toISOString();\nreturn [\n  {\n    json: {\n      ok: true,\n      received_at_utc: ts,\n      kind,\n      rto_s_observed: body.rto_s_observed != null ? body.rto_s_observed : null,\n      probe_ts: body.probe_ts || null,\n      recovery_ts: body.recovery_ts || null,\n      notes: body.notes || '',\n      raw: body\n    }\n  }\n];"
+      },
+      "id": "chaos-code",
+      "name": "Code_Normalize_Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "chaos-resp",
+      "name": "Respond_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_Chaos_Report": {
+      "main": [[{ "node": "Code_Normalize_Report", "type": "main", "index": 0 }]]
+    },
+    "Code_Normalize_Report": {
+      "main": [[{ "node": "Respond_Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Ingesta POST /webhook/chaos-lab-report con JSON de informe (p. ej. salida fusionada de castuo_chaos_lab). Cablear después a Slack, Trillizo o almacén."
+  }
+}

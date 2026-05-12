@@ -1,0 +1,13 @@
+# Ejemplo de reglas de alerta para Prometheus.
+# Usar con Prometheus Operator (PrometheusRule) o incluir en ConfigMap de Prometheus.
+groups:
+  - name: castuo-alerts
+    rules:
+      - alert: HighCPULoad
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 70
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU load on {{ $labels.instance }}"
+          description: "CPU load is {{ $value }}% (above 70%)"

@@ -1,0 +1,26 @@
+name: Sell Carbon Credits
+on:
+  repository_dispatch:
+    types: [aircarbon_sale]
+jobs:
+  sell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: pip install requests web3
+      - name: Sell and Tokenize
+        env:
+          PRIVATE_KEY: ${{ secrets.GAIACHAIN_PRIVATE_KEY }}
+          AIRCARBON_API_KEY: ${{ secrets.AIRCARBON_API_KEY }}
+          BIOCOIN_CARBON_MARKET_ADDRESS: ${{ secrets.BIOCOIN_CARBON_MARKET_ADDRESS }}
+          GAIA_CHAIN_RPC: ${{ secrets.GAIA_CHAIN_RPC }}
+        run: |
+          cd backend && python3 scripts/sell_and_tokenize.py \
+            "${{ github.event.client_payload.verra_project_id }}" \
+            "${{ github.event.client_payload.kg_co2 }}" \
+            "${{ github.event.client_payload.price_per_kg_usd }}"

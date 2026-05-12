@@ -1,0 +1,94 @@
+# Locust distribuido para staging: escalar workers segun CPU del cluster.
+# Pre-requisito: ConfigMap locust-vegetal-scripts (ver tests/load/README.md).
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust-master
+  labels:
+    app: locust-master
+spec:
+  selector:
+    app: locust-master
+  ports:
+    - name: web
+      port: 8089
+      targetPort: 8089
+    - name: comm
+      port: 5557
+      targetPort: 5557
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locust-master
+  template:
+    metadata:
+      labels:
+        app: locust-master
+    spec:
+      containers:
+        - name: locust
+          image: locustio/locust:2.32.4
+          ports:
+            - containerPort: 8089
+            - containerPort: 5557
+          args:
+            - -f
+            - /mnt/locust/locustfile.py
+            - --master
+          volumeMounts:
+            - name: scripts
+              mountPath: /mnt/locust
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: scripts
+          configMap:
+            name: locust-vegetal-scripts
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust-worker
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: locust-worker
+  template:
+    metadata:
+      labels:
+        app: locust-worker
+    spec:
+      containers:
+        - name: locust
+          image: locustio/locust:2.32.4
+          args:
+            - -f
+            - /mnt/locust/locustfile.py
+            - --worker
+            - --master-host=locust-master
+          volumeMounts:
+            - name: scripts
+              mountPath: /mnt/locust
+          resources:
+            requests:
+              cpu: "250m"
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: scripts
+          configMap:
+            name: locust-vegetal-scripts

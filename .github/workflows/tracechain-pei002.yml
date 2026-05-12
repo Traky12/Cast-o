@@ -1,0 +1,110 @@
+# PEI-002: informe PEI-001 + envelope + POST opcional (stub / Castuo).
+# Disparo manual o tras CI SIGPAC PEI-001 (artefacto sigpac-report-pei001).
+
+name: TraceChain digest PEI-002
+
+on:
+  workflow_dispatch:
+    inputs:
+      report_path:
+        description: "Ruta al JSON PEI-001 en el checkout (vacío = generar con fixtures)"
+        required: false
+        default: ""
+  workflow_run:
+    workflows: ["SIGPAC validation PEI-001"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-22.04
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencias digest (requests)
+        run: pip install -r pei-002-tracechain/requirements.txt
+
+      - name: Descargar artefacto PEI-001
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: sigpac-report-pei001
+          path: pei-001-sigpac/reports/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Informe PEI-001 por defecto (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.report_path == ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev
+          pip install -r pei-001-sigpac/scripts/requirements.txt
+          python pei-001-sigpac/scripts/validate_sigpac.py \
+            --parcelas pei-001-sigpac/tests/fixtures/parcelas_test.geojson \
+            --sigpac pei-001-sigpac/tests/fixtures/sigpac_layer_test.geojson \
+            --sigpac-code-field codigo_sigpac \
+            --mapping-path pei-001-sigpac/data/mapping.json \
+            --out-json pei-001-sigpac/reports/_pei002_gate.json
+
+      - name: Resolver ruta informe
+        id: rep
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "path=pei-001-sigpac/reports/sigpac_pei001_ci.json" >> $GITHUB_OUTPUT
+          elif [ -n "${{ github.event.inputs.report_path }}" ]; then
+            echo "path=${{ github.event.inputs.report_path }}" >> $GITHUB_OUTPUT
+          else
+            echo "path=pei-001-sigpac/reports/_pei002_gate.json" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Payload Castuo (stdout) + envelope fichero
+        run: |
+          python pei-002-tracechain/register_sigpac_digest.py \
+            --report-path "${{ steps.rep.outputs.path }}" \
+            --out-payload pei-002-tracechain/payloads/ci_envelope.json
+
+      - name: POST stub envelope (opcional)
+        env:
+          PEI002_ENVELOPE_POST_URL: ${{ secrets.PEI002_ENVELOPE_POST_URL }}
+          PEI002_STUB_BEARER_TOKEN: ${{ secrets.PEI002_STUB_BEARER_TOKEN }}
+        run: |
+          if [ -n "$PEI002_ENVELOPE_POST_URL" ] && [ -n "$PEI002_STUB_BEARER_TOKEN" ]; then
+            python pei-002-tracechain/register_sigpac_digest.py \
+              --report-path "${{ steps.rep.outputs.path }}" \
+              --no-stdout-payload \
+              --post-envelope
+          else
+            echo "Sin PEI002_ENVELOPE_POST_URL / PEI002_STUB_BEARER_TOKEN: omitido POST stub."
+          fi
+
+      - name: POST Castuo audit (opcional)
+        env:
+          CASTUO_AUDIT_API_URL: ${{ secrets.CASTUO_AUDIT_API_URL }}
+          CASTUO_AUDIT_API_TOKEN: ${{ secrets.CASTUO_AUDIT_API_TOKEN }}
+          CASTUO_AUDIT_TOKEN_ID: ${{ secrets.CASTUO_AUDIT_TOKEN_ID }}
+        run: |
+          if [ -n "$CASTUO_AUDIT_API_URL" ] && [ -n "$CASTUO_AUDIT_API_TOKEN" ]; then
+            python pei-002-tracechain/register_sigpac_digest.py \
+              --report-path "${{ steps.rep.outputs.path }}" \
+              --no-stdout-payload \
+              --post
+          else
+            echo "Sin CASTUO_AUDIT_*: omitido POST on-chain."
+          fi
+
+      - name: Subir envelope
+        uses: actions/upload-artifact@v4
+        with:
+          name: pei002-envelope
+          path: pei-002-tracechain/payloads/ci_envelope.json
+          if-no-files-found: warn

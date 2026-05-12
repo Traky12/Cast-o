@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carbon-marketplace
+  namespace: castuo-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: carbon-marketplace
+  template:
+    metadata:
+      labels:
+        app: carbon-marketplace
+    spec:
+      containers:
+        - name: marketplace
+          image: ghcr.io/castuo-system/carbon-marketplace:latest
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carbon-marketplace
+  namespace: castuo-system
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: carbon-marketplace

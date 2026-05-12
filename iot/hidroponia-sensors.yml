@@ -1,0 +1,16 @@
+# Sensores específicos HIDROPONÍA — CASTÚO-SYSTEM TRL7
+# Integración: backend /hidroponia/sensores y /hidroponia/alertas
+
+hidroponia:
+  ec_ph:
+    topic: "hidroponia/sistema1/ec_ph"
+    rango:
+      ec: [0.5, 3.5]    # mS/cm
+      ph: [5.5, 6.5]
+    alerta_sms: true
+  temperatura:
+    topic: "hidroponia/sistema1/temp"
+    rango: [18.0, 24.0]  # °C óptimo hidro
+  oxigeno_disuelto:
+    topic: "hidroponia/sistema1/do"
+    rango: [6.0, 8.0]    # mg/L

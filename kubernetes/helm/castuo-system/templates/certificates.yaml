@@ -1,0 +1,20 @@
+# Cert-Manager: rotación automática de certificados TLS (90 días, renovar 30 días antes)
+# Requiere: cert-manager instalado y ClusterIssuer letsencrypt-prod
+{{- if .Values.certManager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "castuo-system.fullname" . }}-tls
+  labels:
+    {{- include "castuo-system.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "castuo-system.fullname" . }}-tls
+  issuerRef:
+    name: {{ .Values.certManager.issuerName | default "letsencrypt-prod" }}
+    kind: ClusterIssuer
+  dnsNames:
+    - api.{{ .Values.domain }}
+    - agents.{{ .Values.domain }}
+  duration: {{ .Values.certManager.duration | default "2160h" }}
+  renewBefore: {{ .Values.certManager.renewBefore | default "720h" }}
+{{- end }}

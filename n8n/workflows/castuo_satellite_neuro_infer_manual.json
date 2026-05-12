@@ -1,0 +1,38 @@
+{
+  "name": "CASTUO_Satellite_Neuro_Infer_Manual",
+  "tags": ["CASTUO", "robotics-lab", "hydroponics", "neuromorphic"],
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual_Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = ($env.CASTUO_API_URL || 'http://127.0.0.1:8000').replace(/\\/$/, '');\nconst token = ($env.CASTUO_ROBOTICS_LAB_BEARER_TOKEN || $env.CASTUO_API_TOKEN || '').trim();\nif (!token) {\n  throw new Error('Definir CASTUO_ROBOTICS_LAB_BEARER_TOKEN o CASTUO_API_TOKEN en n8n');\n}\nconst payload = {\n  humedad: Number($env.CASTUO_DEFAULT_HUMEDAD || 65),\n  ph: Number($env.CASTUO_DEFAULT_PH || 5.8),\n  ec: Number($env.CASTUO_DEFAULT_EC || 1.2),\n  luz_umol: Number($env.CASTUO_DEFAULT_LUZ_UMOL || 1200),\n};\nconst url = `${base}/api/robotics/lab/neuromorphic/hydroponics/infer`;\nconst res = await fetch(url, {\n  method: 'POST',\n  headers: {\n    Authorization: `Bearer ${token}`,\n    'Content-Type': 'application/json',\n  },\n  body: JSON.stringify(payload),\n});\nconst text = await res.text();\nlet data;\ntry { data = JSON.parse(text); } catch { data = { raw: text }; }\nreturn [{ json: { http_status: res.status, infer: data, request: payload, url } }];\n"
+      },
+      "name": "POST_Neuro_Infer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    }
+  ],
+  "connections": {
+    "Manual_Start": {
+      "main": [
+        [
+          {
+            "node": "POST_Neuro_Infer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true
+  }
+}

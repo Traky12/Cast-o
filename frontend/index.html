@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTÚO v4.0 | Ecosistema</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="card hero">
+        <div>
+          <h1>CASTÚO v4.0</h1>
+          <p class="muted">
+            Demo integrada: <strong>Bioeconomía</strong> + <strong>MONEI</strong> +
+            <strong>Psicólogo Digital</strong> (B001).
+          </p>
+        </div>
+        <div class="pill">EU-first · Hetzner · TRL9 demo</div>
+      </header>
+
+      <section class="grid">
+        <div class="card">
+          <h2>🌱 Bioeconomía Circular</h2>
+          <label>
+            Cultivo
+            <select id="crop">
+              <option value="sorgo">Sorgo → Bioetanol</option>
+              <option value="cannabis">Cáñamo → Fibra</option>
+              <option value="romero">Romero → Aceite esencial</option>
+            </select>
+          </label>
+          <label>
+            Biomasa (kg)
+            <input id="biomasa" type="number" min="0" step="1" value="100" />
+          </label>
+        </div>
+
+        <div class="card">
+          <h2>💳 MONEI Checkout (demo)</h2>
+          <label>
+            Amount (€)
+            <input id="amount" type="number" min="0" step="1" value="0" />
+          </label>
+          <p class="muted">
+            Si el amount &gt; 0, se simula IBAN + “carbon credit” y se genera TX
+            demo.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>🧠 Psicólogo Digital</h2>
+          <label>
+            ¿Cómo te sientes?
+            <textarea
+              id="texto_psicologo"
+              placeholder="Ej: me siento solo"
+              rows="5"
+            ></textarea>
+          </label>
+          <p class="muted">
+            Si configuras <code>MISTRAL_API_KEY</code>, la respuesta la genera
+            Mistral; si no, funciona en modo demo offline.
+          </p>
+        </div>
+      </section>
+
+      <section class="actions">
+        <button id="ejecutar" class="btn primary">Ejecutar Ecosistema B001</button>
+        <div class="muted small">
+          Backend: <code id="apiBase"></code>
+        </div>
+      </section>
+
+      <section id="resultados" class="card hidden">
+        <h2>📊 Resultados</h2>
+        <div class="grid results">
+          <div class="subcard" id="bioeconomia_result"></div>
+          <div class="subcard" id="monei_result"></div>
+          <div class="subcard" id="psicologo_result"></div>
+        </div>
+
+        <div class="subcard total">
+          <div>
+            <div class="muted small">Total value (€)</div>
+            <div id="total_value" class="big"></div>
+          </div>
+          <div>
+            <div class="muted small">Total biocoin</div>
+            <div id="total_biocoin" class="big"></div>
+          </div>
+          <div>
+            <div class="muted small">VeChain TX (demo)</div>
+            <a id="vechain_tx_link" target="_blank" rel="noreferrer"></a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
+

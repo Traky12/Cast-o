@@ -1,0 +1,8 @@
+FACTURA
+Numero: FACT-20260319-170630
+Fecha: 2026-03-19
+Emisor: CASTÚO-SYSTEM S.L.
+Cliente: Cliente Test Offline
+Subtotal: 99.99 EUR
+IVA: 21.00 EUR
+TOTAL: 120.99 EUR

@@ -1,0 +1,54 @@
+{
+  "darktrace": {
+    "rules": [
+      {
+        "name": "IoT-Firmware-Tampering",
+        "condition": {
+          "device_type": "iot",
+          "anomaly_score": ">95",
+          "behaviors": [
+            "unusual_firmware_update",
+            "memory_injection",
+            "unauthorized_process"
+          ]
+        },
+        "action": [
+          { "type": "quarantine_device", "duration": 3600 },
+          {
+            "type": "notify",
+            "channels": ["security-team", "gaiachain"],
+            "message": "ALERTA: Posible manipulación de firmware en dispositivo {device_id}. GaiaChain TX: {tx_hash}"
+          },
+          {
+            "type": "log",
+            "system": "gaiachain",
+            "event_type": "IOT_TAMPERING_DETECTED",
+            "data": { "device_id": "{device_id}", "anomaly_score": "{anomaly_score}" }
+          }
+        ]
+      },
+      {
+        "name": "IoT-Unauthorized-Access",
+        "condition": {
+          "device_type": "iot",
+          "source_ip": "blacklist",
+          "port": [22, 23, 8080]
+        },
+        "action": [
+          { "type": "block_ip", "duration": 86400 },
+          { "type": "disable_port", "ports": [22, 23, 8080], "duration": 3600 },
+          {
+            "type": "notify",
+            "channels": ["security-team", "iot-team"],
+            "message": "Acceso no autorizado a IoT {device_id} desde {source_ip}. Puertos bloqueados."
+          }
+        ]
+      }
+    ],
+    "iot_specific": {
+      "firmware_whitelist": [],
+      "allowed_commands": ["status", "read_sensor", "update_firmware"],
+      "blocked_ips": []
+    }
+  }
+}

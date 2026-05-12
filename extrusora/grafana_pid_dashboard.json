@@ -1,0 +1,38 @@
+{
+  "title": "Extrusora CASTUO - Control PID",
+  "panels": [
+    {
+      "title": "Temperatura Objetivo vs Real",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "castu_extrusora_temp{sensor=\"boquilla\"}", "legendFormat": "Real", "refId": "A" },
+        { "expr": "castu_extrusora_setpoint", "legendFormat": "Objetivo", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "celsius" } }
+    },
+    {
+      "title": "Salida PID (PWM)",
+      "type": "timeseries",
+      "targets": [{ "expr": "castu_extrusora_pid_output", "refId": "A" }]
+    },
+    {
+      "title": "Error (Setpoint - Real)",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "castu_extrusora_setpoint - castu_extrusora_temp{sensor=\"boquilla\"}", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Parámetros PID",
+      "type": "stat",
+      "targets": [
+        { "expr": "castu_extrusora_pid_kp", "refId": "A" },
+        { "expr": "castu_extrusora_pid_ki", "refId": "B" },
+        { "expr": "castu_extrusora_pid_kd", "refId": "C" }
+      ]
+    }
+  ],
+  "refresh": "1s",
+  "schemaVersion": 38,
+  "version": 1
+}

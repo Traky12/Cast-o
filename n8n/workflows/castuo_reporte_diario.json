@@ -1,0 +1,35 @@
+{
+  "name": "CASTUO_Reporte_Diario",
+  "active": false,
+  "tags": ["CASTUO", "email", "schedule", "report"],
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "rd-manual",
+      "name": "Manual_Prueba",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 360],
+      "notes": "En UI: duplicar disparador → Schedule diario 08:00 (Europe/Madrid)."
+    },
+    {
+      "parameters": {
+        "jsCode": "const admin = String($env.N8N_EMAIL_ADMIN || $env.ADMIN_EMAIL || 'admin@example.local').trim();\nconst team = String($env.N8N_EMAIL_TEAM || $env.TEAM_EMAILS || '').trim();\nconst day = new Date().toISOString().split('T')[0];\nconst tables = [\n  String($env.N8N_DB_COSECHAS || 'castuo_prod_cosechas'),\n  String($env.N8N_DB_ANALISIS || 'castuo_prod_analisis_diarios'),\n];\nconst informe_html = `<h1>Reporte diario CASTÚO</h1><p>Fecha: ${day}</p><p>Tablas referenciadas: ${tables.join(', ')}</p><p>Enlazar Postgres/Data Table y nodo Gmail/SMTP con credencial.</p>`;\nconst crypto = require('crypto');\nconst report_hash = crypto.createHash('sha256').update(informe_html + day).digest('hex');\nlet gaia = { skipped: true };\nconst gurl = String($env.N8N_GAIACHAIN_API || '').trim();\nconst gkey = String($env.N8N_GAIACHAIN_API_KEY || '').trim();\nif (gurl && gkey) {\n  try {\n    const r = await fetch(gurl.replace(/\\/$/, ''), {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        Authorization: 'Bearer ' + gkey,\n      },\n      body: JSON.stringify({ type: 'daily_report', report_hash, day }),\n    });\n    gaia = { http_status: r.status, text: await r.text() };\n  } catch (e) {\n    gaia = { error: e.message };\n  }\n}\nreturn [\n  {\n    json: {\n      to: admin,\n      cc: team,\n      subject: 'Reporte Diario - CASTÚO-SYSTEM - ' + day,\n      informe_html,\n      report_hash,\n      gaia,\n      slack_channel: String($env.N8N_SLACK_ALERTS || '').trim(),\n    },\n  },\n];"
+      },
+      "id": "rd-code",
+      "name": "Generar_Informe_Y_Hash",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 360]
+    }
+  ],
+  "connections": {
+    "Manual_Prueba": {
+      "main": [[{ "node": "Generar_Informe_Y_Hash", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Añadir Gmail/SMTP: To={{$json.to}}, CC={{$json.cc}}, HTML={{$json.informe_html}}. Opcional Slack con {{$json.slack_channel}}."
+  }
+}

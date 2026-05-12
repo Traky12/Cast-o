@@ -1,0 +1,147 @@
+{
+  "name": "CASTUO_QElectroTech_SVG_LangGraph",
+  "active": false,
+  "tags": ["CASTUO", "QElectroTech", "langgraph", "svg"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qelectrotech-svg",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "qet-wh",
+      "name": "Webhook_QET_SVG",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "castuo-qelectrotech-svg"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst body = j.body && typeof j.body === 'object' ? j.body : j;\nconst svg = String(body.svg_base64 || '').trim();\nif (!svg) {\n  throw new Error('svg_base64 requerido (exportar SVG desde QElectroTech en estación de trabajo; DXF→SVG fuera del contenedor n8n).');\n}\nreturn [\n  {\n    json: {\n      payload: {\n        kind: 'qelectrotech_svg',\n        project_id: body.project_id,\n        author: body.author,\n        svg_base64: svg,\n        source: body.source || 'qelectrotech',\n      },\n      _echo: {\n        project_id: body.project_id,\n        author: body.author,\n      },\n    },\n  },\n];"
+      },
+      "id": "qet-build",
+      "name": "Build_QET_Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_LANGGRAPH_URL || $env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://castuo-api:8000').replace(/\\/$/, '') + '/langgraph/castuo/execute-graph' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $json.payload } }}",
+        "options": { "timeout": 300000 }
+      },
+      "id": "qet-http",
+      "name": "HTTP_Castuo_LangGraph",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst echo = $('Build_QET_Payload').first().json._echo || {};\nif (r.errors && r.errors.length) {\n  throw new Error('Castuo LangGraph: ' + r.errors.join('; '));\n}\nlet plc = '';\nlet energy = {};\nlet svgNotes = '';\ntry {\n  const o = JSON.parse(r.analysis);\n  if (o.plc_code != null) plc = String(o.plc_code);\n  if (o.energy_analysis && typeof o.energy_analysis === 'object') energy = o.energy_analysis;\n  if (o.svg_notes != null) svgNotes = String(o.svg_notes);\n} catch (e) {\n  plc = '';\n}\nreturn [\n  {\n    json: {\n      success: true,\n      project_id: echo.project_id,\n      author: echo.author,\n      plc_code: plc,\n      energy_analysis: energy,\n      svg_notes: svgNotes,\n      trace_hash: r.trace_hash || '',\n      gaia_http_status: r.gaia_http_status,\n      analysis_raw: r.analysis || '',\n    },\n  },\n];"
+      },
+      "id": "qet-norm",
+      "name": "Normalize_QET_Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK || $env.SLACK_INCOMING_WEBHOOK_URL || '' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { text: '📐 QElectroTech CASTÚO · ' + String($json.project_id) + ' · trace ' + String($json.trace_hash).slice(0, 16) + '…\\nPLC (recorte): ' + String($json.plc_code || '').slice(0, 400) } }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "qet-slack",
+      "name": "Slack_QET_Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1200, 160],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": { "__rl": true, "mode": "list", "value": "public" },
+        "table": {
+          "__rl": true,
+          "value": "castuo_prod_qelectrotech",
+          "mode": "list",
+          "cachedResultName": "castuo_prod_qelectrotech"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "project_id": "={{ $json.project_id }}",
+            "author": "={{ $json.author }}",
+            "analysis_raw": "={{ $json.analysis_raw }}",
+            "plc_code": "={{ $json.plc_code }}",
+            "energy_analysis": "={{ JSON.stringify($json.energy_analysis || {}) }}",
+            "trace_hash": "={{ $json.trace_hash }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "qet-pg",
+      "name": "Postgres_QET",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1200, 440],
+      "disabled": true,
+      "notesInFlow": true,
+        "notes": "Ejecutar optional_castuo_prod_qelectrotech.sql. Columna energy_analysis es TEXT (JSON serializado)."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "qet-resp",
+      "name": "Respond_QET",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1440, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_QET_SVG": {
+      "main": [[{ "node": "Build_QET_Payload", "type": "main", "index": 0 }]]
+    },
+    "Build_QET_Payload": {
+      "main": [[{ "node": "HTTP_Castuo_LangGraph", "type": "main", "index": 0 }]]
+    },
+    "HTTP_Castuo_LangGraph": {
+      "main": [[{ "node": "Normalize_QET_Response", "type": "main", "index": 0 }]]
+    },
+    "Normalize_QET_Response": {
+      "main": [
+        [
+          { "node": "Respond_QET", "type": "main", "index": 0 },
+          { "node": "Slack_QET_Webhook", "type": "main", "index": 0 },
+          { "node": "Postgres_QET", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "QElectroTech: exportar SVG en desktop → POST webhook con svg_base64. LangGraph en castuo-api (no :8123). GaiaChain vía GAIACHAIN_REGISTER_URL en el API."
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "name": "CASTUO_PLC_Generate_LangGraph",
+  "active": false,
+  "tags": ["CASTUO", "PLC", "langgraph", "cursor"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cursor-plc-gen",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "plc-wh",
+      "name": "Webhook_PLC_Gen",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "castuo-cursor-plc-gen"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst body = j.body && typeof j.body === 'object' ? j.body : j;\nreturn [\n  {\n    json: {\n      payload: {\n        kind: 'plc_generate',\n        project_id: body.project_id,\n        requirements: body.requirements || '',\n        hardware: body.hardware || 'S7-1200',\n        standards: Array.isArray(body.standards) ? body.standards : ['IEC 61131-3'],\n      },\n      _echo: { project_id: body.project_id, hardware: body.hardware },\n    },\n  },\n];"
+      },
+      "id": "plc-build",
+      "name": "Build_PLC_Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_LANGGRAPH_URL || $env.CASTUO_BASE_URL || 'http://castuo-api:8000').replace(/\\/$/, '') + '/langgraph/castuo/execute-graph' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $json.payload } }}",
+        "options": { "timeout": 300000 }
+      },
+      "id": "plc-http",
+      "name": "HTTP_Castuo_LangGraph",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst echo = $('Build_PLC_Payload').first().json._echo || {};\nif (r.errors && r.errors.length) {\n  throw new Error('Castuo LangGraph: ' + r.errors.join('; '));\n}\nlet plc = '';\nlet validation = { status: 'REVIEW', messages: [] };\ntry {\n  const o = JSON.parse(r.analysis);\n  if (o.plc_code != null) plc = String(o.plc_code);\n  if (o.validation && typeof o.validation === 'object') validation = o.validation;\n} catch (e) {\n  plc = String(r.analysis || '').slice(0, 8000);\n}\nreturn [\n  {\n    json: {\n      success: true,\n      project_id: echo.project_id,\n      hardware: echo.hardware,\n      plc_code: plc,\n      validation,\n      trace_hash: r.trace_hash || '',\n      analysis_raw: r.analysis || '',\n    },\n  },\n];"
+      },
+      "id": "plc-norm",
+      "name": "Normalize_PLC_Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "plc-resp",
+      "name": "Respond_PLC",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1200, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_PLC_Gen": {
+      "main": [[{ "node": "Build_PLC_Payload", "type": "main", "index": 0 }]]
+    },
+    "Build_PLC_Payload": {
+      "main": [[{ "node": "HTTP_Castuo_LangGraph", "type": "main", "index": 0 }]]
+    },
+    "HTTP_Castuo_LangGraph": {
+      "main": [[{ "node": "Normalize_PLC_Response", "type": "main", "index": 0 }]]
+    },
+    "Normalize_PLC_Response": {
+      "main": [[{ "node": "Respond_PLC", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Generación PLC vía Mistral en castuo-api. Cursor: disparar este webhook desde script o Manual Trigger; no existe endpoint HTTP oficial de Cursor hacia n8n."
+  }
+}

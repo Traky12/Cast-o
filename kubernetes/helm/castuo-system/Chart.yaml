@@ -1,0 +1,25 @@
+apiVersion: v2
+name: castuo-system
+description: Helm chart para despliegue de CASTÚO-SYSTEM™ en Kubernetes
+type: application
+version: 0.1.0
+appVersion: "2.1"
+keywords:
+  - castuo
+  - federated-learning
+  - agents
+maintainers:
+  - name: CASTÚO-SYSTEM
+dependencies:
+  - name: rabbitmq
+    version: 11.12.0
+    repository: https://charts.bitnami.com/bitnami
+  - name: prometheus
+    version: 19.7.2
+    repository: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    version: 6.43.0
+    repository: https://grafana.github.io/helm-charts
+  - name: opa
+    version: 3.10.0
+    repository: https://open-policy-agent.github.io/kube-mgmt/charts

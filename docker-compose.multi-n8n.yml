@@ -1,0 +1,126 @@
+# CASTÚO — varias instancias n8n (aislamiento por dominio: sensores, satélites, simulación, drones).
+# Cada servicio tiene su propio volumen (.n8n) y su WEBHOOK_URL pública.
+#
+# Uso:
+#   cp .env.n8n-multi.example .env.n8n-multi
+#   docker compose -f docker-compose.multi-n8n.yml --env-file .env.n8n-multi up -d
+#
+# Quinta instancia opcional: n8n-trillizo — auditoría + volumen ./cerebros/auditoria (ver n8n/README-CEREBROS.md).
+# Orquestador: castuo_main_orchestrator_gateway.json + N8N_WEBHOOK_BASE_* (incl. TRILLIZO para rutas trillizo/*).
+
+version: "3.8"
+
+services:
+  n8n-sensores:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-castuo-sensores
+    env_file:
+      - .env.n8n-multi
+    ports:
+      - "${N8N_SENSORES_PORT:-5678}:5678"
+    environment:
+      - N8N_HOST=${N8N_SENSORES_HOST:-localhost}
+      - N8N_PROTOCOL=${N8N_SENSORES_PROTOCOL:-http}
+      - WEBHOOK_URL=${N8N_SENSORES_WEBHOOK_URL:-http://localhost:5678/}
+    volumes:
+      - n8n_sensores_data:/home/node/.n8n
+    networks:
+      - castuo_multi_n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  n8n-satelites:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-castuo-satelites
+    env_file:
+      - .env.n8n-multi
+    ports:
+      - "${N8N_SATELITES_PORT:-5679}:5678"
+    environment:
+      - N8N_HOST=${N8N_SATELITES_HOST:-localhost}
+      - N8N_PROTOCOL=${N8N_SATELITES_PROTOCOL:-http}
+      - WEBHOOK_URL=${N8N_SATELITES_WEBHOOK_URL:-http://localhost:5679/}
+    volumes:
+      - n8n_satelites_data:/home/node/.n8n
+    networks:
+      - castuo_multi_n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  n8n-simulacion:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-castuo-simulacion
+    env_file:
+      - .env.n8n-multi
+    ports:
+      - "${N8N_SIMULACION_PORT:-5680}:5678"
+    environment:
+      - N8N_HOST=${N8N_SIMULACION_HOST:-localhost}
+      - N8N_PROTOCOL=${N8N_SIMULACION_PROTOCOL:-http}
+      - WEBHOOK_URL=${N8N_SIMULACION_WEBHOOK_URL:-http://localhost:5680/}
+    volumes:
+      - n8n_simulacion_data:/home/node/.n8n
+    networks:
+      - castuo_multi_n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  n8n-drones:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-castuo-drones
+    env_file:
+      - .env.n8n-multi
+    ports:
+      - "${N8N_DRONES_PORT:-5681}:5678"
+    environment:
+      - N8N_HOST=${N8N_DRONES_HOST:-localhost}
+      - N8N_PROTOCOL=${N8N_DRONES_PROTOCOL:-http}
+      - WEBHOOK_URL=${N8N_DRONES_WEBHOOK_URL:-http://localhost:5681/}
+    volumes:
+      - n8n_drones_data:/home/node/.n8n
+    networks:
+      - castuo_multi_n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  n8n-trillizo:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-castuo-trillizo
+    env_file:
+      - .env.n8n-multi
+    ports:
+      - "${N8N_TRILLIZO_PORT:-5682}:5678"
+    environment:
+      - N8N_HOST=${N8N_TRILLIZO_HOST:-localhost}
+      - N8N_PROTOCOL=${N8N_TRILLIZO_PROTOCOL:-http}
+      - WEBHOOK_URL=${N8N_TRILLIZO_WEBHOOK_URL:-http://localhost:5682/}
+      - N8N_ENCRYPTION_KEY=${N8N_TRILLIZO_ENCRYPTION_KEY:-${N8N_ENCRYPTION_KEY}}
+      - CASTUO_TRILLIZO_ROLE=shadow_validator
+    volumes:
+      - n8n_trillizo_data:/home/node/.n8n
+      # Misma carpeta que SilverBullet auditor (docker-compose.cerebros.yml). Diario / auditoría en Markdown desde n8n.
+      - ./cerebros/auditoria:/data/cerebros-auditoria:rw
+    networks:
+      - castuo_multi_n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    restart: unless-stopped
+
+networks:
+  castuo_multi_n8n:
+    driver: bridge
+
+volumes:
+  n8n_sensores_data:
+  n8n_satelites_data:
+  n8n_simulacion_data:
+  n8n_drones_data:
+  n8n_trillizo_data:

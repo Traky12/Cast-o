@@ -1,0 +1,12 @@
+# ConfigMap para parámetros de Cifrado Homomórfico (HE) en Federated Learning
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: he-config
+  namespace: castuo
+data:
+  SCHEME: "CKKS"
+  POLY_MODULUS_DEGREE: "8192"
+  COEFF_MOD_BIT_SIZES: "[60, 40, 40, 60]"
+  OPTIMIZE_HE: "true"
+  CACHE_TTL: "3600"

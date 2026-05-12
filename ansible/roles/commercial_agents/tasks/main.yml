@@ -1,0 +1,32 @@
+---
+- name: Crear directorio para bots comerciales
+  file:
+    path: "/opt/{{ project_name }}/commercial_bots"
+    state: directory
+    mode: "0755"
+
+- name: Copiar docker-compose para bots comerciales
+  template:
+    src: "docker-compose.commercial.yml.j2"
+    dest: "/opt/{{ project_name }}/commercial_bots/docker-compose.yml"
+    mode: "0644"
+
+- name: Iniciar bots comerciales
+  command: >
+    docker-compose -f /opt/{{ project_name }}/commercial_bots/docker-compose.yml up -d
+  register: docker_compose_output
+  changed_when: "'Creating' in docker_compose_output.stdout or 'Recreating' in docker_compose_output.stdout"
+
+- name: Verificar que los bots están operativos
+  uri:
+    url: "http://localhost:{{ item.port }}/health"
+    method: GET
+    status_code: 200
+  loop:
+    - { name: "offer_bot", port: 8007 }
+    - { name: "negotiation_bot", port: 8008 }
+    - { name: "loyalty_bot", port: 8009 }
+    - { name: "commercial_orchestrator", port: 8010 }
+  loop_control:
+    label: "{{ item.name }}"
+

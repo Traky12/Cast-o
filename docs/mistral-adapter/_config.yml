@@ -1,0 +1,5 @@
+# Jekyll config para GitHub Pages (opcional)
+# Si publicas solo esta carpeta como sitio, usa title y description.
+title: Mistral-CASTÚO Adapter
+description: Documentación del adapter oficial Mistral AI para CASTÚO-SYSTEM™
+markdown: kramdown

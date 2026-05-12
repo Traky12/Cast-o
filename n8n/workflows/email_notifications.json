@@ -1,0 +1,48 @@
+{
+  "name": "Email Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "receive",
+        "responseMode": "respond",
+        "path": "email-webhook",
+        "method": "POST"
+      },
+      "name": "Email Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "to": "={{$node[\"Email Webhook\"].json[\"body\"][\"to\"]}}",
+        "subject": "={{$node[\"Email Webhook\"].json[\"body\"][\"subject\"]}}",
+        "text": "={{$node[\"Email Webhook\"].json[\"body\"][\"body\"]}}",
+        "authentication": "predefinedCredentialType"
+      },
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "smtp": {
+          "user": "={{$env.GMAIL_USER}}",
+          "password": "={{$env.GMAIL_PASSWORD}}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Email Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

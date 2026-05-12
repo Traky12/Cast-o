@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_energia_excedente_tree" model="ir.ui.view">
+        <field name="name">castu.energia.excedente.tree</field>
+        <field name="model">castu.energia.excedente</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="granja_id"/>
+                <field name="energia_kwh"/>
+                <field name="precio_kwh"/>
+                <field name="tipo"/>
+                <field name="estado"/>
+                <field name="comprador_id"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_energia_excedente_form" model="ir.ui.view">
+        <field name="name">castu.energia.excedente.form</field>
+        <field name="model">castu.energia.excedente</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="granja_id"/>
+                        <field name="energia_kwh"/>
+                        <field name="precio_kwh"/>
+                        <field name="tipo"/>
+                        <field name="estado"/>
+                        <field name="comprador_id"/>
+                        <field name="biocoin_tx"/>
+                        <field name="contrato_url"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_energia_market" model="ir.actions.act_window">
+        <field name="name">Mercado de Energía</field>
+        <field name="res_model">castu.energia.excedente</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_energia_market" name="Mercado de Energía" parent="menu_castu_energia" action="action_castu_energia_market" sequence="20"/>
+</odoo>

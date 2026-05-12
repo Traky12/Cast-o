@@ -1,0 +1,46 @@
+# CASTUO-SYSTEM — Prometheus + Grafana + Alertmanager (Hetzner CAX21)
+# Grafana en 3001 (Landing en 3000). Uso: docker-compose up -d api && docker-compose -f docker-compose.monitor.yml up -d
+
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: castuo-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitor/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitor/alertas.yml:/etc/prometheus/alertas.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: castuo-grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-castuo123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: castuo-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitor/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:

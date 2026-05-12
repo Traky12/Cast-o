@@ -1,0 +1,39 @@
+# CASTÚO-SYSTEM™ — Aislamiento de red para Cursor (anti-hacking v1.0)
+# Solo Ingress desde api-gateway; Egress solo a GaiaChain y HTTPS/DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cursor-isolation
+spec:
+  podSelector:
+    matchLabels:
+      app: cursor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: gaiachain
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53

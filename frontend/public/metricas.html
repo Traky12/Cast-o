@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Métricas | CASTUO-SYSTEM</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #22c55e; --secondary: #16a34a; --dark: #064e3b; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: var(--dark); }
+        .sidebar { background: linear-gradient(to bottom, var(--primary), var(--secondary)); color: white; }
+        .card { background: white; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="flex h-screen bg-gray-50">
+    <div class="sidebar w-64 space-y-6 py-7 px-2 fixed inset-y-0 left-0">
+        <div class="text-center"><h1 class="text-2xl font-bold">🌿 CASTUO</h1><p class="text-sm">Cultivos sin químicos</p></div>
+        <nav class="space-y-3">
+            <a href="index.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-home mr-3"></i> Inicio</a>
+            <a href="grid-iot.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-th-large mr-3"></i> Grid IoT</a>
+            <a href="catalogo.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-seedling mr-3"></i> Catálogo</a>
+            <a href="control-rpi.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-microchip mr-3"></i> Control RPi</a>
+            <a href="cuaderno.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-book mr-3"></i> Cuaderno</a>
+            <a href="qr-trazabilidad.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-qrcode mr-3"></i> QR Trazabilidad</a>
+            <a href="3d-virtual.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-cube mr-3"></i> 3D Virtual</a>
+            <a href="escalado.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-chart-line mr-3"></i> Escalado</a>
+            <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-shopping-cart mr-3"></i> Marketplace</a>
+            <a href="metricas.html" class="flex items-center px-4 py-2 bg-green-700 rounded text-white"><i class="fas fa-chart-bar mr-3"></i> Métricas</a>
+            <a href="sabionda-ia.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-brain mr-3"></i> SABIONDA IA</a>
+            <a href="ayuda.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-question-circle mr-3"></i> Ayuda / FAQ</a>
+            <a href="mi-cuenta.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-user mr-3"></i> Mi cuenta</a>
+        </nav>
+    </div>
+    <div class="ml-64 p-8 w-full">
+        <h2 class="text-2xl font-bold mb-8">Métricas del Sistema</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-leaf text-green-500 text-2xl mr-4"></i>
+                    <div><p class="text-gray-500">Producción Mensual</p><p class="text-2xl font-bold">1200 kg</p></div>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-bolt text-green-500 text-2xl mr-4"></i>
+                    <div><p class="text-gray-500">Energía Solar</p><p class="text-2xl font-bold">3500 kWh</p></div>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-tint text-green-500 text-2xl mr-4"></i>
+                    <div><p class="text-gray-500">Agua Ahorrada</p><p class="text-2xl font-bold">4500 L</p></div>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-cloud text-green-500 text-2xl mr-4"></i>
+                    <div><p class="text-gray-500">CO2 Reducido</p><p class="text-2xl font-bold">2500 kg</p></div>
+                </div>
+            </div>
+        </div>
+        <div class="card p-6">
+            <h3 class="font-bold mb-4">Producción vs Consumo de Energía</h3>
+            <div class="bg-gray-100 p-4 rounded">
+                <p class="text-center py-10">Gráfico de Producción vs Consumo de Energía</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

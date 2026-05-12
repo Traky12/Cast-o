@@ -1,0 +1,55 @@
+{
+  "name": "AGRI_BRAIN_Security_Agent",
+  "active": false,
+  "tags": ["CASTUO", "agri-brain", "security", "audit"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agri-brain-security",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "abs-wh",
+      "name": "Webhook_Security",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [200, 300],
+      "webhookId": "agri-brain-security"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body ?? $input.first().json;\nconst event = String(b.event || 'ping');\nconst chainUrl = String($env.GAIACHAIN_AUDIT_URL || '').trim();\nlet audit = { skipped: true, reason: 'GAIACHAIN_AUDIT_URL no configurada' };\nif (chainUrl) {\n  const r = await fetch(chainUrl, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ event, ts: new Date().toISOString(), source: 'agri-brain-security' }),\n  });\n  const t = await r.text();\n  let parsed;\n  try { parsed = JSON.parse(t); } catch { parsed = { raw: t }; }\n  audit = { http_status: r.status, response: parsed };\n}\nreturn [{ json: { success: true, event, audit, note: 'HoneyBadger/BFT solo si el endpoint expone consenso real.' } }];"
+      },
+      "id": "abs-code",
+      "name": "Audit_Chain_Placeholder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "abs-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [740, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_Security": {
+      "main": [[{ "node": "Audit_Chain_Placeholder", "type": "main", "index": 0 }]]
+    },
+    "Audit_Chain_Placeholder": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": false },
+  "meta": {
+    "description": "Registro de eventos hacia endpoint de auditoría configurable. No sustituye WAF ni Vault."
+  }
+}

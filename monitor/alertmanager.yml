@@ -1,0 +1,22 @@
+# CASTUO-SYSTEM v5.2 — Alertmanager (Slack + Email)
+# Sustituir api_url y 'to' por valores reales
+
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['severity']
+  group_wait: 30s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'admin-team'
+
+receivers:
+  - name: 'admin-team'
+    email_configs:
+      - to: 'admin@castuo-system.com'
+        send_resolved: true
+    slack_configs:
+      - channel: '#alertas-castu'
+        send_resolved: true
+        # api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'

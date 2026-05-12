@@ -1,0 +1,115 @@
+{
+  "darktrace": {
+    "rules": [
+      {
+        "name": "CASTUO-DMS-Trigger",
+        "description": "Activa el protocolo de destrucción segura en caso de intrusión crítica",
+        "condition": {
+          "anomaly_score": ">99.9",
+          "behaviors": [
+            "hsm_access_unauthorized",
+            "gaiachain_admin_impersonation",
+            "cursor_tampering_detected",
+            "master_password_bruteforce"
+          ],
+          "confidence": ">95%"
+        },
+        "response": [
+          {
+            "type": "execute_script",
+            "script": "/opt/castuo/scripts/security/secure-destruction-protocol.sh",
+            "timeout": 300,
+            "require_confirmation": true,
+            "confirmation_channels": ["slack", "email", "yubikey_otp"]
+          },
+          {
+            "type": "notify",
+            "channels": ["slack", "email", "gaiachain"],
+            "message": "ALERTA CRÍTICA: Intrusión detectada. Activando Protocolo DMS. Solo el administrador puede abortar con YubiKey + contraseña maestra."
+          },
+          {
+            "type": "gaiachain_alert",
+            "event_type": "DMS_ACTIVATED",
+            "severity": "critical",
+            "data": {
+              "anomaly_score": "{anomaly_score}",
+              "behaviors": "{behaviors}",
+              "timestamp": "{timestamp}"
+            }
+          }
+        ],
+        "escalation": {
+          "if_unresolved_after": "5m",
+          "then": [
+            {
+              "type": "block_all_traffic",
+              "duration": "until_manual_review"
+            },
+            {
+              "type": "shutdown_systems",
+              "exclude": ["gaiachain-readonly-node"]
+            }
+          ]
+        }
+      },
+      {
+        "name": "CASTUO-YubiKey-Tampering",
+        "description": "Detección de manipulación de autenticación YubiKey",
+        "condition": {
+          "event": "yubikey_authentication",
+          "status": "failed",
+          "attempts": ">3",
+          "time_window": "60s"
+        },
+        "response": [
+          {
+            "type": "block_user",
+            "duration": "24h"
+          },
+          {
+            "type": "notify",
+            "channels": ["slack", "email"],
+            "message": "ALERTA: 3 intentos fallidos de autenticación con YubiKey. Usuario: {user}, IP: {ip}. YubiKey bloqueada temporalmente."
+          },
+          {
+            "type": "require_mfa",
+            "methods": ["yubikey", "master_password"]
+          }
+        ]
+      },
+      {
+        "name": "CASTUO-Master-Key-Access",
+        "description": "Acceso no autorizado a la clave maestra",
+        "condition": {
+          "target": ["master_password.hash", "gaiachain/master_key.pem"],
+          "action": ["read", "modify", "delete"],
+          "user": "not:authorized_admin"
+        },
+        "response": [
+          {
+            "type": "terminate_session",
+            "message": "Acceso denegado: Solo el administrador puede acceder a la clave maestra."
+          },
+          {
+            "type": "notify",
+            "channels": ["slack", "email", "gaiachain"],
+            "message": "ALERTA CRÍTICA: Intento de acceso no autorizado a la clave maestra. IP: {ip}, Usuario: {user}. Sistema en cuarentena."
+          },
+          {
+            "type": "gaiachain_alert",
+            "event_type": "MASTER_KEY_ACCESS_VIOLATION",
+            "severity": "critical"
+          }
+        ]
+      }
+    ],
+    "exclusions": {
+      "users": ["authorized_admin"],
+      "ips": ["192.168.1.0/24"],
+      "processes": [
+        "/opt/castuo/scripts/security/*",
+        "/usr/local/bin/secure_tpm_verifier"
+      ]
+    }
+  }
+}

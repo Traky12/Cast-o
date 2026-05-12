@@ -1,0 +1,154 @@
+{
+  "name": "CASTUO_Main_Orchestrator_Gateway",
+  "tags": ["CASTUO", "orchestrator", "gateway"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "castuo-orchestrate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "orch-webhook",
+      "name": "Webhook_Orquestador",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 320],
+      "webhookId": "castuo-orchestrate-gateway"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst hdrs = item.headers || {};\nconst apiKey =\n  hdrs['x-api-key'] ||\n  hdrs['X-API-KEY'] ||\n  hdrs['x-apikey'] ||\n  '';\nconst expected = String($env.CASTUO_ORCHESTRATOR_API_KEY || '').trim();\nif (expected && apiKey !== expected) {\n  throw new Error('Orquestador: API key no válida');\n}\nconst raw = item.body && typeof item.body === 'object' ? { ...item.body } : { ...item };\nconst route = String(raw.orchestrator_route || raw.route || raw.request_type || 'sensor-data').replace(/^\\/+/, '');\nconst usesDataWrapper = raw.data != null && typeof raw.data === 'object' && !Array.isArray(raw.data);\nlet forward_body = usesDataWrapper ? { ...raw.data } : { ...raw };\ndelete forward_body.orchestrator_route;\ndelete forward_body.route;\ndelete forward_body.request_type;\nif (!usesDataWrapper) {\n  delete forward_body.data;\n}\n\nconst routeAliases = {\n  'simulacion-root': 'simulacion/computational-simulation',\n  'drones-command': 'fotogrametria/drone-mission',\n  'satelite-ndvi': 'satellite-ndvi'\n};\nconst routeKey = routeAliases[route] || route;\n\nconst routes = {\n  'sensor-data': '/webhook/sensor-data',\n  sensores: '/webhook/sensor-data',\n  'trazabilidad/sensor-data': '/webhook/trazabilidad/sensor-data',\n  trazabilidad: '/webhook/trazabilidad/sensor-data',\n  'fotogrametria/drone-mission': '/webhook/fotogrametria/drone-mission',\n  'simulacion/computational-simulation': '/webhook/simulacion/computational-simulation',\n  'satelite/coordinates': '/webhook/satelite/coordinates',\n  'satellite-ndvi': '/webhook/satelite/coordinates',\n  'geoespacial/process': '/webhook/geoespacial/process',\n  'typeform-lead': '/webhook/typeform-lead',\n  'api/query': '/webhook/api/query',\n  'trillizo/audit-rotation': '/webhook/audit-rotation',\n  'trillizo/shadow-check': '/webhook/shadow-check'\n};\n\nfunction validatePayload(routeKey, b) {\n  if (!b || typeof b !== 'object') return 'Body inválido';\n  if (routeKey === 'trillizo/audit-rotation' || routeKey === 'trillizo/shadow-check') return null;\n  if (routeKey === 'sensor-data' || routeKey === 'sensores') {\n    if (b.sensor_type != null && b.value !== undefined) {\n      const n = Number(b.value);\n      if (!Number.isFinite(n)) return 'sensor-data: value debe ser numérico si viaja sensor_type';\n    }\n    return null;\n  }\n  if (routeKey === 'trazabilidad/sensor-data' || routeKey === 'trazabilidad') {\n    if (b.data != null && b.source == null) return 'trazabilidad: source requerido si envías data';\n    return null;\n  }\n  if (routeKey === 'satellite-ndvi' || routeKey === 'satelite/coordinates') {\n    if (b.bbox != null && !Array.isArray(b.bbox)) return 'satellite: bbox debe ser array';\n    if (b.coordenadas != null && (b.coordenadas.lat === undefined || b.coordenadas.lon === undefined))\n      return 'satellite: coordenadas.lat y .lon requeridos si envías coordenadas';\n    return null;\n  }\n  return null;\n}\n\nfunction webhookBaseForRoute(routeKey) {\n  const fallback = String($env.N8N_WEBHOOK_BASE || $env.WEBHOOK_URL || '').replace(/\\/+$/, '');\n  let specific = '';\n  if (['sensor-data', 'sensores', 'trazabilidad/sensor-data', 'trazabilidad'].includes(routeKey)) {\n    specific = String($env.N8N_WEBHOOK_BASE_SENSORES || '').replace(/\\/+$/, '');\n  } else if (['satelite/coordinates', 'satellite-ndvi', 'geoespacial/process'].includes(routeKey)) {\n    specific = String($env.N8N_WEBHOOK_BASE_SATELITES || '').replace(/\\/+$/, '');\n  } else if (routeKey === 'fotogrametria/drone-mission') {\n    specific = String($env.N8N_WEBHOOK_BASE_DRONES || '').replace(/\\/+$/, '');\n  } else if (routeKey === 'simulacion/computational-simulation') {\n    specific = String($env.N8N_WEBHOOK_BASE_SIMULACION || '').replace(/\\/+$/, '');\n  } else if (['trillizo/audit-rotation', 'trillizo/shadow-check'].includes(routeKey)) {\n    specific = String($env.N8N_WEBHOOK_BASE_TRILLIZO || '').replace(/\\/+$/, '');\n  }\n  return (specific || fallback).replace(/\\/+$/, '');\n}\n\nconst suffix = routes[routeKey];\nconst requestId = 'orch-' + crypto.randomUUID().slice(0, 8);\nconst receivedAt = new Date().toISOString();\nconst metaPartial = () => ({\n  request_id: requestId,\n  chosen_route: routeKey,\n  incoming_route: route,\n  canonical_route: routeKey,\n  received_at: receivedAt\n});\n\nif (!suffix) {\n  return [\n    {\n      json: {\n        orchestrator_error: true,\n        error_code: 'INVALID_ROUTE',\n        error_message: 'Ruta desconocida: ' + route + (route !== routeKey ? ' (alias→' + routeKey + ' no resuelto)' : ''),\n        orchestrator_meta: metaPartial()\n      }\n    }\n  ];\n}\nconst vmsg = validatePayload(routeKey, forward_body);\nif (vmsg) {\n  return [\n    {\n      json: {\n        orchestrator_error: true,\n        error_code: 'VALIDATION',\n        error_message: vmsg,\n        orchestrator_meta: metaPartial()\n      }\n    }\n  ];\n}\nconst base = webhookBaseForRoute(routeKey);\nif (!base) {\n  return [\n    {\n      json: {\n        orchestrator_error: true,\n        error_code: 'NO_WEBHOOK_BASE',\n        error_message: 'Definir N8N_WEBHOOK_BASE o N8N_WEBHOOK_BASE_SENSORES|SATELITES|SIMULACION|DRONES|TRILLIZO para esta ruta',\n        orchestrator_meta: metaPartial()\n      }\n    }\n  ];\n}\nconst forward_url = base + suffix;\nreturn [\n  {\n    json: {\n      orchestrator_error: false,\n      forward_url,\n      forward_body: forward_body,\n      orchestrator_meta: { ...metaPartial(), resolved_path: suffix }\n    }\n  }\n];"
+      },
+      "id": "orch-validate-route",
+      "name": "Code_Validar_Y_Ruta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "orch-if-ok",
+              "leftValue": "={{ $json.orchestrator_error }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "orch-if-ruta",
+      "name": "IF_Ruta_Valida",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [640, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.forward_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-KEY",
+              "value": "={{ $env.CASTUO_FORWARD_API_KEY || $env.CASTUO_API_KEY }}"
+            },
+            {
+              "name": "X-Forwarded-By",
+              "value": "castuo-orchestrator"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.forward_body }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "orch-http-forward",
+      "name": "HTTP_Reenviar_A_Subflujo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [880, 240],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.error ? { ok: false, orchestrator: $('Code_Validar_Y_Ruta').first().json.orchestrator_meta, downstream: $json } : { ok: true, orchestrator: $('Code_Validar_Y_Ruta').first().json.orchestrator_meta, downstream: $json } }}",
+        "options": {}
+      },
+      "id": "orch-respond",
+      "name": "Respond_Webhook_OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1120, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, orchestrator: $json.orchestrator_meta, error: { code: $json.error_code, message: $json.error_message } } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "orch-respond-err",
+      "name": "Respond_Webhook_Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [880, 420]
+    },
+    {
+      "parameters": {
+        "height": 600,
+        "width": 440,
+        "color": 4,
+        "content": "## CASTÚO — Gateway (opción A ampliada)\n\n**Entrada:** `POST .../webhook/castuo-orchestrate`\n\n**Headers:** `X-API-KEY` si defines `CASTUO_ORCHESTRATOR_API_KEY`.\n\n**Body JSON:**\n- `orchestrator_route`, `route` o `request_type`: clave de ruta; alias: `simulacion-root`, `drones-command`, `satelite-ndvi`.\n- Opcional: envolver payload en `data: { ... }`; si existe, solo `data` se reenvía al sub-webhook.\n- Sin wrapper: el cuerpo completo (menos claves de ruta) se reenvía.\n- **No** implementa HMAC ni circuit breaker; ver `n8n/README-MULTI-N8N.md`.\n\n**Validación ligera:** ruta desconocida o payload incoherente → **400** sin llamar al subflujo. Fallo HTTP downstream sigue en rama OK con `ok: false`.\n\n**Env:** `N8N_WEBHOOK_BASE` (fallback), `N8N_WEBHOOK_BASE_SENSORES|SATELITES|SIMULACION|DRONES` (multi-instancia, ver `docker-compose.multi-n8n.yml`), `CASTUO_FORWARD_API_KEY` / `CASTUO_API_KEY`, `CASTUO_ORCHESTRATOR_API_KEY` (opcional en dev).\n\n**Nota repo:** el lienzo grande (~282 nodos) vive en tu instancia/export; aquí solo está este gateway. No uses el JSON de Drones roto."
+      },
+      "id": "orch-sticky",
+      "name": "Nota_Orquestador",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, 40]
+    }
+  ],
+  "connections": {
+    "Webhook_Orquestador": {
+      "main": [[{ "node": "Code_Validar_Y_Ruta", "type": "main", "index": 0 }]]
+    },
+    "Code_Validar_Y_Ruta": {
+      "main": [[{ "node": "IF_Ruta_Valida", "type": "main", "index": 0 }]]
+    },
+    "IF_Ruta_Valida": {
+      "main": [
+        [{ "node": "HTTP_Reenviar_A_Subflujo", "type": "main", "index": 0 }],
+        [{ "node": "Respond_Webhook_Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "HTTP_Reenviar_A_Subflujo": {
+      "main": [[{ "node": "Respond_Webhook_OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "Entrada única con router, validación opcional y reenvío HTTP a webhooks del workflow principal. Importar y activar aparte del lienzo grande."
+  }
+}

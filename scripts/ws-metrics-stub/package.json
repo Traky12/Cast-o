@@ -1,0 +1,8 @@
+{
+  "name": "castuo-ws-metrics-stub",
+  "private": true,
+  "description": "Laboratorio: métricas simuladas por WebSocket (no producción).",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

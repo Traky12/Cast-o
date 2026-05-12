@@ -1,0 +1,47 @@
+{
+  "alerts": {
+    "cursor_tampering": {
+      "condition": {
+        "event": "CURSOR_EXECUTION",
+        "validation": "failed"
+      },
+      "actions": [
+        {
+          "type": "email",
+          "to": ["security@castuo-system.com", "legal@castuo-system.com"],
+          "subject": "ALERTA: Intento de manipulación de Cursor",
+          "template": "cursor_tampering.html"
+        },
+        {
+          "type": "slack",
+          "channel": "#security-alerts",
+          "message": "ALERTA DE SEGURIDAD: Intento de manipulación de Cursor. Script: {script_hash}. GaiaChain TX: {gaiachain_tx}"
+        },
+        {
+          "type": "gaiachain",
+          "event_type": "SECURITY_ALERT",
+          "data": { "severity": "CRITICAL", "affected": ["cursor"], "action": "QUARANTINE" }
+        }
+      ]
+    },
+    "unauthorized_access": {
+      "condition": {
+        "event": "ACCESS_ATTEMPT",
+        "status": "UNAUTHORIZED",
+        "severity": ">7"
+      },
+      "actions": [
+        {
+          "type": "sms",
+          "to": "+34600000000",
+          "message": "ALERTA: Acceso no autorizado en {ip}. TX: {gaiachain_tx}"
+        },
+        {
+          "type": "webhook",
+          "url": "https://darktrace.castuo-system.com/api/v1/alert",
+          "payload": { "event": "UNAUTHORIZED_ACCESS", "ip": "{ip}", "timestamp": "{timestamp}", "action": "BLOCK" }
+        }
+      ]
+    }
+  }
+}

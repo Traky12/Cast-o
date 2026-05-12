@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Ejemplo: NO activar sin revisar. Uso:
+#   git config core.hooksPath .githooks
+#   cp .githooks/post-commit.example .githooks/post-commit && chmod +x .githooks/post-commit
+#
+# Ajusta CONTAINER, rutas y credenciales. Un post-commit que reinicia Docker en cada commit rompe el flujo local.
+
+set -euo pipefail
+
+# N8N_CONTAINER=n8n-castuo
+# REPO_ROOT=$(git rev-parse --show-toplevel)
+# if docker ps --format '{{.Names}}' | grep -q "^${N8N_CONTAINER}$"; then
+#   docker cp "${REPO_ROOT}/n8n/workflows/." "${N8N_CONTAINER}:/home/node/.n8n/workflows/" || true
+#   docker restart "${N8N_CONTAINER}" || true
+# fi
+
+# if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+#   curl -sS -X POST -H 'Content-type: application/json' \
+#     --data '{"text":"Workflows sincronizados (post-commit local)"}' \
+#     "$SLACK_WEBHOOK_URL" || true
+# fi
+
+exit 0

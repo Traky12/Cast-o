@@ -1,0 +1,14 @@
+[
+  {
+    "id": "n8n-root",
+    "url": "http://localhost:5678/",
+    "method": "GET",
+    "expect_status": 200
+  },
+  {
+    "id": "backend-health",
+    "url": "http://localhost:8000/health",
+    "method": "GET",
+    "expect_status": 200
+  }
+]

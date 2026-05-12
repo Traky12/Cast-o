@@ -1,0 +1,22 @@
+{
+  "event": {
+    "eventTime": "2026-03-15T10:00:00Z",
+    "eventType": "ObjectEvent",
+    "action": "ADD",
+    "bizStep": "urn:epcglobal:cbv:bizstep:commissioning",
+    "disposition": "urn:epcglobal:cbv:disp:active",
+    "epcList": [{ "epc": "urn:epc:id:gdti:0614141.11111.2222" }],
+    "certificationInfo": [{
+      "type": "urn:epcglobal:cbv:cert:iso22000",
+      "certificationStandard": "RD 244/2019",
+      "certificationValue": "REA-2026-0001",
+      "certificationAgency": "Ministerio para la Transición Ecológica"
+    }],
+    "extension": {
+      "txHash": "a1b2c3d4e5f67890123456789abcdef0",
+      "gitCommit": "abc123def456",
+      "ipfsHash": "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
+      "farmId": "castu-finca1"
+    }
+  }
+}

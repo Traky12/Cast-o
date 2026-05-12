@@ -1,0 +1,51 @@
+# CASTUO-SYSTEM™ | Deploy automático (validación TX hash BioCoin Castúo + deploy Hetzner)
+# Se ejecuta en cada push a main. Requiere: secretos SSH (HETZNER_HOST, HETZNER_USER, SSH_PRIVATE_KEY)
+
+name: CASTUO-SYSTEM™ | Deploy Automático
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  validate-tx-hash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Validar TX hash de BioCoin Castúo en commit
+        run: |
+          if ! grep -qE "TX:\[[a-f0-9]{32}\]" "$(git log -1 --pretty=%B)"; then
+            echo "❌ Error: Commit sin TX hash de BioCoin Castúo. Ejemplo:"
+            echo "   git commit -m \"feat(drones): optimización TX:[a1b2c3d4e5f67890123456789abcdef0]\""
+            exit 1
+          fi
+          echo "✅ TX hash de BioCoin Castúo encontrado."
+
+  deploy:
+    needs: validate-tx-hash
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy a Hetzner
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          HETZNER_USER: ${{ secrets.HETZNER_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "$HETZNER_HOST" ] || [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "⚠️ HETZNER_HOST o SSH_PRIVATE_KEY no configurados. Saltando deploy."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_rsa \
+            "${HETZNER_USER:-root}@$HETZNER_HOST" \
+            "cd /castu-system && git pull && docker-compose -f docker-compose.hetzner.yml up -d --build"
+          echo "✅ Deploy completado en Hetzner."

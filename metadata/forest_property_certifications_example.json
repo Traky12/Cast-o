@@ -1,0 +1,66 @@
+{
+  "name": "Dehesa La Encina (XT-12345-001)",
+  "description": "1 hectárea de dehesa con encinas y pinos en Cáceres, Extremadura. Certificada con PEFC, FSC y en zona buffer de Red Natura 2000.",
+  "image": "ipfs://QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/parcela.jpg",
+  "attributes": [
+    { "trait_type": "Parcela ID", "value": "XT-12345-001" },
+    { "trait_type": "Coordenadas GPS", "value": "39.4769°N, 6.3706°W" },
+    { "trait_type": "Área", "value": "10,000 m² (1 hectárea)" },
+    { "trait_type": "Especies", "value": ["Quercus ilex", "Pinus pinea"] },
+    { "trait_type": "CO₂ Secuestrado", "value": "5,000 kg/año" },
+    { "trait_type": "Protegida", "value": "Sí (Zona Buffer Red Natura 2000)" },
+    {
+      "trait_type": "Certificaciones",
+      "value": [
+        {
+          "name": "PEFC",
+          "id": "ES-PEFC-12345",
+          "expiry": "2028-12-31",
+          "standard": "Gestión Forestal Sostenible"
+        },
+        {
+          "name": "FSC",
+          "id": "FSC-C123456",
+          "expiry": "2027-06-30",
+          "standard": "Forest Stewardship Council"
+        },
+        {
+          "name": "Red Natura 2000",
+          "id": "ES4321001",
+          "type": "Zona Buffer",
+          "protected_species": ["Lince ibérico", "Águila imperial"]
+        }
+      ]
+    },
+    {
+      "trait_type": "Subvenciones Vinculadas",
+      "value": [
+        { "program": "PAC 2040", "amount": "€200/ha/año", "status": "active" },
+        { "program": "Decreto 45/2020 (Extremadura)", "amount": "€150/ha/año", "status": "pending" }
+      ]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "PEFC",
+      "id": "ES-PEFC-12345",
+      "standard": "Gestión Forestal Sostenible",
+      "expiry": "2028-12-31",
+      "verified_by": "SIGPAC"
+    },
+    {
+      "name": "FSC",
+      "id": "FSC-C123456",
+      "standard": "Forest Stewardship Council",
+      "expiry": "2027-06-30",
+      "verified_by": "SIGPAC"
+    },
+    {
+      "name": "Red Natura 2000",
+      "id": "ES4321001",
+      "standard": "Protección de Biodiversidad",
+      "type": "Zona Buffer",
+      "verified_by": "SIGPAC"
+    }
+  ]
+}

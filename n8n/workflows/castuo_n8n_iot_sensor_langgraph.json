@@ -1,0 +1,141 @@
+{
+  "name": "CASTUO_IoT_Sensor_LangGraph",
+  "active": false,
+  "tags": ["CASTUO", "IoT", "langgraph", "trazabilidad"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "iot-sensor-data",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "iot-wh",
+      "name": "Webhook_IoT_Sensor",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [220, 320],
+      "webhookId": "castuo-iot-sensor-data",
+      "notesInFlow": true,
+      "notes": "En producción: añadir Header Auth o JWT en el nodo Webhook. No uses JWT_SECRET como Bearer genérico."
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst body = j.body && typeof j.body === 'object' ? j.body : j;\nconst secret = String($env.CASTUO_WEBHOOK_IOT_SECRET || '').trim();\nif (secret) {\n  const h = j.headers || {};\n  const auth = String(h.authorization || h.Authorization || '');\n  if (auth !== 'Bearer ' + secret && h['x-castuo-token'] !== secret) {\n    throw new Error('Webhook IoT: token inválido');\n  }\n}\nreturn [\n  {\n    json: {\n      payload: {\n        kind: 'iot_sensor',\n        sensor_id: body.sensor_id,\n        value: body.value,\n        type: body.type,\n        location: body.location,\n        battery: body.battery,\n        signal: body.signal,\n        timestamp: body.timestamp || new Date().toISOString(),\n      },\n      _raw: body,\n    },\n  },\n];"
+      },
+      "id": "iot-build",
+      "name": "Build_IoT_Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://castuo-api:8000').replace(/\\/$/, '') + '/iot/ingest' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json._raw }}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "iot-ingest",
+      "name": "HTTP_IoT_Ingest_Optional",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [700, 160],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "Activa solo si el cuerpo cumple el esquema /iot/ingest (CTAEX). Si da 422, dejar desactivado y usar solo LangGraph."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_LANGGRAPH_URL || $env.CASTUO_BASE_URL || 'http://castuo-api:8000').replace(/\\/$/, '') + '/langgraph/castuo/execute-graph' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $('Build_IoT_Payload').first().json.payload } }}",
+        "options": { "timeout": 180000 }
+      },
+      "id": "iot-lg",
+      "name": "HTTP_LangGraph_Castuo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [700, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst p = $('Build_IoT_Payload').first().json.payload;\nif (r.errors && r.errors.length) {\n  throw new Error('LangGraph: ' + r.errors.join('; '));\n}\nlet summary = '';\nlet alerts = [];\nlet actions = [];\ntry {\n  const o = JSON.parse(r.analysis);\n  if (o.summary != null) summary = String(o.summary);\n  if (Array.isArray(o.alerts)) alerts = o.alerts.map(String);\n  if (Array.isArray(o.recommended_actions)) actions = o.recommended_actions.map(String);\n} catch (e) {\n  summary = String(r.analysis || '').slice(0, 500);\n}\nreturn [\n  {\n    json: {\n      sensor_id: p.sensor_id,\n      value: p.value,\n      type: p.type,\n      location: p.location,\n      trace_hash: r.trace_hash || '',\n      summary,\n      alerts,\n      recommended_actions: actions,\n      gaia_http_status: r.gaia_http_status,\n      analysis_raw: r.analysis || '',\n    },\n  },\n];"
+      },
+      "id": "iot-norm",
+      "name": "Normalize_Trace",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK || '' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { text: 'IoT CASTÚO · ' + String($json.sensor_id) + ' · trace ' + String($json.trace_hash).slice(0, 20) + '…\\n' + String($json.summary || '').slice(0, 400) } }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "iot-slack",
+      "name": "Slack_Webhook_IoT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1180, 240],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "iot-resp",
+      "name": "Respond_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1180, 400]
+    }
+  ],
+  "connections": {
+    "Webhook_IoT_Sensor": {
+      "main": [[{ "node": "Build_IoT_Payload", "type": "main", "index": 0 }]]
+    },
+    "Build_IoT_Payload": {
+      "main": [[{ "node": "HTTP_LangGraph_Castuo", "type": "main", "index": 0 }]]
+    },
+    "HTTP_LangGraph_Castuo": {
+      "main": [[{ "node": "Normalize_Trace", "type": "main", "index": 0 }]]
+    },
+    "Normalize_Trace": {
+      "main": [
+        [
+          { "node": "Respond_Webhook", "type": "main", "index": 0 },
+          { "node": "Slack_Webhook_IoT", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "IoT → LangGraph en castuo-api (no langgraph:8123). GaiaChain vía GAIACHAIN_REGISTER_URL en el API. Opcional CASTUO_WEBHOOK_IOT_SECRET + Authorization: Bearer <secret> o header x-castuo-token."
+  }
+}

@@ -1,0 +1,33 @@
+# RBAC mínimo para el namespace de producción
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: castuo-coordinator
+  namespace: castuo-prod
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: castuo-coordinator
+  namespace: castuo-prod
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: castuo-coordinator
+  namespace: castuo-prod
+subjects:
+- kind: ServiceAccount
+  name: castuo-coordinator
+  namespace: castuo-prod
+roleRef:
+  kind: Role
+  name: castuo-coordinator
+  apiGroup: rbac.authorization.k8s.io

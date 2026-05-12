@@ -1,0 +1,116 @@
+{
+  "name": "CASTUO_Orchestrator_Minimal",
+  "active": false,
+  "tags": ["CASTUO", "orchestrator", "langgraph"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "castuo-orchestrate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "orch-wh",
+      "name": "Webhook_Castuo_Orchestrate",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 340],
+      "webhookId": "castuo-orchestrate",
+      "notesInFlow": true,
+      "notes": "Opcional: CASTUO_ORCHESTRATOR_KEY + cabecera X-API-Key. No usar langgraph:8123 ni JWT_SECRET como Bearer."
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst headers = j.headers || {};\nconst key = String($env.CASTUO_ORCHESTRATOR_KEY || '').trim();\nif (key) {\n  const got = String(headers['x-api-key'] || headers['X-API-Key'] || '');\n  if (got !== key) throw new Error('X-API-Key inválida');\n}\nconst body = j.body && typeof j.body === 'object' && !Array.isArray(j.body) ? j.body : j;\nconst request_type = body.request_type;\nconst data = body.data;\nif (!request_type || !data || typeof data !== 'object') {\n  throw new Error('Cuerpo JSON: { request_type, data }');\n}\nlet payload;\nswitch (String(request_type)) {\n  case 'sensores':\n    payload = { kind: 'iot_sensor', ...data };\n    break;\n  case 'qelectrotech':\n    payload = { kind: 'qelectrotech_svg', ...data };\n    if (!payload.svg_base64) throw new Error('data.svg_base64 requerido');\n    break;\n  case 'plc':\n  case 'cursor_mcp':\n    payload = {\n      kind: 'plc_generate',\n      project_id: data.project_id,\n      requirements: data.requirements || data.description || '',\n      hardware: data.hardware || 'S7-1200',\n      standards: data.standards || ['IEC 61131-3'],\n    };\n    break;\n  case 'simulacion':\n    payload = { ...data };\n    delete payload.kind;\n    break;\n  default:\n    throw new Error('request_type no soportado: ' + request_type);\n}\nreturn [{ json: { payload, request_type, received_at: new Date().toISOString() } }];"
+      },
+      "id": "orch-class",
+      "name": "Classify_And_Build_Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 340]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_LANGGRAPH_URL || $env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://castuo-api:8000').replace(/\\/$/, '') + '/langgraph/castuo/execute-graph' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $json.payload } }}",
+        "options": { "timeout": 300000 }
+      },
+      "id": "orch-http",
+      "name": "HTTP_Castuo_LangGraph",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [760, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lg = $input.first().json;\nconst meta = $('Classify_And_Build_Payload').first().json;\nif (lg.errors && lg.errors.length) {\n  throw new Error('LangGraph: ' + lg.errors.join('; '));\n}\nreturn [\n  {\n    json: {\n      ok: true,\n      request_type: meta.request_type,\n      trace_hash: lg.trace_hash || '',\n      analysis: lg.analysis || '',\n      gaia_http_status: lg.gaia_http_status,\n      gaia_body: lg.gaia_body,\n      slack_http_status: lg.slack_http_status,\n      received_at: meta.received_at,\n    },\n  },\n];"
+      },
+      "id": "orch-out",
+      "name": "Shape_Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1020, 340]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK || '' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { text: 'CASTÚO orchestrator · ' + $json.request_type + ' · trace ' + String($json.trace_hash).slice(0, 24) } }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "orch-slack",
+      "name": "Slack_Optional",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1020, 180],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "orch-resp",
+      "name": "Respond_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1280, 340]
+    }
+  ],
+  "connections": {
+    "Webhook_Castuo_Orchestrate": {
+      "main": [[{ "node": "Classify_And_Build_Payload", "type": "main", "index": 0 }]]
+    },
+    "Classify_And_Build_Payload": {
+      "main": [[{ "node": "HTTP_Castuo_LangGraph", "type": "main", "index": 0 }]]
+    },
+    "HTTP_Castuo_LangGraph": {
+      "main": [[{ "node": "Shape_Response", "type": "main", "index": 0 }]]
+    },
+    "Shape_Response": {
+      "main": [
+        [
+          { "node": "Respond_Webhook", "type": "main", "index": 0 },
+          { "node": "Slack_Optional", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "Orquestador mínimo: un solo LangGraph en castuo-api. request_type: sensores | qelectrotech | plc | cursor_mcp | simulacion. Ver docs/deploy/N8N-INITIAL-SETUP-CASTUO.md"
+  }
+}

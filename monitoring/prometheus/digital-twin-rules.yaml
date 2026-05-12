@@ -1,0 +1,57 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: digital-twin-holographic-alerts
+  namespace: dt-prod
+spec:
+  groups:
+  - name: holographic-encryption
+    rules:
+    - alert: HolographicEncryptionLatencyHigh
+      expr: rate(holographic_encryption_latency_seconds[1m]) > 0.05
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Alta latencia en cifrado holográfico ({{ $value }}s)"
+        description: |
+          La latencia en el cifrado holográfico ha superado el umbral de 50ms.
+          Impacto: posible degradación del rendimiento criptográfico.
+          Acción:
+            1. Verificar carga del HSM / nodos: `kubectl top pod -n dt-prod -l app=digital-twin-core`
+            2. Revisar métricas detalladas: `kubectl exec -n dt-prod deploy/digital-twin-core -- python -m backend.digital_twin.holographic_encryption --metrics`
+            3. Ajustar parámetros de transformación holográfica si es necesario.
+        runbook: "https://docs.dt-system.eu/alerts/holographic_encryption_latency"
+
+    - alert: HolographicDecryptionFailures
+      expr: rate(holographic_decryption_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Fallos en descifrado holográfico ({{ $value }} fallos/5m)"
+        description: |
+          Se han detectado fallos en el descifrado holográfico.
+          Impacto: posible pérdida o corrupción de datos cifrados.
+          Acción:
+            1. Verificar integridad de claves: `kubectl exec -n dt-prod deploy/digital-twin-core -- python -m backend.digital_twin.holographic_encryption --verify-keys`
+            2. Revisar logs de error: `kubectl logs -n dt-prod -l app=digital-twin-core | grep "HolographicDecryption"`
+            3. Rotar claves si procede: `kubectl exec -n dt-prod deploy/digital-twin-core -- python -m backend.security.key_rotation --emergency`
+        runbook: "https://docs.dt-system.eu/alerts/holographic_decryption_failures"
+
+    - alert: ZKProofVerificationFailures
+      expr: rate(zk_proof_verification_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Fallos en verificación de pruebas ZK ({{ $value }} fallos/5m)"
+        description: |
+          Se han detectado fallos al verificar pruebas ZK asociadas al cifrado holográfico.
+          Impacto: posible manipulación de datos o errores en la capa holográfica.
+          Acción:
+            1. Verificar integridad de la cadena: `kubectl exec -n dt-prod deploy/digital-twin-core -- python -m backend.digital_twin.holographic_encryption --verify-chain`
+            2. Revisar configuración del prover ZK: `kubectl exec -n dt-prod deploy/digital-twin-core -- python -m backend.digital_twin.holographic_encryption --check-zk-config`
+            3. Notificar al equipo de criptografía.
+        runbook: "https://docs.dt-system.eu/alerts/zk_proof_verification_failures"
+

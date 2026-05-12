@@ -1,0 +1,113 @@
+# CASTÚO-SYSTEM™ — Cursor deployment v10.1 (sandbox + firmas HSM)
+# InitContainers verifican firma y hash antes de arrancar el contenedor principal
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cursor
+  labels:
+    app: cursor
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cursor
+  template:
+    metadata:
+      labels:
+        app: cursor
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/cursor: runtime/default
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+      - name: verify-signature
+        image: alpine:latest
+        command: ["sh", "-c"]
+        args:
+          - |
+            apk add --no-cache openssl
+            if [ ! -f /etc/cursor/signatures/cursor_pub.pem ] || [ ! -f /etc/cursor/signatures/cursor.sig ]; then
+              echo "⚠️ Missing signature files; skipping verification (dev mode)"
+              exit 0
+            fi
+            if [ -f /app/cursor.js ] && ! openssl dgst -sha256 -verify /etc/cursor/signatures/cursor_pub.pem \
+              -signature /etc/cursor/signatures/cursor.sig /app/cursor.js; then
+              echo "❌ Firma de Cursor inválida"
+              exit 1
+            fi
+        volumeMounts:
+        - name: cursor-signatures
+          mountPath: /etc/cursor/signatures
+        - name: cursor-code
+          mountPath: /app
+      - name: verify-integrity
+        image: alpine:latest
+        command: ["sh", "-c"]
+        args:
+          - |
+            if [ -f /etc/cursor/signatures/cursor.hash ] && [ -f /app/cursor.js ]; then
+              want=$(cat /etc/cursor/signatures/cursor.hash)
+              got=$(sha256sum /app/cursor.js | awk '{print $1}')
+              if [ "$want" != "$got" ]; then
+                echo "❌ Hash de Cursor no coincide"
+                exit 1
+              fi
+            fi
+        volumeMounts:
+        - name: cursor-signatures
+          mountPath: /etc/cursor/signatures
+        - name: cursor-code
+          mountPath: /app
+      containers:
+      - name: cursor
+        image: ghcr.io/castuo-system/cursor:v10.1
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - name: tmpfs
+          mountPath: /tmp
+        - name: cursor-signatures
+          mountPath: /etc/cursor/signatures
+          readOnly: true
+      volumes:
+      - name: tmpfs
+        emptyDir:
+          medium: Memory
+          sizeLimit: 100Mi
+      - name: cursor-signatures
+        secret:
+          secretName: cursor-signatures
+          optional: true
+          items:
+          - key: cursor_pub.pem
+            path: cursor_pub.pem
+          - key: cursor.sig
+            path: cursor.sig
+          - key: cursor.hash
+            path: cursor.hash
+      - name: cursor-code
+        configMap:
+          name: cursor-code
+          optional: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cursor
+spec:
+  selector:
+    app: cursor
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+  type: ClusterIP

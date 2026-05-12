@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  offer-bot:
+    image: registry.castuo-system.com/{{ project_name }}/offer-bot:latest
+    container_name: offer-bot
+    restart: unless-stopped
+    ports:
+      - "{{ offer_bot_port }}:8007"
+    environment:
+      - GAIA_CHAIN_RPC={{ gaia_chain_rpc }}
+    networks:
+      - {{ docker_network }}
+    volumes:
+      - ./feedback_log.json:/app/feedback_log.json
+
+  negotiation-bot:
+    image: registry.castuo-system.com/{{ project_name }}/negotiation-bot:latest
+    container_name: negotiation-bot
+    restart: unless-stopped
+    ports:
+      - "{{ negotiation_bot_port }}:8008"
+    networks:
+      - {{ docker_network }}
+    volumes:
+      - ./negotiation_feedback.json:/app/negotiation_feedback.json
+
+  loyalty-bot:
+    image: registry.castuo-system.com/{{ project_name }}/loyalty-bot:latest
+    container_name: loyalty-bot
+    restart: unless-stopped
+    ports:
+      - "{{ loyalty_bot_port }}:8009"
+    networks:
+      - {{ docker_network }}
+    volumes:
+      - ./loyalty_feedback.json:/app/loyalty_feedback.json
+
+  commercial-orchestrator:
+    image: registry.castuo-system.com/{{ project_name }}/commercial-orchestrator:latest
+    container_name: commercial-orchestrator
+    restart: unless-stopped
+    ports:
+      - "{{ commercial_orchestrator_port }}:8010"
+    networks:
+      - {{ docker_network }}
+    depends_on:
+      - offer-bot
+      - negotiation-bot
+      - loyalty-bot
+
+networks:
+  {{ docker_network }}:
+    external: true
+

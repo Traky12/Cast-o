@@ -1,0 +1,36 @@
+# CASTÚO-SYSTEM™ — Política de seguridad para pods Cursor (anti-hacking v1.0)
+# NOTA: PodSecurityPolicy está deprecada en K8s 1.21+ y eliminada en 1.25.
+# En clusters modernos use Pod Security Standards (labels en namespace):
+#   pod-security.kubernetes.io/enforce: restricted
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: cursor-restricted
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - configMap
+    - emptyDir
+    - secret
+    - projected
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: MustRunAsNonRoot
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: true

@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-backend
+  namespace: castuo-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: backend
+        env:
+        - name: LEGAL_FRAMEWORK
+          value: "PIPL,AgriTech_2030"

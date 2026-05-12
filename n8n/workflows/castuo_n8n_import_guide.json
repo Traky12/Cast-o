@@ -1,0 +1,26 @@
+{
+  "name": "CASTUO_Guía_Importación_n8n",
+  "tags": ["CASTUO", "documentación", "n8n"],
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# CASTÚO-SYSTEM + n8n (coherencia env)\n\n## 1. n8n\nSolo importas **workflows JSON** (⋮ → Import from File). Variables van en el **contenedor**, no en el lienzo.\n\n## 2. Archivos en repo\n- **`.env.n8n-castuo.example`** → copia a `.env.n8n-castuo` (Plan Pro: `CASTUO_API_KEY`, `CASTUO_ZONE_ID=zone_cannabis_1`, `MISTRAL_API_KEY`, `N8N_PASSWORD`, `N8N_ENCRYPTION_KEY`).\n- **`docker-compose.n8n-castuo.yml`** — n8n **solo** (API en host: `host.docker.internal`).\n- **`docker-compose.n8n-castuo.pro.yml`** — n8n en **red externa** del stack (`CASTUO_DOCKER_NETWORK`, p. ej. `castuo_castuo_internal` si `compose -p castuo`).\n- **`docker-compose.prod.yml`** — prod con `n8n` + `api` + `HYDROPONICS_SAAS_API_KEYS` en **`.env.production`**.\n- **`docker-compose.multi-n8n.yml`** + **`.env.n8n-multi.example`** — cinco n8n opcionales (sensores / satélites / simulación / drones / **trillizo**); guías **`n8n/README-MULTI-N8N.md`**, **`n8n/README-TRILLIZO.md`**; gateway usa `N8N_WEBHOOK_BASE_*` por dominio.\n- **`docker-compose.cerebros.yml`** + **`.env.cerebros.example`** — Logseq web + 2× SilverBullet + Postgres (Markdown + SQL); **`n8n/README-CEREBROS.md`**.\n- **`01-trillizo-auditoria-basica.json`** — Trillizo: `POST /webhook/audit-trigger` → append diario `.md` en `/data/cerebros-auditoria` (solo **n8n-trillizo** con volumen montado).\n\n## 3. Backend obligatorio\nMisma clave en **`HYDROPONICS_SAAS_API_KEYS`** y **`CASTUO_API_KEY`** (n8n). **`SLACK_WEBHOOK_URL`** en el contenedor **`api`** (no en n8n) para `/notifications/slack`.\n\n## 4. Desplegar (ejemplo prod)\n```bash\ngit clone https://github.com/TU_ORG/Castuo-System.git\ncd Castuo-System\ncp .env.production.example .env.production\n# Edita DB_*, HYDROPONICS_SAAS_API_KEYS, CASTUO_*, N8N_*, SLACK_WEBHOOK_URL\ndocker compose -f docker-compose.prod.yml --env-file .env.production up -d\n```\nN8n Pro **además** del stack: tras levantar prod, ajusta `CASTUO_DOCKER_NETWORK` y:\n`docker compose -f docker-compose.n8n-castuo.pro.yml --env-file .env.n8n-castuo up -d` (solo si necesitas un segundo n8n; el prod ya incluye `n8n`).\n\n## 5. Workflows\nImporta **`castuo_n8n_import_guide.json`**, **`castuo_hydro_full_integration.json`** (Tier IV + inversores), opcional **`castuo_main_orchestrator_gateway.json`** (entrada única → router + validación ligera + reenvío a tus webhooks; ~7 nodos), y si aplica **`castuo_investor_roi_kpis_fragment.json`** / **`castuo_agente_optimizacion_inversores.template.json`**. El lienzo monolítico grande (p. ej. ~282 nodos) se mantiene en tu instancia o en un export propio; **no** hay `castuo_main_workflow.json` fijo en el repo. Activa. Webhook hydro: **`/webhook/castuo-hydro-full`**; gateway: **`/webhook/castuo-orchestrate`**.\n\n## 6. Prueba\n```bash\ncurl -X POST \"https://n8n.tudominio.com/webhook/castuo-hydro-full\" \\\n  -H \"Content-Type: application/json\" \\\n  -u usuario:password \\\n  -d '{\"sensor_type\":\"ph\",\"value\":6.8,\"location\":\"greenhouse_1\",\"threshold\":7.0,\"threshold_low\":6.0}'\n```\n(Basic auth si está activo; sustituye URL y credenciales.)\n",
+        "height": 1680,
+        "width": 520,
+        "color": 4
+      },
+      "id": "sticky-castuo-guide",
+      "name": "Guía CASTÚO (leer)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 160]
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "saveManualExecutions": false
+  },
+  "meta": {
+    "description": "Importar este workflow en n8n para tener la guía de integración CASTÚO en el lienzo (nota adhesiva). No ejecuta nada; es documentación viva."
+  }
+}

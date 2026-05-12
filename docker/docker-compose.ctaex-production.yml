@@ -1,0 +1,39 @@
+# Producción CTAEX: redes internas y puertos solo en localhost (Nginx hace de proxy)
+# Uso: docker compose -f docker/docker-compose.ctaex.yml -f docker/docker-compose.ctaex-production.yml up -d
+# Requiere Nginx en el host (con whitelist) escuchando 80/443 y proxy_pass a 127.0.0.1:8000 y 127.0.0.1:3000
+
+version: '3.8'
+
+services:
+  backend:
+    ports:
+      - "127.0.0.1:8000:8000"   # Solo accesible desde el host (Nginx)
+    networks:
+      - internal_network
+
+  frontend:
+    ports:
+      - "127.0.0.1:3000:80"     # Solo localhost
+    networks:
+      - public_network
+
+  postgres:
+    networks:
+      - internal_network
+
+  mqtt:
+    ports:
+      - "8883:8883"             # MQTT TLS (público si se necesita externo)
+      - "1883:1883"
+      - "9001:9001"
+    networks:
+      - internal_network
+
+networks:
+  internal_network:
+    name: castuo_internal
+    internal: false
+    driver: bridge
+  public_network:
+    name: castuo_public
+    driver: bridge

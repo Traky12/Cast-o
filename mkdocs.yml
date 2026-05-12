@@ -1,0 +1,45 @@
+# CASTÚO-SYSTEM — Documentación Mistral Adapter
+# Build: mkdocs build | Deploy: mkdocs gh-deploy --clean
+# URLs: https://castuo-system.github.io/mistral-adapter/ | https://docs.castuo-system.com/mistral-adapter/
+
+site_name: CASTÚO-Mistral Adapter
+site_url: https://docs.castuo-system.com/mistral-adapter/
+docs_dir: docs/mistral-adapter
+
+plugins:
+  - search
+  - mermaid2
+  - git-revision-date-localized:
+      type: date
+
+theme:
+  name: material
+  language: es
+
+nav:
+  - Introducción: index.md
+  - Características: features.md
+  - Instalación: installation.md
+  - Uso: usage.md
+  - API Reference: api-reference.md
+  - Cumplimiento: compliance.md
+  - Ejemplos: examples.md
+  - Hidroponía Agrovoltaica: hidroponia.md
+  - Arquitectura (Dehesas → Edge): arquitectura-dehesas-edge.md
+  - Optimización RPi 500+ sensores: optimizacion-rpi-500-sensores.md
+  - ArgoCD (automatización): argocd-automation.md
+  - ArgoCD Multi-Cluster: argocd-multi-cluster.md
+  - Runbook despliegue global: runbook-despliegue-global.md
+  - Verra + Oceanía + Tokenización: verra-oceania-tokenizacion.md
+  - BioCoin + AirCarbon (pagos): biocoin-aircarbon.md
+  - Chainlink + Marketplace carbono: chainlink-marketplace.md
+  - CropNFT Marketplace: crop-nft-marketplace.md
+  - NFTs dinámicos + OpenSea: dynamic-nft-opensea.md
+  - Release v1.7.0 (Dynamic NFT): release-v1.7.0.md
+  - Mercados de carbono (GaiaChain): carbon-credits-gaiachain.md
+  - Pitch Deck Extremadura: pitch-deck-extremadura.md
+  - Deploy: deploy.md
+  - Funding: funding.md
+  - FAQ: faq.md
+  - Roadmap: roadmap.md
+  - Changelog: changelog.md

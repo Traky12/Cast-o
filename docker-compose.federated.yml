@@ -1,0 +1,85 @@
+# CASTÚO Federated IA v3.0 — 3 nodos P2P + IPFS + consenso 2/3
+# Uso: docker-compose -f docker-compose.federated.yml up -d
+# Dashboard: http://localhost:8001/federated/dashboard
+
+version: "3.8"
+
+services:
+  node1-castuo:
+    build:
+      context: ./backend/federated
+      dockerfile: Dockerfile
+    image: castuo-federated:latest
+    container_name: node1-castuo
+    environment:
+      NODE_ID: node1
+      PEERS: node2-castuo,node3-castuo
+      PEER_NODE2_CASTUO_URL: http://node2-castuo:8001
+      PEER_NODE3_CASTUO_URL: http://node3-castuo:8001
+      BLOCKCHAIN_AUDITOR_URL: http://localhost:8001
+      IPFS_HOST: http://ipfs:5001
+      IPFS_ENABLED: "true"
+    ports:
+      - "8001:8001"
+    networks:
+      - federated_network
+    restart: unless-stopped
+
+  node2-castuo:
+    build:
+      context: ./backend/federated
+      dockerfile: Dockerfile
+    image: castuo-federated:latest
+    container_name: node2-castuo
+    environment:
+      NODE_ID: node2
+      PEERS: node1-castuo,node3-castuo
+      PEER_NODE1_CASTUO_URL: http://node1-castuo:8001
+      PEER_NODE3_CASTUO_URL: http://node3-castuo:8001
+      BLOCKCHAIN_AUDITOR_URL: http://node1-castuo:8001
+      IPFS_HOST: http://ipfs:5001
+      IPFS_ENABLED: "true"
+    ports:
+      - "8011:8001"
+    networks:
+      - federated_network
+    restart: unless-stopped
+
+  node3-castuo:
+    build:
+      context: ./backend/federated
+      dockerfile: Dockerfile
+    image: castuo-federated:latest
+    container_name: node3-castuo
+    environment:
+      NODE_ID: node3
+      PEERS: node1-castuo,node2-castuo
+      PEER_NODE1_CASTUO_URL: http://node1-castuo:8001
+      PEER_NODE2_CASTUO_URL: http://node2-castuo:8001
+      BLOCKCHAIN_AUDITOR_URL: http://node1-castuo:8001
+      IPFS_HOST: http://ipfs:5001
+      IPFS_ENABLED: "true"
+    ports:
+      - "8012:8001"
+    networks:
+      - federated_network
+    restart: unless-stopped
+
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: ipfs-castuo
+    ports:
+      - "4001:4001"
+      - "5001:5001"
+    volumes:
+      - ipfs_data:/data/ipfs
+    networks:
+      - federated_network
+    restart: unless-stopped
+
+volumes:
+  ipfs_data:
+
+networks:
+  federated_network:
+    driver: bridge

@@ -1,0 +1,29 @@
+# MotionEye en borde (Hetzner/Arsys). Credenciales: .env.camera (no commitear).
+# Red con el backend: docker network connect castuo-net <castuo-api-container>
+services:
+  motioneye:
+    image: ccrisan/motioneye:master-amd64
+    container_name: castuo-motioneye
+    restart: unless-stopped
+    ports:
+      - "${MOTIONEYE_PORT_DASH:-8765}:8765"
+      - "${MOTIONEYE_PORT_RTSP:-8081}:8081"
+      - "${MOTIONEYE_PORT_RTSP_MAIN:-554}:554"
+    volumes:
+      - ${MOTIONEYE_DATA:-./data/motioneye}:/var/lib/motioneye:cached
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      TZ: ${TZ:-UTC}
+    networks:
+      - castuo-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8765/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  castuo-net:
+    driver: bridge
+    name: castuo-net

@@ -1,0 +1,79 @@
+# CASTUO 5.0 — Segmentación de red IoT con Cilium (eBPF)
+# IEC 62443-3-3, ETSI EN 303 645
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: iot-segmentation
+  namespace: castu-iot
+spec:
+  description: "Política de segmentación para dispositivos IoT"
+  endpointSelector:
+    matchLabels:
+      role: iot-sensor
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        role: iot-gateway
+    toPorts:
+    - ports:
+      - port: "1883"   # MQTT
+      - port: "8883"   # MQTT TLS
+      protocol: TCP
+  - toFQDNs:
+    - matchName: "api.castu.system"
+    toPorts:
+    - ports:
+      - port: "443"
+      protocol: TCP
+  - toEntities:
+    - world
+    toPorts:
+    - ports:
+      - port: "53"
+      protocol: UDP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: iot-gateway-policy
+  namespace: castu-iot
+spec:
+  description: "Política para gateways IoT"
+  endpointSelector:
+    matchLabels:
+      role: iot-gateway
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        role: iot-sensor
+    toPorts:
+    - ports:
+      - port: "1883"
+      - port: "8883"
+      protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        role: backend-server
+    toPorts:
+    - ports:
+      - port: "8443"
+      protocol: TCP
+  - toFQDNs:
+    - matchName: "updates.castu.system"
+    toPorts:
+    - ports:
+      - port: "443"
+      protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: deny-all-iot
+  namespace: castu-iot
+spec:
+  description: "Denegar todo tráfico no permitido por otras políticas"
+  endpointSelector: {}
+  ingress: []
+  egress: []

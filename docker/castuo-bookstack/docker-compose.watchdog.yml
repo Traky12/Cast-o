@@ -1,0 +1,24 @@
+# CASTÚO-SYSTEM™ | Watchdog verificación continua (anti-tampering capa 5)
+# Uso opcional: docker compose -f docker-compose.yml -f docker-compose.watchdog.yml up -d
+# Ejecuta verify-integrity.sh cada 30s. Si falla, el contenedor sale (restart policy puede reiniciar).
+
+version: '3.8'
+
+services:
+  integrity-watchdog:
+    image: alpine:latest
+    container_name: castuo-integrity-watchdog
+    command: >
+      sh -c "
+        apk add --no-cache openssl bash &&
+        while true; do
+          /app/verify-integrity.sh || exit 1;
+          sleep 30;
+        done
+      "
+    volumes:
+      - "./:/app:ro"
+    working_dir: /app
+    restart: unless-stopped
+    profiles:
+      - watchdog

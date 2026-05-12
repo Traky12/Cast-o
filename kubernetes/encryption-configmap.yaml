@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: encryption-config
+  namespace: castuo
+data:
+  ENABLE_HE: "true"
+  ENABLE_TRACING: "true"
+  CACHE_TTL: "3600"
+  ENCRYPTION_ALGORITHM: "RSA4096_AES256_GCM_Kyber1024"
+  HASH_ALGORITHM: "BLAKE3"
+  SENSITIVE_FIELDS: "customer_email,billing_address,shipping_address,credit_card"

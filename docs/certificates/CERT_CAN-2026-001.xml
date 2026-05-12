@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<CertificadoSoberano xmlns="http://castuo-system.com/ns/sovereign" version="1.0"><Encabezado><ID>local-fallback-9</ID><FechaEmision>2026-03-19T17:52:06</FechaEmision><Emisor><Nombre>CASTUO-SYSTEM S.L.</Nombre><CIF>B12345678</CIF></Emisor></Encabezado><Cuerpo><LoteId>CAN-2026-001</LoteId></Cuerpo><Pie><HashPDF>52af2f2c7b8f23c242ab4c389a8cd3842c028884e40c6f84afd253b38f28ac38</HashPDF><FirmaTipo>eIDAS 2 (Modo Continuidad Operativa Art. 25.2)</FirmaTipo></Pie></CertificadoSoberano>

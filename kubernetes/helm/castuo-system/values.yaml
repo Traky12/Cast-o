@@ -1,0 +1,107 @@
+nameOverride: ""
+fullnameOverride: ""
+
+domain: castuo-system.eu
+
+agents:
+  image:
+    repository: ghcr.io/castuo-system/backend
+    tag: v2.1
+    pullPolicy: IfNotPresent
+  cacheTTL: "3600"
+
+  master:
+    replicaCount: 2
+    resources:
+      limits:
+        cpu: "2"
+        memory: "1Gi"
+      requests:
+        cpu: "1"
+        memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+      targetQueueLength: 1000
+
+  selfhealing:
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: "1"
+        memory: "512Mi"
+      requests:
+        cpu: "500m"
+        memory: "256Mi"
+
+backend:
+  replicas: 2
+  servicePort: 8000
+
+logLevel: "INFO"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: api.castuo-system.eu
+      paths:
+        - path: /api
+          pathType: Prefix
+    - host: agents.castuo-system.eu
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: castuo-system-tls
+      hosts:
+        - api.castuo-system.eu
+        - agents.castuo-system.eu
+
+hpa:
+  masterAgent:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPU: 70
+    targetMemory: 80
+
+rabbitmq:
+  auth:
+    username: castuo
+    password: ""
+
+prometheus:
+  server:
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+
+grafana:
+  adminPassword: ""
+  persistence:
+    enabled: true
+    size: 10Gi
+
+certManager:
+  enabled: false
+  issuerName: letsencrypt-prod
+  duration: 2160h
+  renewBefore: 720h
+
+opa:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: "1"
+      memory: "512Mi"
+    requests:
+      cpu: "500m"
+      memory: "256Mi"

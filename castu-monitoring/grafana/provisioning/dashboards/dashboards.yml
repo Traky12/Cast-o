@@ -1,0 +1,8 @@
+# CASTUO-SYSTEM™ | Provisioning de dashboards
+apiVersion: 1
+providers:
+  - name: 'castu'
+    folder: 'CASTUO'
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards/castu

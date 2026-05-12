@@ -1,0 +1,29 @@
+# Bastión SSH (plantilla). La red debe existir:
+#   docker network create castuo_remote
+#   docker compose -f docker-compose/bastion.yml up -d
+#
+# Añadir claves en docker/remote-access/bastion/authorized_keys (volumen montado).
+
+services:
+  bastion:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: castuo-bastion
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/Madrid
+      PUBLIC_KEY_FILE: /config/authorized_keys
+      USER_NAME: ${BASTION_USER:-ctaex}
+      SUDO_ACCESS: "false"
+      PASSWORD_ACCESS: "false"
+    volumes:
+      - ../docker/remote-access/bastion:/config
+    ports:
+      - "${BASTION_SSH_PORT:-2222}:2222"
+    networks:
+      - castuo_remote
+
+networks:
+  castuo_remote:
+    external: true
+    name: castuo_remote

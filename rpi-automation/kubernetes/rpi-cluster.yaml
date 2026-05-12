@@ -1,0 +1,21 @@
+# Ejemplo de aplicación ArgoCD para trackear el repo de configuración de RPis.
+# ArgoCD sincroniza manifiestos K8s; para ejecutar Ansible usar CI o manual:
+#   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rpi-cluster-eu
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tu-usuario/castuo-system.git
+    path: rpi-automation/ansible
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rpi-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

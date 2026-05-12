@@ -1,0 +1,19 @@
+# CASTÚO-SYSTEM™ | BookStack TRL11 — Volúmenes inmutables y cifrado at rest
+# Requiere dispositivo cifrado: /dev/mapper/castuo-crypt (LUKS). Uso: docker compose -f docker-compose.yml -f docker-compose-trl11.yml up -d
+
+version: '3.8'
+
+volumes:
+  castuo_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,ro,encryption=aes-xts-plain64
+      device: /dev/mapper/castuo-crypt
+
+# Incluir en stack TRL11: montar castuo_data en servicios que deban usar disco cifrado.
+# Ejemplo (descomentar y ajustar servicio):
+# services:
+#   bookstack:
+#     volumes:
+#       - castuo_data:/data

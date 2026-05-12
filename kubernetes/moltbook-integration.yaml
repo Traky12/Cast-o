@@ -1,0 +1,83 @@
+# Integración Moltbook: orquestación federada con cumplimiento UE
+# (RGPD, AI Act 2024/1689, eIDAS, Ley IA Española 2026)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moltbook-integration
+  namespace: dt-prod
+  labels:
+    app: moltbook-integration
+    component: federated-orchestration
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: moltbook-integration
+  template:
+    metadata:
+      labels:
+        app: moltbook-integration
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: moltbook-core
+        image: ghcr.io/tu-organizacion/castuo-system:v2.1-moltbook
+        env:
+        - name: DT_HOLOGRAPHIC_ENCRYPTION_ENABLED
+          value: "true"
+        - name: MOLTBOOK_JURISDICTION
+          value: "EU"
+        - name: MOLTBOOK_COMPLIANCE_STANDARDS
+          value: "GDPR_Art32_2026,EU_AI_Act_2024_Annex_III,eIDAS_Regulation_2026"
+        - name: GAIA_CHAIN_NODES
+          value: "es-madrid,fr-paris,de-berlin"
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: eu-compliance-certs
+          mountPath: /etc/eu-compliance
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+      volumes:
+      - name: eu-compliance-certs
+        secret:
+          secretName: eu-compliance-certs-2026
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: moltbook-integration
+  namespace: dt-prod
+  labels:
+    app: moltbook-integration
+spec:
+  selector:
+    app: moltbook-integration
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http

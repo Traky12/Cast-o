@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <style>
+    body { font-family: system-ui, sans-serif; line-height: 1.5; color: #222; }
+    .box { max-width: 640px; margin: 0 auto; padding: 16px; }
+    .hdr { background: #228B22; color: #fff; padding: 16px; border-radius: 8px 8px 0 0; }
+    .body { background: #f8f8f8; padding: 16px; border-radius: 0 0 8px 8px; }
+    .amount { font-size: 1.35em; font-weight: bold; color: #228B22; }
+    .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
+    table.meta { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    table.meta td { padding: 8px; border-bottom: 1px solid #e0e0e0; }
+    table.meta td:last-child { text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="hdr">
+      <h1 style="margin:0;">Factura {{ invoice.invoice_number }}</h1>
+      <p style="margin:8px 0 0;">CASTÚO-SYSTEM — agua / CTAEX</p>
+    </div>
+    <div class="body">
+      <p><strong>Cliente:</strong> {{ invoice.customer_name }}</p>
+      <p><strong>Email:</strong> {{ invoice.customer_email }}</p>
+      <p><strong>Plan:</strong> {{ invoice.plan_name|default(invoice.plan_id) }}</p>
+      <p><strong>Período:</strong> {{ invoice.period_start }} — {{ invoice.period_end }}</p>
+      {% if 'requests_in_period' in invoice %}
+      <p><strong>Requests (trazas) en período:</strong> {{ invoice.requests_in_period }}</p>
+      {% endif %}
+
+      <table class="meta">
+        <tr>
+          <td>Subtotal</td>
+          <td>€{{ '%.2f'|format(invoice.amount_eur) }}</td>
+        </tr>
+        <tr>
+          <td>IVA (21%)</td>
+          <td>€{{ '%.2f'|format(invoice.tax_eur) }}</td>
+        </tr>
+        <tr>
+          <td><strong>Total</strong></td>
+          <td class="amount">€{{ '%.2f'|format(invoice.total_eur) }}</td>
+        </tr>
+      </table>
+
+      <p><strong>Vencimiento:</strong> {{ invoice.due_date }}</p>
+      <p><strong>Estado:</strong> {{ invoice.status }}</p>
+
+      <div class="footer">
+        <p>Pago según acuerdo comercial. Concepto: {{ invoice.invoice_number }}</p>
+        <p>CASTÚO-SYSTEM — contacto comercial según contrato.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

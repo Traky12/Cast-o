@@ -1,0 +1,27 @@
+# CASTÚO-SYSTEM™ | TRL4 — Validación de componentes criptográficos (AES-256-GCM + Shamir 3/5 + HSM/PEM)
+# Uso: docker compose -f docker/docker-compose-trl4.yml up --build
+# O con imagen ya firmada: export IMAGE_DIGEST=sha256:... && docker compose -f docker/docker-compose-trl4.yml up
+
+version: '3.8'
+
+services:
+  crypto-test:
+    image: python:3.11-slim
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.trl4
+    command: python /app/tests/trl4/crypto_validation.py
+    volumes:
+      - ..:/app:ro
+    working_dir: /app
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      - HSM_USER_PIN
+      - GAIA_CHAIN_DIR=/app/docker/castuo-bookstack
+      - CASTUO_PUBLIC_KEY=/app/docker/castuo-bookstack/castuo-public.key
+    cap_drop:
+      - ALL

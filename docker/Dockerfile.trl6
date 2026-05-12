@@ -1,0 +1,6 @@
+# CASTÚO-SYSTEM™ | Imagen TRL6 (placeholder: servicio mínimo para verify-trl6)
+FROM alpine:3.18
+RUN apk add --no-cache curl
+WORKDIR /app
+ENV SWISS_VAULT_SHARD=2 GAIA_CHAIN_WITNESS=true BEHAVIORAL_AUTH_ENABLED=true
+CMD ["sh", "-c", "echo TRL6 ready; sleep infinity"]

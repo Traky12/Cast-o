@@ -1,0 +1,71 @@
+# CASTÚO-SYSTEM v1.7.1 — Hetzner production con Docker Secrets (Capa 2).
+# Uso: docker stack deploy -c docker-compose.hetzner.yml castuo
+# Requiere Swarm: docker swarm init
+# Crear secrets antes:
+#   echo "mpc://sabionda-root" | docker secret create castuo_root_key -
+#   echo "https://gaiachain-testnet" | docker secret create gaia_chain_rpc -
+#   echo "PRIVATE_KEY_HEX" | docker secret create nft_private_key -
+# GDPR + Junta:
+#   echo "0xJuntaExtremaduraMaster2026" | docker secret create junta_private_key -
+#   echo "smtp.juntaex.es:587" | docker secret create smtp_junta_config -
+#   echo "CERT-20260415-template.pdf" | docker secret create erasure_template -
+
+version: '3.8'
+
+services:
+  backend:
+    image: castuo/backend:latest
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    secrets:
+      - castuo_root_key
+      - gaia_chain_rpc
+      - nft_private_key
+    environment:
+      - NFT_KEY_PATH=/run/secrets/nft_private_key
+      - GAIA_CHAIN_RPC_FILE=/run/secrets/gaia_chain_rpc
+    networks:
+      - castuo_net
+    # read_only: true  # Descomentar cuando la app no escriba en disco
+
+  api:
+    image: castuo/api:latest
+    deploy:
+      replicas: 2
+    secrets:
+      - castuo_root_key
+      - gaia_chain_rpc
+      - nft_private_key
+      - junta_private_key
+      - smtp_junta_config
+      - erasure_template
+    environment:
+      - JUNTA_PRIVATE_KEY_PATH=/run/secrets/junta_private_key
+      - JUNTA_PRIVATE_KEY_FILE=/run/secrets/nft_private_key
+      - GAIA_CHAIN_RPC_FILE=/run/secrets/gaia_chain_rpc
+      - SMTP_JUNTA_CONFIG_FILE=/run/secrets/smtp_junta_config
+      - ERASURE_TEMPLATE_PATH=/run/secrets/erasure_template
+    networks:
+      - castuo_net
+    ports:
+      - "8000:8000"
+
+secrets:
+  castuo_root_key:
+    external: true
+  gaia_chain_rpc:
+    external: true
+  nft_private_key:
+    external: true
+  junta_private_key:
+    external: true
+  smtp_junta_config:
+    external: true
+  erasure_template:
+    external: true
+
+networks:
+  castuo_net:
+    driver: overlay

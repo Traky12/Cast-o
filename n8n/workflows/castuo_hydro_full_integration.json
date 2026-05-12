@@ -1,0 +1,400 @@
+{
+  "name": "CASTUO_Hydro_Integracion_Completa",
+  "tags": ["CASTUO", "hydroponics-saas", "Mistral", "Slack", "n8n"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "castuo-hydro-full",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh-castuo-full",
+      "name": "Webhook_Sensor",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 400],
+      "webhookId": "castuo-hydro-full-integration"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst b = item.body ?? item;\nconst hdrs = item.headers || {};\nconst rawFwd = hdrs['x-forwarded-for'] || hdrs['X-Forwarded-For'] || '';\nconst clientIP = String(rawFwd).split(',')[0].trim() || String(hdrs['x-real-ip'] || hdrs['X-Real-IP'] || '').trim() || 'unknown';\nconst cidrs = String($env.CASTUO_ALLOWED_IP_CIDRS || '').split(',').map((s) => s.trim()).filter(Boolean);\nfunction ipToInt(ip) {\n  const s = String(ip).replace(/^::ffff:/i, '');\n  const parts = s.split('.').map(Number);\n  if (parts.length !== 4 || parts.some((p) => !Number.isFinite(p) || p > 255)) return null;\n  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;\n}\nfunction parseCidr(spec) {\n  const [addr, bits] = spec.split('/');\n  const maskLen = bits ? parseInt(bits, 10) : 32;\n  const base = ipToInt(addr.trim());\n  if (base === null || maskLen < 0 || maskLen > 32) return null;\n  const mask = maskLen === 32 ? 0xffffffff : (0xffffffff << (32 - maskLen)) >>> 0;\n  return { base: base & mask, mask };\n}\nfunction ipAllowed(ip) {\n  if (cidrs.length === 0) return true;\n  const v = ipToInt(ip);\n  if (v === null) return false;\n  for (const c of cidrs) {\n    const p = parseCidr(c);\n    if (!p) continue;\n    if ((v & p.mask) === (p.base & p.mask)) return true;\n  }\n  return false;\n}\nif (!ipAllowed(clientIP)) throw new Error('IP no autorizada: ' + clientIP);\nconst trazabilidad_id = 'TRACE-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + crypto.randomUUID().slice(0, 8);\nconst zone = String($env.CASTUO_ZONE_ID || 'zone_default');\nconst rawType = String(b.sensor_type || 'ph');\nconst sensor_type = rawType === 'temperatura' ? 'temperature' : rawType === 'humedad' ? 'humidity' : rawType === 'luz' ? 'light' : rawType;\nconst sensor_id = String(b.sensor_id || `sensor_${rawType}_${zone}`);\nconst value = Number(b.value);\nif (Number.isNaN(value)) throw new Error('value numérico requerido');\nconst ts = b.timestamp || new Date().toISOString();\nconst location = String(b.location || 'default');\nconst unit = rawType === 'ph' ? 'pH' : rawType === 'temperatura' ? '°C' : rawType === 'humedad' ? '%' : rawType === 'ec' ? 'mS/cm' : 'lux';\nconst reading = { sensor_id, sensor_type, value, timestamp: ts, location, unit, zone_id: zone };\nconst thrHi = b.threshold != null ? Number(b.threshold) : null;\nconst thrLo = b.threshold_low != null ? Number(b.threshold_low) : null;\nlet threshold_exceeded = false;\nif (thrHi != null && !Number.isNaN(thrHi) && value > thrHi) threshold_exceeded = true;\nif (thrLo != null && !Number.isNaN(thrLo) && value < thrLo) threshold_exceeded = true;\nconst hash_verificacion = crypto.createHash('sha256').update(JSON.stringify(reading)).digest('hex');\nreturn [{ json: { reading, threshold_exceeded, body_raw: b, trazabilidad_id, hash_verificacion, client_ip: clientIP } }];"
+      },
+      "id": "code-parse-iot",
+      "name": "Code_Parse_IoT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://api:8000').replace(/\\/+$/,'') + '/hydroponics-saas/sensor-readings' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-KEY",
+              "value": "={{ $env.CASTUO_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ $json.reading }}",
+        "options": {}
+      },
+      "id": "http-sensor-readings",
+      "name": "POST_Lecturas_CASTUO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "pinata_api_key",
+              "value": "={{ $env.IPFS_API_KEY }}"
+            },
+            {
+              "name": "pinata_secret_api_key",
+              "value": "={{ $env.IPFS_API_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ { pinataOptions: { cidVersion: 1 }, pinataMetadata: { name: 'castuo-sensor-' + $('Code_Parse_IoT').first().json.trazabilidad_id }, pinataContent: { sensor_data: $('POST_Lecturas_CASTUO').first().json, trazabilidad_id: $('Code_Parse_IoT').first().json.trazabilidad_id, timestamp: $now.toISO(), hash_verificacion: $('Code_Parse_IoT').first().json.hash_verificacion } } }}",
+        "options": {}
+      },
+      "id": "http-pinata-ipfs-backup",
+      "name": "HTTP_Backup_IPFS_Pinata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 400],
+      "continueOnFail": true,
+      "notes": "Redundancia Tier IV: requiere IPFS_API_KEY + IPFS_API_SECRET (Pinata). Si falla, el flujo continúa."
+    },
+    {
+      "parameters": {
+        "jsCode": "const castuo = $('POST_Lecturas_CASTUO').first().json;\nconst p = $('Code_Parse_IoT').first().json;\nconst r = p.reading;\nconst summary = 'Lectura IoT: ' + r.sensor_type + '=' + r.value + ' ' + r.unit + ', zona=' + r.zone_id + ', ubicación=' + r.location + '. Trazabilidad ' + p.trazabilidad_id + '. Respuesta CASTÚO: ' + JSON.stringify(castuo);\nconst mistral_messages = [\n  { role: 'system', content: 'Eres agrónomo hidroponía UE. Breve, accionable, sin diagnóstico médico.' },\n  { role: 'user', content: summary },\n];\nreturn [{ json: { mistral_messages, trace: { parsed: p, castuo } } }];"
+      },
+      "id": "code-prep-mistral",
+      "name": "Code_Prepare_Mistral",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + String($env.MISTRAL_API_KEY || '') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ { model: 'mistral-small-latest', messages: $json.mistral_messages } }}",
+        "options": {}
+      },
+      "id": "http-mistral",
+      "name": "POST_Mistral_AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1240, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const mistral = $input.first().json;\nconst p = $('Code_Parse_IoT').first().json;\nconst sev = String(p.body_raw?.alert_severity || '').toUpperCase();\nlet assistant = '';\nif (mistral.choices && mistral.choices[0] && mistral.choices[0].message) {\n  assistant = String(mistral.choices[0].message.content || '');\n} else {\n  assistant = 'Mistral no disponible o error: ' + JSON.stringify(mistral).slice(0, 1200);\n}\nconst daily_body = {\n  analysis_date: new Date().toISOString(),\n  zone_id: p.reading.zone_id,\n  overall_status: p.threshold_exceeded ? 'attention_required' : 'normal_operation',\n  issues: p.threshold_exceeded ? [{ type: 'threshold', message: 'Umbral: ' + p.reading.sensor_type + '=' + p.reading.value + ' ' + p.reading.unit }] : [],\n  recommendations: assistant ? [assistant] : ['Sin recomendación automática'],\n  trends: [{ type: 'mistral_or_iot', description: assistant.slice(0, 800) }],\n  priority: p.threshold_exceeded ? 'high' : 'medium',\n};\nconst slack_payload = { channel: '#hidroponia', message: p.reading.sensor_type + ' ' + (p.threshold_exceeded ? 'FUERA DE RANGO' : 'OK') + ': ' + p.reading.value + ' ' + p.reading.unit + ' @ ' + p.reading.zone_id };\nconst st = String(p.reading.sensor_type || '').toLowerCase();\nlet coste_estimado_perdida = 200;\nif (st === 'temperature' || st === 'temperatura') coste_estimado_perdida = 500;\nelse if (st === 'ph') coste_estimado_perdida = 300;\nlet alert_type = 'OK';\nif (p.threshold_exceeded) alert_type = sev === 'CRITICO' ? 'CRITICO' : 'NO_CONFORME';\nlet impacto_roi = 'Bajo (-1%)';\nif (alert_type === 'CRITICO') impacto_roi = 'Alto (-15%)';\nelse if (alert_type === 'NO_CONFORME') impacto_roi = 'Medio (-5%)';\nreturn [{ json: { daily_body, slack_payload, alert_type, coste_estimado_perdida, impacto_roi, codigo_trazabilidad: p.trazabilidad_id, location: p.reading.location } }];"
+      },
+      "id": "code-build-daily",
+      "name": "Code_Build_Daily",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://api:8000').replace(/\\/+$/,'') + '/hydroponics-saas/daily-analysis' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-KEY",
+              "value": "={{ $env.CASTUO_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ $json.daily_body }}",
+        "options": {}
+      },
+      "id": "http-daily-analysis",
+      "name": "POST_Analisis_CASTUO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "pbi-url-set",
+              "leftValue": "={{ String($env.POWER_BI_INVESTOR_METRICS_URL || '').trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "if-powerbi-url",
+      "name": "IF_PowerBI_Configurado",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1890, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.POWER_BI_INVESTOR_METRICS_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + String($env.POWER_BI_API_KEY || '') }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ { timestamp: $now.toISO(), alert_type: $('Code_Build_Daily').first().json.alert_type, coste_estimado: $('Code_Build_Daily').first().json.coste_estimado_perdida, impacto_roi: $('Code_Build_Daily').first().json.impacto_roi, location: $('Code_Build_Daily').first().json.location, trazabilidad_id: $('Code_Build_Daily').first().json.codigo_trazabilidad } }}",
+        "options": {}
+      },
+      "id": "http-powerbi-investors",
+      "name": "HTTP_PowerBI_Metricas_Inversores",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2020, 280],
+      "continueOnFail": true,
+      "notes": "Dataset / streaming endpoint Power BI; POWER_BI_API_KEY opcional según tu gateway."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://api:8000').replace(/\\/+$/,'') + '/notifications/slack' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ $('Code_Build_Daily').first().json.slack_payload }}",
+        "options": {}
+      },
+      "id": "http-slack",
+      "name": "POST_Slack_CASTUO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2150, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, trazabilidad_id: $node['Code_Parse_IoT'].json.trazabilidad_id, hash_verificacion: $node['Code_Parse_IoT'].json.hash_verificacion, ipfs_pinata: $node['HTTP_Backup_IPFS_Pinata'].json, zone_id: $node['Code_Parse_IoT'].json.reading.zone_id, sensor: $node['Code_Parse_IoT'].json.reading.sensor_type, castuo_sensor: $node['POST_Lecturas_CASTUO'].json, daily_saved: $node['POST_Analisis_CASTUO'].json, investor_metrics: { alert_type: $node['Code_Build_Daily'].json.alert_type, coste_estimado_perdida: $node['Code_Build_Daily'].json.coste_estimado_perdida, impacto_roi: $node['Code_Build_Daily'].json.impacto_roi }, slack: $node['POST_Slack_CASTUO'].json } }}",
+        "options": {}
+      },
+      "id": "respond-full",
+      "name": "Respond_OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [2280, 400]
+    }
+  ],
+  "connections": {
+    "Webhook_Sensor": {
+      "main": [
+        [
+          {
+            "node": "Code_Parse_IoT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Parse_IoT": {
+      "main": [
+        [
+          {
+            "node": "POST_Lecturas_CASTUO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST_Lecturas_CASTUO": {
+      "main": [
+        [
+          {
+            "node": "HTTP_Backup_IPFS_Pinata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_Backup_IPFS_Pinata": {
+      "main": [
+        [
+          {
+            "node": "Code_Prepare_Mistral",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Prepare_Mistral": {
+      "main": [
+        [
+          {
+            "node": "POST_Mistral_AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST_Mistral_AI": {
+      "main": [
+        [
+          {
+            "node": "Code_Build_Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Build_Daily": {
+      "main": [
+        [
+          {
+            "node": "POST_Analisis_CASTUO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST_Analisis_CASTUO": {
+      "main": [
+        [
+          {
+            "node": "IF_PowerBI_Configurado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_PowerBI_Configurado": {
+      "main": [
+        [
+          {
+            "node": "HTTP_PowerBI_Metricas_Inversores",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "POST_Slack_CASTUO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_PowerBI_Metricas_Inversores": {
+      "main": [
+        [
+          {
+            "node": "POST_Slack_CASTUO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST_Slack_CASTUO": {
+      "main": [
+        [
+          {
+            "node": "Respond_OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true
+  },
+  "meta": {
+    "description": "Tier IV: validación IP (CASTUO_ALLOWED_IP_CIDRS), trazabilidad TRACE-YYYYMMDD-uuid, hash SHA-256 de la lectura, backup Pinata tras persistir en CASTÚO, métricas inversores → Power BI si POWER_BI_INVESTOR_METRICS_URL. Webhook: /webhook/castuo-hydro-full. Agente ROI: importar castuo_agente_optimizacion_inversores.template.json y castuo_investor_roi_kpis_fragment.json para otros lienzos."
+  }
+}

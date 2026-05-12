@@ -1,0 +1,64 @@
+# Despliegue remoto en Hetzner (stack CASTÚO en VPS).
+# En el VPS: clonar repo y mantener `.env.production` fuera de Git.
+#
+# Secrets obligatorios: HETZNER_HOST, HETZNER_SSH_KEY
+# Opcionales: HETZNER_SSH_USER (default root), CASTUO_DEPLOY_PATH (default /opt/castuo/Castuo-System), KNOWN_HOSTS (línea known_hosts del servidor)
+#
+# No añadas `.env.production` a paths: el archivo no debe estar en el repositorio.
+
+name: Deploy to Hetzner
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/n8n-deploy.yml"
+      - "docker-compose.prod.yml"
+      - "Dockerfile"
+      - "backend/**"
+      - "init-db/**"
+      - "n8n/workflows/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          if [ -n "${{ secrets.KNOWN_HOSTS }}" ]; then
+            printf '%s\n' "${{ secrets.KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts || true
+          fi
+
+      - name: Deploy stack CASTÚO (SSH remoto)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            ROOT="${{ secrets.CASTUO_DEPLOY_PATH }}"
+            if [ -z "$ROOT" ]; then ROOT="/opt/castuo/Castuo-System"; fi
+            if [ -f "$ROOT/docker-compose.prod.yml" ] && [ -f "$ROOT/.env.production" ]; then
+              cd "$ROOT"
+              git pull origin main || git pull
+              docker compose -f docker-compose.prod.yml --env-file .env.production pull
+              docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+              echo "OK: docker-compose.prod.yml en $ROOT"
+            elif [ -f /opt/castuo/n8n/docker-compose.yml ]; then
+              docker pull docker.n8n.io/n8nio/n8n:latest
+              docker compose -f /opt/castuo/n8n/docker-compose.yml pull
+              docker compose -f /opt/castuo/n8n/docker-compose.yml up -d
+              echo "OK: legacy /opt/castuo/n8n"
+            else
+              echo "Falta $ROOT/docker-compose.prod.yml y .env.production, o /opt/castuo/n8n/docker-compose.yml"
+              exit 1
+            fi

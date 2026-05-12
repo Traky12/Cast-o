@@ -1,0 +1,11 @@
+groups:
+  - name: global-alerts
+    rules:
+      - alert: ClusterDown
+        expr: up{job="kubernetes-apiservers"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cluster {{ $labels.region }} is down"
+          description: "Kubernetes API server is unreachable"

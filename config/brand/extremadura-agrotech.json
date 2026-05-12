@@ -1,0 +1,37 @@
+{
+  "brand": {
+    "name": "EXTREMADURA AGROTECH by CASTÚO-SYSTEM™",
+    "logo": {
+      "primary": "/assets/logo-extremadura-agrotech.svg",
+      "secondary": "/assets/logo-extremadura-agrotech-black.svg"
+    },
+    "colors": {
+      "primary": "#006633",
+      "secondary": "#FFCC00",
+      "accent": "#FFFFFF"
+    },
+    "typography": {
+      "primary": "Montserrat Bold",
+      "secondary": "Open Sans"
+    },
+    "slogan": "La revolución agrícola nace en Extremadura",
+    "tagline": "Trazabilidad, equidad y sostenibilidad verificadas en blockchain"
+  },
+  "certifications": [
+    {
+      "name": "Denominación de Origen Extremadura",
+      "logo": "/assets/do-extremadura.svg",
+      "standard": "UE 1151/2012"
+    },
+    {
+      "name": "Agricultura Ecológica UE",
+      "logo": "/assets/eu-organic.svg",
+      "standard": "Reglamento UE 2018/848"
+    },
+    {
+      "name": "Carbon Neutral",
+      "logo": "/assets/carbon-neutral.svg",
+      "standard": "ISO 14064"
+    }
+  ]
+}

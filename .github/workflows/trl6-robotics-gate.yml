@@ -1,0 +1,49 @@
+# Gate TRL6: lab stub, vault opcional, playbook, neuromórfico, scan3d, Gaia opt-in.
+name: TRL6 robotics gate
+
+on:
+  push:
+    paths:
+      - "backend/integrations/robotics/**"
+      - "backend/security/vault.py"
+      - "backend/models/system_admin_playbook.py"
+      - "backend/auth_roles.py"
+      - "tests/**"
+      - "pytest.ini"
+  pull_request:
+    paths:
+      - "backend/integrations/robotics/**"
+      - "backend/security/vault.py"
+      - "backend/models/system_admin_playbook.py"
+      - "backend/auth_roles.py"
+      - "tests/**"
+      - "pytest.ini"
+
+jobs:
+  trl6:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          pip install -r backend/requirements.txt
+          pip install -r tests/requirements.txt
+
+      - name: pytest -m trl6 + JUnit
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          mkdir -p reports/trl6
+          python -m pytest -m trl6 -q --junit-xml=reports/trl6/junit.xml
+
+      - name: Subir JUnit TRL6
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trl6-junit
+          path: reports/trl6/junit.xml

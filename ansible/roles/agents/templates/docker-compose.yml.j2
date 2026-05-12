@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  sigpac-agent:
+    image: {{ agent_sigpac_image }}
+    container_name: sigpac-agent
+    restart: unless-stopped
+    ports:
+      - "{{ agent_sigpac_port }}:8001"
+    environment:
+      - GAIA_CHAIN_RPC={{ gaia_chain_rpc }}
+      - SIGPAC_API_KEY={{ sigpac_api_key }}
+    networks:
+      - {{ docker_network }}
+
+  subsidies-agent:
+    image: {{ agent_subsidies_image }}
+    container_name: subsidies-agent
+    restart: unless-stopped
+    ports:
+      - "{{ agent_subsidies_port }}:8003"
+    environment:
+      - GAIA_CHAIN_RPC={{ gaia_chain_rpc }}
+    networks:
+      - {{ docker_network }}
+
+networks:
+  {{ docker_network }}:
+    driver: bridge
+

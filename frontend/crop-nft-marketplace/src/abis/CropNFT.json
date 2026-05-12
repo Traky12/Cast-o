@@ -1,0 +1,4 @@
+[
+  { "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "ownerOf", "outputs": [{ "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [{ "name": "tokenId", "type": "uint256" }], "name": "tokenURI", "outputs": [{ "name": "", "type": "string" }], "stateMutability": "view", "type": "function" }
+]

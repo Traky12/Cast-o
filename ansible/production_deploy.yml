@@ -1,0 +1,72 @@
+---
+- name: Despliegue en Producción con Balanceo de Carga
+  hosts: all
+  become: yes
+  vars_files:
+    - group_vars/production.yml
+
+  tasks:
+    - name: Instalar dependencias comunes
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - haproxy
+          - python3-pip
+          - certbot
+          - nginx
+        state: present
+        update_cache: yes
+
+    - name: Configurar red Docker
+      docker_network:
+        name: "{{ docker_network }}"
+        driver: bridge
+        state: present
+
+    - name: Desplegar agentes comerciales
+      include_role:
+        name: commercial_agents
+
+    - name: Configurar HAProxy para balanceo de carga
+      template:
+        src: "templates/haproxy.cfg.j2"
+        dest: "/etc/haproxy/haproxy.cfg"
+      notify: restart haproxy
+
+    - name: Configurar Nginx como reverse proxy
+      template:
+        src: "templates/nginx.conf.j2"
+        dest: "/etc/nginx/sites-available/{{ project_name }}"
+      notify: restart nginx
+
+    - name: Habilitar sitio en Nginx
+      file:
+        src: "/etc/nginx/sites-available/{{ project_name }}"
+        dest: "/etc/nginx/sites-enabled/{{ project_name }}"
+        state: link
+      notify: restart nginx
+
+    - name: Verificar servicios HTTP principales
+      uri:
+        url: "https://{{ item }}"
+        method: GET
+        status_code: 200
+        validate_certs: no
+      loop:
+        - "{{ domain }}"
+        - "api.{{ domain }}/health"
+      loop_control:
+        label: "{{ item }}"
+
+  handlers:
+    - name: restart haproxy
+      service:
+        name: haproxy
+        state: restarted
+
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+

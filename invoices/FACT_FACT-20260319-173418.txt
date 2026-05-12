@@ -1,0 +1,8 @@
+FACTURA
+Numero: FACT-20260319-173418
+Fecha: 2026-03-19
+Emisor: CASTÚO-SYSTEM S.L.
+Cliente: Cooperativa Test Offline 2
+Subtotal: 199.99 EUR
+IVA: 42.00 EUR
+TOTAL: 241.99 EUR

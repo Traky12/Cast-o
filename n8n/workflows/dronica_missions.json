@@ -1,0 +1,120 @@
+{
+  "name": "Dronica Missions",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "receive",
+        "responseMode": "respond",
+        "path": "dronica-mission-webhook",
+        "method": "POST"
+      },
+      "name": "Dronica Mission Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/dronica/missions",
+        "options": {},
+        "method": "POST",
+        "jsonParameters": true
+      },
+      "name": "Create Mission",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "topic": "dronica/missions",
+        "qos": 0,
+        "retain": false,
+        "broker": {
+          "__rl": true,
+          "value": "mqtt://mqtt:1883",
+          "mode": "value"
+        }
+      },
+      "name": "MQTT Publish Mission",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "database": "Notion",
+        "operation": "createPage",
+        "pageName": "Mission: ={{$node[\"Dronica Mission Webhook\"].json[\"body\"][\"mission_id\"]}}",
+        "parentId": {
+          "type": "database",
+          "value": "YOUR_NOTION_DATABASE_ID"
+        },
+        "properties": {
+          "Mission ID": {
+            "title": [
+              {
+                "text": {
+                  "content": "={{$node[\"Dronica Mission Webhook\"].json[\"body\"][\"mission_id\"]}}"
+                }
+              }
+            ]
+          },
+          "Drone ID": {
+            "rich_text": [
+              {
+                "text": {
+                  "content": "={{$node[\"Dronica Mission Webhook\"].json[\"body\"][\"drone_id\"]}}"
+                }
+              }
+            ]
+          },
+          "Status": {
+            "select": {
+              "name": "In Progress"
+            }
+          }
+        }
+      },
+      "name": "Notion Mission Log",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [650, 450],
+      "credentials": {
+        "notionApi": {
+          "integrationType": "oAuth2",
+          "authentication": "oAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dronica Mission Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create Mission",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notion Mission Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Mission": {
+      "main": [
+        [
+          {
+            "node": "MQTT Publish Mission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

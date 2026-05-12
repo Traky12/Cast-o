@@ -1,0 +1,11 @@
+# Namespace para sandboxes de nodos aislados (análisis de amenazas)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sandbox-environment
+  labels:
+    app.kubernetes.io/name: sandbox-environment
+    security.castuo-system.eu/isolated: "true"
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

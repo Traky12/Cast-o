@@ -1,0 +1,17 @@
+# CASTÚO-SYSTEM — ROOT MAESTRO (contraseña existente vía Docker Secret)
+# Build: docker build -f api/Dockerfile.root-master -t castuo/root-master .
+FROM python:3.11-slim
+
+COPY api/docker-entrypoint.sh /entrypoint.sh
+RUN chmod 500 /entrypoint.sh
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sudo openssh-server cryptsetup fail2ban \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -u 1000 -m -s /bin/bash castuo \
+    && echo "castuo ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+ENTRYPOINT ["/entrypoint.sh"]
+USER root
+CMD ["/bin/bash", "-c", "service ssh start && service fail2ban start && tail -f /dev/null"]

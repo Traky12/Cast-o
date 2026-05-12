@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "castuo-system.fullname" . }}-master-agent
+  labels:
+    {{- include "castuo-system.labels" . | nindent 4 }}
+    agent: master
+spec:
+  replicas: {{ .Values.agents.master.replicaCount | default 2 }}
+  selector:
+    matchLabels:
+      app: {{ include "castuo-system.name" . }}
+      agent: master
+  template:
+    metadata:
+      labels:
+        app: {{ include "castuo-system.name" . }}
+        agent: master
+        {{- include "castuo-system.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+        - name: master-agent
+          image: "{{ .Values.agents.image.repository }}:{{ .Values.agents.image.tag }}"
+          imagePullPolicy: {{ .Values.agents.image.pullPolicy | default "IfNotPresent" }}
+          command: ["python", "-m", "backend.agents.master_agent"]
+          env:
+            - name: RABBITMQ_HOST
+              value: "{{ .Release.Name }}-rabbitmq"
+            - name: PROMETHEUS_URL
+              value: "http://{{ .Release.Name }}-prometheus-server:9090"
+            - name: VAULT_ADDR
+              value: "http://{{ .Release.Name }}-vault:8200"
+            - name: OPA_URL
+              value: "http://{{ .Release.Name }}-opa:8181"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.agents.master.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/castuo
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "castuo-system.fullname" . }}-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "castuo-system.fullname" . }}-master-agent
+  labels:
+    {{- include "castuo-system.labels" . | nindent 4 }}
+    agent: master
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ include "castuo-system.name" . }}
+    agent: master

@@ -1,0 +1,97 @@
+# Castuo-System — Staging (ISO 27001 / validación pre-producción)
+# Uso: docker-compose -f docker-compose.staging.yml --env-file .env.staging up -d
+
+version: "3.8"
+
+services:
+  vault:
+    image: hashicorp/vault:1.14
+    container_name: vault-staging
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_API_ADDR: "http://0.0.0.0:8200"
+    volumes:
+      - vault_data:/var/lib/vault/data
+      - ./backend/config/vault_staging.hcl:/etc/vault.d/vault_staging.hcl
+    command: server -config=/etc/vault.d/vault_staging.hcl
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - backend_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  zap:
+    image: owasp/zap2docker-weekly
+    container_name: zap-staging
+    ports:
+      - "8080:8080"
+      - "8090:8090"
+    environment:
+      ZAP_API_KEY: "${ZAP_API_KEY:-1234567890abcdef}"
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: castuo-backend-staging
+    container_name: backend-staging
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONPATH: "/app"
+      ENVIRONMENT: "staging"
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_TOKEN: "${VAULT_TOKEN}"
+      GAIA_CHAIN_URL: "${GAIA_CHAIN_URL}"
+      GAIA_CHAIN_ADMIN_TOKEN: "${GAIA_CHAIN_ADMIN_TOKEN}"
+      ZAP_PROXY_HOST: "zap"
+      ZAP_PROXY_PORT: "8080"
+      SMTP_SERVER: "${SMTP_SERVER}"
+      SMTP_USER: "${SMTP_USER}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD}"
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - backend_network
+    depends_on:
+      vault:
+        condition: service_healthy
+    restart: unless-stopped
+
+  auto-rotate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: castuo-backend-staging
+    container_name: auto-rotate-staging
+    command: ["python", "scripts/auto_rotate_keys.py"]
+    environment:
+      PYTHONPATH: "/app"
+      ENVIRONMENT: "staging"
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_TOKEN: "${VAULT_TOKEN}"
+      SLACK_API_TOKEN: "${SLACK_API_TOKEN}"
+      SLACK_ALERT_CHANNEL: "${SLACK_ALERT_CHANNEL:-#staging-security}"
+    networks:
+      - backend_network
+    depends_on:
+      vault:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  backend_network:
+    driver: bridge
+
+volumes:
+  vault_data:

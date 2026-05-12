@@ -1,0 +1,129 @@
+# CASTÚO-SYSTEM — Acceso remoto (plantilla CTAEX / laboratorio)
+# Ejecutar desde la raíz del repo:
+#   cp docker/remote-access/.env.remote-access.example .env.remote-access
+#   docker compose --env-file .env.remote-access -f docker-compose/remote-access.yml up -d --build
+#
+# Notas:
+# - La autenticación Bearer se valida en api-gateway (JWKS Keycloak), no en NGINX.
+# - Para SSO navegador delante de NGINX, usar oauth2-proxy u otro IdP-aware proxy (ver docs/deploy/ARQUITECTURA-ACCESO-REMOTO-CTAEX.md).
+# - LoRA/GGUF: definir LORA_UPSTREAM apuntando al servicio uvicorn de scripts/ai/mistral_lora/app.py (puerto 8899) o dejar vacío (503 documentado).
+
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "${REMOTE_HTTP_PORT:-8088}:80"
+      - "${REMOTE_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ../docker/remote-access/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ../docker/remote-access/nginx/certs:/etc/nginx/certs:ro
+      - nginx_remote_logs:/var/log/nginx
+    depends_on:
+      - api-gateway
+    networks:
+      - castuo_remote
+
+  keycloak-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - keycloak_pg_data:/var/lib/postgresql/data
+    networks:
+      - castuo_remote
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
+      KC_PROXY: edge
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_HOST_PORT:-8090}:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - castuo_remote
+
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: docker/api-gateway/Dockerfile
+    environment:
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-castuo-system}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-api-gateway}
+      GATEWAY_VERIFY_AUD: ${GATEWAY_VERIFY_AUD:-true}
+      CASTUO_BACKEND_URL: ${CASTUO_BACKEND_URL:-http://backend:8000}
+      LORA_UPSTREAM: ${LORA_UPSTREAM:-}
+      AUTH_DISABLED: ${GATEWAY_AUTH_DISABLED:-false}
+      MQTT_PUBLIC_HOST: ${MQTT_PUBLIC_HOST:-localhost}
+      MQTT_PLAIN_PORT: ${MQTT_PLAIN_PORT:-1883}
+      MQTT_TLS_PORT: ${MQTT_TLS_PORT:-8883}
+    ports:
+      - "${API_GATEWAY_PORT:-18000}:8000"
+    depends_on:
+      - backend
+      - keycloak
+    networks:
+      - castuo_remote
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      ENVIRONMENT: ${BACKEND_ENVIRONMENT:-staging}
+      AUTH_DISABLED: ${BACKEND_AUTH_DISABLED:-true}
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-castuo-system}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID_BACKEND:-backend}
+      MQTT_BROKER: ${MQTT_BROKER_HOST:-mosquitto}
+      CASTUO_MQTT_BROKER: ${CASTUO_MQTT_BROKER:-mqtt://mosquitto:1883}
+    ports:
+      - "${BACKEND_HOST_PORT:-8000}:8000"
+    depends_on:
+      - mosquitto
+    networks:
+      - castuo_remote
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    ports:
+      - "${MQTT_PLAIN_PORT:-1883}:1883"
+    volumes:
+      - ../docker/remote-access/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_remote_data:/mosquitto/data
+      - mosquitto_remote_log:/mosquitto/log
+      - mosquitto_remote_certs:/mosquitto/certs:ro
+    networks:
+      - castuo_remote
+
+volumes:
+  keycloak_pg_data:
+  keycloak_data:
+  mosquitto_remote_data:
+  mosquitto_remote_log:
+  mosquitto_remote_certs:
+  nginx_remote_logs:
+
+networks:
+  castuo_remote:
+    driver: bridge

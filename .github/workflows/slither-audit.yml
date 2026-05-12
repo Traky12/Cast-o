@@ -1,0 +1,43 @@
+# CASTÚO-SYSTEM™ — Auditoría automática de Smart Contracts con Slither (anti-hacking v1.0)
+name: Smart Contract Audit
+on:
+  push:
+    branches: [main, develop]
+    paths: ['contracts/**']
+  pull_request:
+    branches: [main, develop]
+    paths: ['contracts/**']
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Slither
+        run: pip install slither-analyzer
+
+      - name: Run Slither
+        run: |
+          mkdir -p reports
+          slither contracts/ --checklist --json reports/slither-report.json || true
+          if [ -f reports/slither-report.json ]; then
+            if [ -n "$(jq -r '.results.detectors[]? | select(.impact == "High" or .impact == "Critical") | .check' reports/slither-report.json 2>/dev/null)" ]; then
+              echo "Vulnerabilidades críticas o high detectadas:"
+              jq '.results.detectors[]? | select(.impact == "High" or .impact == "Critical")' reports/slither-report.json 2>/dev/null || true
+              exit 1
+            fi
+          fi
+          echo "Slither audit OK (sin críticos/high)."
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: slither-audit-report
+          path: reports/slither-report.json
+        if: always()

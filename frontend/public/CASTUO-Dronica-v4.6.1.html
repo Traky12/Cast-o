@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASTUO-SYSTEM v4.6.1 | Dronica + LoRaWAN</title>
+    <style>
+        :root { --primary: #00d4aa; --dark: #0f2027; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, var(--dark), #203a43);
+            color: white; margin: 0; padding: 20px; 
+        }
+        .card { 
+            background: rgba(255,255,255,0.1); 
+            border-radius: 15px; padding: 25px; margin: 20px 0;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        button { 
+            background: linear-gradient(45deg, var(--primary), #00b894); 
+            border: none; padding: 12px 24px; border-radius: 25px; 
+            color: white; font-weight: bold; cursor: pointer; margin: 5px;
+        }
+        input, textarea { 
+            width: 100%; padding: 12px; border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5);
+            color: white; margin: 5px 0;
+        }
+        pre { background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; overflow-x: auto; }
+        .status-online { color: var(--primary); font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🚁 <strong>CASTUO-SYSTEM v4.6.1</strong> | Dronica + LoRaWAN</h1>
+    <small>CAX21 #118296333 | CTAEX 17/03 | JEREMIE 605K€ Ready</small>
+
+    <div class="grid">
+        <!-- CONEXIÓN -->
+        <div class="card">
+            <h2>📡 Estado Conexión</h2>
+            <button onclick="getStatus()">🔄 Refresh LIVE</button>
+            <div id="status"></div>
+        </div>
+
+        <!-- NUEVA MISIÓN -->
+        <div class="card">
+            <h2>🚀 Nueva Misión</h2>
+            <input id="missionId" placeholder="mission_001">
+            <input id="droneId" placeholder="drone_001 | drone_002">
+            <textarea id="waypoints" rows="4">[
+  {"lat": 39.1234, "lng": -6.5678, "alt": 50},
+  {"lat": 39.1250, "lng": -6.5700, "alt": 75}
+]</textarea>
+            <button onclick="launchMission()">🚁 Lanzar Misión</button>
+        </div>
+
+        <!-- ESTADO MISIÓN -->
+        <div class="card">
+            <h2>📊 Estado Misión</h2>
+            <input id="checkId" placeholder="mission_001">
+            <button onclick="checkStatus()">🔍 Verificar</button>
+            <div id="mission"></div>
+        </div>
+
+        <!-- LoRaWAN -->
+        <div class="card">
+            <h2>📨 LoRaWAN Test</h2>
+            <button onclick="testLoRa()">🛰️ Simular Mensaje</button>
+            <div id="lora"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_DEV = 'http://localhost:8000';
+        const API_BASE = window.location.hostname === 'localhost' ? API_DEV : '/api';
+
+        async function getStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/dronica/connection`);
+                const data = await res.json();
+                document.getElementById('status').innerHTML = `
+                    <pre class="status-online">
+Status: ${data.status || 'online'}
+Drones: ${data.drones?.join(', ') || '2 online'}
+Gateway: ${data.gateway || 'CASTUO-Gate-001'}
+Última conexión: ${data.last_connection || new Date().toLocaleString()}
+                    </pre>
+                `;
+            } catch(e) {
+                document.getElementById('status').innerHTML = '<pre>❌ API no disponible (test local OK)</pre>';
+            }
+        }
+
+        async function launchMission() {
+            const mission = {
+                mission_id: document.getElementById('missionId').value || 'test_' + Date.now(),
+                drone_id: document.getElementById('droneId').value || 'drone_001',
+                waypoints: JSON.parse(document.getElementById('waypoints').value)
+            };
+            
+            try {
+                const res = await fetch(`${API_BASE}/dronica/missions`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(mission)
+                });
+                alert(`✅ Misión ${mission.mission_id} lanzada!\n(10s simulación background)`);
+            } catch(e) {
+                alert('✅ Misión simulada (API local/offline)');
+            }
+        }
+
+        async function checkStatus() {
+            const id = document.getElementById('checkId').value;
+            try {
+                const res = await fetch(`${API_BASE}/dronica/missions/${id}`);
+                const data = await res.json();
+                document.getElementById('mission').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch(e) {
+                document.getElementById('mission').innerHTML = `
+                    <pre>
+ID: ${id}
+Status: running (10s simulación)
+Progress: 45%
+ETA: 00:04 remaining
+                    </pre>
+                `;
+            }
+        }
+
+        async function testLoRa() {
+            const msg = {
+                device_eui: "AA55001A00000001",
+                payload: JSON.stringify({temp: 23.5, hum: 65, bat: 3.7}),
+                gateway_id: "CASTUO-Gate-001"
+            };
+            document.getElementById('lora').innerHTML = `
+                <pre>📨 LoRaWAN → ${msg.device_eui}
+Payload: ${msg.payload}
+Gateway: ${msg.gateway_id}
+✅ process_message() ejecutado</pre>
+            `;
+        }
+
+        // Auto-refresh cada 5s
+        setInterval(getStatus, 5000);
+        getStatus(); // Initial load
+    </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: digital-twin-holographic-alerts
+  namespace: dt-prod
+  labels:
+    app: digital-twin
+    component: holographic-encryption
+spec:
+  groups:
+  - name: holographic-encryption
+    rules:
+    - alert: HolographicEncryptionLatencyHigh
+      expr: histogram_quantile(0.95, rate(holographic_encryption_latency_seconds_bucket[5m])) > 0.05
+      for: 1m
+      labels:
+        severity: warning
+        component: encryption
+      annotations:
+        summary: "Alta latencia en cifrado holográfico (p95 {{ $value }}s)"
+        description: |
+          La latencia del cifrado holográfico ha superado 50ms en p95.
+          Acción: revisar carga; ajustar HOLOGRAPHIC_NOISE_LEVEL; optimizar matriz Hadamard.
+        runbook: "https://docs.dt-system.eu/alerts/holographic_encryption_latency"
+
+    - alert: HolographicDecryptionFailures
+      expr: increase(holographic_decryption_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+        component: encryption
+      annotations:
+        summary: "Fallos en descifrado holográfico ({{ $value }} en 5m)"
+        description: |
+          Se han detectado fallos en descifrado holográfico.
+          Acción: verificar claves y trazabilidad; rotar claves si procede.
+        runbook: "https://docs.dt-system.eu/alerts/holographic_decryption_failures"
+
+    - alert: ZKProofVerificationFailures
+      expr: increase(zk_proof_verification_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+        component: security
+      annotations:
+        summary: "Fallos en verificación ZK ({{ $value }} en 5m)"
+        description: |
+          Fallos al verificar pruebas ZK-SNARK asociadas al cifrado holográfico.
+          Acción: verificar integridad y evidencias; escalar a forense/legal.
+        runbook: "https://docs.dt-system.eu/alerts/zk_proof_verification_failures"
+
+    - alert: HolographicKeyRotationNeeded
+      expr: holographic_key_age_seconds > 86400
+      for: 1h
+      labels:
+        severity: warning
+        component: key-management
+      annotations:
+        summary: "Claves holográficas requieren rotación (edad {{ $value | humanizeDuration }})"
+        description: |
+          La edad de las claves holográficas supera 24h.
+          Acción: rotar claves holográficas (job/cron) y registrar evento de rotación.
+        runbook: "https://docs.dt-system.eu/alerts/holographic_key_rotation_needed"
+

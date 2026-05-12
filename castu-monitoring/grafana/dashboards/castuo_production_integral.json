@@ -1,0 +1,82 @@
+{
+  "title": "CASTUO-SYSTEM™ | Dashboard de Producción Integral",
+  "uid": "castuo-production",
+  "panels": [
+    {
+      "title": "Temperaturas de la Extrusora",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {"expr": "castu_extrusora_temp{sensor=\"boquilla\"}", "legendFormat": "Boquilla", "refId": "A"},
+        {"expr": "castu_extrusora_camara_temp", "legendFormat": "Cámara de Mezcla", "refId": "B"},
+        {"expr": "castu_extrusora_setpoint", "legendFormat": "Setpoint", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "celsius"}}
+    },
+    {
+      "title": "Salida PID (PWM)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"expr": "castu_extrusora_pid_output", "refId": "A"}]
+    },
+    {
+      "title": "Producción de Materiales (kg)",
+      "type": "bargauge",
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 8},
+      "targets": [
+        {"expr": "sum(increase(castu_extrusora_production_kg_total[1d])) by (material_type)", "refId": "A"}
+      ],
+      "options": {"orientation": "horizontal"}
+    },
+    {
+      "title": "Ventas de Materiales (€)",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 8},
+      "targets": [
+        {"expr": "sum(castu_material_sales_amount) by (material_type)", "legendFormat": "{{material_type}}", "refId": "A"}
+      ]
+    },
+    {
+      "title": "Energía Consumida vs Generada (kWh)",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 8},
+      "targets": [
+        {"expr": "castu_energia_consumption", "legendFormat": "Consumo", "refId": "A"},
+        {"expr": "castu_energia_generated", "legendFormat": "Generación (Agrovoltaica)", "refId": "B"}
+      ]
+    },
+    {
+      "title": "Estado del Motor",
+      "type": "stat",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 14},
+      "targets": [{"expr": "castu_extrusora_motor_speed", "refId": "A"}],
+      "options": {"colorMode": "value", "graphMode": "none"}
+    },
+    {
+      "title": "Parámetros PID",
+      "type": "stat",
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 14},
+      "targets": [
+        {"expr": "castu_extrusora_pid_kp", "refId": "A"},
+        {"expr": "castu_extrusora_pid_ki", "refId": "B"},
+        {"expr": "castu_extrusora_pid_kd", "refId": "C"}
+      ],
+      "options": {"colorMode": "value"}
+    },
+    {
+      "title": "Alertas de Producción",
+      "type": "alertlist",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 14},
+      "options": {"showOptions": "current", "maxItems": 10}
+    }
+  ],
+  "templating": {
+    "list": [
+      {"name": "material_type", "type": "query", "query": "label_values(castu_extrusora_production_kg_total, material_type)", "hide": 0}
+    ]
+  },
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "version": 1,
+  "time": {"from": "now-24h", "to": "now"}
+}

@@ -1,0 +1,73 @@
+{
+  "name": "CASTUO_LangGraph_Invoke",
+  "active": false,
+  "tags": ["CASTUO", "langgraph", "fastapi"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "langgraph-run",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "lg-wh",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [200, 320],
+      "webhookId": "castuo-langgraph-run"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_LANGGRAPH_URL || $env.CASTUO_BASE_URL || 'http://host.docker.internal:8000').replace(/\\/$/, '') + '/langgraph/castuo/run' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-KEY",
+              "value": "={{ $env.CASTUO_API_KEY || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $json.body ?? $json } }}",
+        "options": { "timeout": 120000 }
+      },
+      "id": "lg-http",
+      "name": "POST_LangGraph_API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "lg-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [760, 320]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "POST_LangGraph_API", "type": "main", "index": 0 }]]
+    },
+    "POST_LangGraph_API": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "meta": {
+    "description": "POST /webhook/langgraph-run → FastAPI /langgraph/castuo/run. CASTUO_BASE_URL sin barra final; CASTUO_LANGGRAPH_URL opcional (override). Requiere langgraph instalado en el contenedor API."
+  }
+}

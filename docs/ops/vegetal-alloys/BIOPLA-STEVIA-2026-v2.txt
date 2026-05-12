@@ -1,0 +1,33 @@
+FORMULA OPTIMIZADA: BIOPLA-STEVIA-2026-v2
+AUTOR: Gregorio Julian Jimenez Bodes
+FECHA: 31/03/2026
+LICENCIA: CC0 1.0 (dominio publico; ensayos reales obligatorios para claims comerciales)
+
+COMPOSICION QUIMICA OPTIMIZADA (porcentaje en peso):
+-----------------------------------------------------
+CELULOSA (C6H10O5)n       : 40-45%
+LIGNINA (C9H10O3)n        : 15-20%
+HEMICELULOSA (C5H8O4)n   : 15-20%
+ESTEVIOSIDO (C38H60O18) : 2-5%
+GLICEROL (C3H8O3)        : 1-3%
+PHB (C4H6O2)n           : 5%
+EXTRACTIVOS             : 2-5%
+CENIZAS                  : menor 1%
+
+PROPIEDADES FISICAS (objetivo de diseno):
+-----------------------------------------
+RESISTENCIA A LA TRACCION: 45-60 MPa
+RESISTENCIA AL IMPACTO   : 8-12 kJ/m2 (a caracterizar)
+DENSIDAD                 : 1.15-1.25 g/cm3
+TEMPERATURA DE FUSION    : 150-160 C
+BIODEGRADABILIDAD        : 95% en 120 dias (ISO 14855 - a verificar)
+
+PROCESO OPTIMIZADO (resumen):
+------------------------------
+Extraccion mas suave (T/tiempo); pretratamiento Na2CO3 1% en lugar de NaOH fuerte;
+extrusion 160-170 C con tiempo de residencia acotado; inyeccion 165 C, molde templado.
+
+IMPACTO EN RECURSOS:
+--------------------
+Menor severidad quimica en pretratamiento reduce carga hidrica de lavado y riesgo de vertido;
+medir caudal y tratamiento de efluentes en planta piloto.

@@ -1,0 +1,3 @@
+# Ya incluido en backend/requirements.txt (reportlab, qrcode[pil]).
+# Solo instalar si usas un entorno minimalista:
+# pip install reportlab "qrcode[pil]"

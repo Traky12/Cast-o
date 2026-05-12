@@ -1,0 +1,40 @@
+# CASTÚO-SYSTEM™ v10.1 — Sustitución de placeholders legales (RPI/EUIPO) al crear tag v*
+# Uso: definir RPI_NUMBER y EUIPO_NUMBER como secrets; opcionalmente ejecutar script de sustitución.
+name: Legal Placeholder Replacement
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  replace-placeholders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace RPI/EUIPO placeholders (if secrets provided)
+        env:
+          RPI_NUMBER: ${{ secrets.RPI_NUMBER }}
+          EUIPO_NUMBER: ${{ secrets.EUIPO_NUMBER }}
+        run: |
+          if [ -n "$RPI_NUMBER" ] && [ -n "$EUIPO_NUMBER" ]; then
+            find docs/legal -type f \( -name "*.md" -o -name "*.txt" \) -exec sed -i "s|RPI-XXXX/2026|$RPI_NUMBER|g" {} \;
+            find docs/legal -type f \( -name "*.md" -o -name "*.txt" \) -exec sed -i "s|EUIPO-YYYY/2026|$EUIPO_NUMBER|g" {} \;
+            find docs/legal -type f \( -name "*.md" -o -name "*.txt" \) -exec sed -i "s|XXXX/2026|$RPI_NUMBER|g" {} \;
+            find docs/legal -type f \( -name "*.md" -o -name "*.txt" \) -exec sed -i "s|YYYY/2026|$EUIPO_NUMBER|g" {} \;
+            echo "Placeholders replaced."
+          else
+            echo "RPI_NUMBER or EUIPO_NUMBER not set; skipping replacement (use secrets for auto-update)."
+          fi
+
+      - name: Commit and push (if changed)
+        run: |
+          git config --global user.name "CASTÚO Legal Bot"
+          git config --global user.email "legal@castuo-system.com"
+          git status
+          if [ -n "$(git status --porcelain)" ]; then
+            git add docs/legal/
+            git commit -m "LEGAL: Sustitución automática placeholders RPI/EUIPO [TRL9]"
+            git push origin HEAD:main || true
+          fi

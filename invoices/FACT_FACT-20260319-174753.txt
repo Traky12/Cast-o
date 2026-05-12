@@ -1,0 +1,11 @@
+FACTURA
+Numero: FACT-20260319-174753
+Fecha: 2026-03-19
+Emisor: CASTÚO-SYSTEM S.L.
+Cliente: Cooperativa Clause Test
+Subtotal: 199.99 EUR
+IVA: 42.00 EUR
+TOTAL: 241.99 EUR
+
+--- Modo de continuidad operativa (eIDAS 2, Art. 25.2) ---
+GaiaChain no disponible en el momento de emisión; se preserva integridad con hash local.

@@ -1,0 +1,28 @@
+# CASTÚO-SYSTEM™ — Alertas de negocio y recomendaciones IA
+groups:
+  - name: castuo-business-alerts
+    rules:
+      - alert: HighRecommendationErrorRate
+        expr: |
+          (sum(rate(ai_recommendation_errors_total[5m])) by (product_type)
+          / sum(rate(ai_recommendations_total[5m])) by (product_type)) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+          business_impact: high
+          team: ai
+        annotations:
+          summary: "Tasa de errores en recomendaciones >5% para {{ $labels.product_type }}"
+          description: "La tasa de errores en recomendaciones de IA ha superado el 5%. Normativas: EU AI Act Anexo III, GDPR Art.22."
+          runbook_url: "https://docs.castuo-system.eu/alerts/high_recommendation_errors"
+
+      - alert: SelfHealingFailure
+        expr: increase(self_healing_failures_total[1h]) > 0
+        labels:
+          severity: critical
+          business_impact: critical
+          team: devops
+        annotations:
+          summary: "Fallo en auto-reparación detectado"
+          description: "El agente de auto-reparación ha fallado en la última hora. Normativas: ISO 27001:A.16.1.1."
+          runbook_url: "https://docs.castuo-system.eu/alerts/self_healing_failure"

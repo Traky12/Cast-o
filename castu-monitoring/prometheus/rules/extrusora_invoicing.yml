@@ -1,0 +1,43 @@
+# CASTUO-SYSTEM™ | Alertas Extrusora PID + Facturación SII
+groups:
+  - name: extrusora-alerts
+    rules:
+      - alert: TemperaturaExtrusoraAlta
+        expr: castu_extrusora_temp{sensor="boquilla"} > 220
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Temperatura de la extrusora demasiado alta ({{ $value }}°C)"
+          description: "La boquilla ha superado 220°C. Riesgo de degradación del bio-compuesto."
+
+      - alert: TemperaturaExtrusoraBaja
+        expr: castu_extrusora_temp{sensor="boquilla"} < 170
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Temperatura de la extrusora baja ({{ $value }}°C)"
+          description: "La boquilla está por debajo de 170°C. Comprobar calentador y setpoint."
+
+  - name: materiales-alerts
+    rules:
+      - alert: StockBajoMaterial
+        expr: castu_material_stock_kg < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Stock bajo de material ({{ $value }} kg)"
+          description: "El stock de {{ $labels.material_type }} está por debajo de 10 kg."
+
+  # Nota: castu_material_invoices y castu_material_invoices_last_update
+  # requieren un exporter Odoo que exponga esas métricas; mientras tanto
+  # las alertas de SII se pueden gestionar desde Odoo o n8n.
+  # - alert: VentaNoEnviadaSII
+  #   expr: time() - castu_material_invoice_sent_timestamp > 3600
+  #   for: 10m
+  #   labels:
+  #     severity: warning
+  #   annotations:
+  #     summary: "Factura pendiente de confirmación SII"

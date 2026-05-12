@@ -1,0 +1,188 @@
+services:
+  api:
+    image: ghcr.io/traky12/castuo-system:latest
+    ports:
+      - "${API_PORT:-8000}:${API_PORT:-8000}"
+    environment:
+      - ENV=${ENV:-staging}
+      - PYTHONPATH=/app
+      - API_PORT=${API_PORT:-8000}
+      - API_HEALTH_PATH=${API_HEALTH_PATH:-/health}
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN_FILE=${VAULT_TOKEN_FILE:-/run/secrets/vault_token}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-eu-central-1}
+      - AWS_S3_BUCKET=${S3_BUCKET_LOGS}
+      - CASTUO_SABIONDA_API_KEY_FILE=/run/secrets/sabionda_key
+      - CASTUO_NEUROMORPHIC_LAB=${CASTUO_NEUROMORPHIC_LAB:-1}
+      - CASTUO_ROBOTICS_LAB_CHAIN_REGISTER=${CASTUO_ROBOTICS_LAB_CHAIN_REGISTER:-0}
+      - GAIA_X_RPC=${GAIA_X_RPC:-}
+      - GAIA_CHAIN_AUDIT_CONTRACT=${GAIA_CHAIN_AUDIT_CONTRACT:-}
+      - CASTUO_IOT_TELEMETRY_URL=${IOT_TELEMETRY_URL:-}
+      - CASTUO_IOT_DEVICE_CMD_URL=${IOT_DEVICE_CMD_URL:-}
+      - CASTUO_IOT_TIMEOUT_S=${CASTUO_IOT_TIMEOUT_S:-30}
+      - CASTUO_IOT_BEARER_FILE=${CASTUO_IOT_BEARER_FILE:-/run/secrets/iot_bearer}
+      - MISTRAL_API_URL=${MISTRAL_API_URL:-https://api.mistral.ai}
+      - MISTRAL_API_KEY_FILE=/run/secrets/mistral_key
+      - AI_ENGINE=${AI_ENGINE:-mistral-large-latest}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://castuo-system.cloud,https://n8n.castuo-system.cloud}
+    secrets:
+      - vault_token
+      - iot_bearer
+      - mistral_key
+      - sabionda_key
+    deploy:
+      replicas: ${API_REPLICAS:-3}
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "${API_CPU_LIMIT:-2.0}"
+          memory: ${API_MEM_LIMIT:-4G}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT:-8000}${API_HEALTH_PATH:-/health}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - iot_network_cloud
+      - monitoring_network_cloud
+    profiles: ["core"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:${PROMETHEUS_PORT:-9090}"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - monitoring_network_cloud
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "1G"
+    profiles: ["observability"]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-change-me}
+    volumes:
+      - grafana_data_cloud:/var/lib/grafana
+    networks:
+      - monitoring_network_cloud
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "1G"
+    profiles: ["observability"]
+
+  iot-bridge:
+    image: eclipse-mosquitto:2.0.15
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+      - "${MQTTS_PORT:-8883}:8883"
+    environment:
+      - MQTT_USER=${WIRELESS_LOGIC_MQTT_USER:-}
+      - MQTT_PASS=${WIRELESS_LOGIC_MQTT_PASS:-}
+      - WIRELESS_LOGIC_API_TOKEN_FILE=/run/secrets/wireless_logic_token
+    volumes:
+      - mosquitto_data_cloud:/mosquitto/data
+      - mosquitto_log_cloud:/mosquitto/log
+      - ./config/mosquitto.cloud.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./certs:/mosquitto/certs:ro
+    secrets:
+      - wireless_logic_token
+    networks:
+      - iot_network_cloud
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "512M"
+    profiles: ["iot"]
+
+  iot-processor:
+    build:
+      context: .
+      dockerfile: backend/integrations/Dockerfile
+    environment:
+      - ENV=${ENV:-staging}
+      - MQTT_BROKER=${MQTT_BROKER:-iot-bridge}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_TOPIC=${MQTT_TOPIC:-castuo/sensors/#}
+      - IOT_TELEMETRY_URL=${IOT_TELEMETRY_URL:-}
+      - TRACES_HYPERLEDGER_URL=${TRACES_HYPERLEDGER_URL:-}
+      - WIRELESS_LOGIC_API_TOKEN_FILE=/run/secrets/wireless_logic_token
+      - WIRELESS_LOGIC_MQTT_USER=${WIRELESS_LOGIC_MQTT_USER:-}
+      - WIRELESS_LOGIC_MQTT_PASS=${WIRELESS_LOGIC_MQTT_PASS:-}
+    secrets:
+      - wireless_logic_token
+    depends_on:
+      - iot-bridge
+    networks:
+      - iot_network_cloud
+      - monitoring_network_cloud
+    profiles: ["iot"]
+
+  ai-orchestrator:
+    image: ghcr.io/traky12/castuo-system:latest
+    command: ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8010"]
+    ports:
+      - "${AI_PORT:-8010}:8010"
+    environment:
+      - ENV=${ENV:-staging}
+      - MISTRAL_API_URL=${MISTRAL_API_URL:-https://api.mistral.ai}
+      - MISTRAL_API_KEY_FILE=/run/secrets/mistral_key
+      - AI_ENGINE=${AI_ENGINE:-mistral-large-latest}
+      - SABIONDA_API_KEY_FILE=/run/secrets/sabionda_key
+      - GAIA_X_RPC=${GAIA_X_RPC:-}
+    secrets:
+      - mistral_key
+      - sabionda_key
+    networks:
+      - monitoring_network_cloud
+      - iot_network_cloud
+    profiles: ["ai"]
+
+  vault:
+    image: hashicorp/vault:1.17
+    ports:
+      - "${VAULT_PORT:-8200}:8200"
+    environment:
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_DEV_ROOT_TOKEN_ID:-castuo-dev-root-token}
+    cap_add:
+      - IPC_LOCK
+    command: vault server -dev -dev-listen-address=0.0.0.0:8200
+    networks:
+      - monitoring_network_cloud
+    profiles: ["core"]
+
+secrets:
+  vault_token:
+    file: ./secrets/vault_token
+  iot_bearer:
+    file: ./secrets/iot_bearer
+  mistral_key:
+    file: ./secrets/mistral_key
+  sabionda_key:
+    file: ./secrets/sabionda_key
+  wireless_logic_token:
+    file: ./secrets/wireless_logic_token
+
+networks:
+  iot_network_cloud:
+    driver: bridge
+    name: ${IOT_NETWORK_NAME:-iot_network_cloud}
+  monitoring_network_cloud:
+    driver: bridge
+
+volumes:
+  grafana_data_cloud:
+  mosquitto_data_cloud:
+  mosquitto_log_cloud:

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Agente Personalizado | SABIONDA</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #22c55e; --secondary: #16a34a; --dark: #064e3b; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: var(--dark); }
+        .sidebar { background: linear-gradient(to bottom, var(--primary), var(--secondary)); color: white; }
+        .card { background: white; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="flex min-h-screen bg-gray-50">
+    <div class="sidebar w-64 space-y-6 py-7 px-2 fixed inset-y-0 left-0">
+        <div class="text-center"><h1 class="text-2xl font-bold">🌿 CASTUO</h1><p class="text-sm">Agentes SABIONDA</p></div>
+        <nav class="space-y-3">
+            <a href="index.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-home mr-3"></i> Inicio</a>
+            <a href="sabionda-ia.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-brain mr-3"></i> Sabionda IA</a>
+            <a href="control-center.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-th-large mr-3"></i> Control Center</a>
+            <a href="agent-creator.html" class="flex items-center px-4 py-2 bg-green-700 rounded text-white"><i class="fas fa-robot mr-3"></i> Crear Agente</a>
+            <a href="ecommerce.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-shopping-cart mr-3"></i> E-commerce</a>
+        </nav>
+    </div>
+    <div class="ml-64 p-8 w-full max-w-4xl">
+        <h1 class="text-2xl font-bold mb-6">Crear Nuevo Agente Personalizado</h1>
+
+        <div class="card p-6 mb-6">
+            <form id="agent-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-1">Nombre del Agente</label>
+                    <input type="text" id="name" required class="w-full border rounded px-3 py-2" placeholder="Ej. Asistente de María">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-1">Descripción</label>
+                    <textarea id="description" rows="2" class="w-full border rounded px-3 py-2" placeholder="Breve descripción del agente"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-1">Tipo</label>
+                    <select id="type" class="w-full border rounded px-3 py-2">
+                        <option value="assistant">Asistente</option>
+                        <option value="bot">Bot</option>
+                        <option value="expert">Experto</option>
+                        <option value="farmer">Agricultor</option>
+                        <option value="psychologist">Psicólogo</option>
+                    </select>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Configuración ética (0–1)</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-sm">Equidad</label><input type="range" id="ethics-equity" min="0" max="1" step="0.1" value="1" class="w-full"><span id="ethics-equity-v">1.0</span></div>
+                        <div><label class="text-sm">Igualdad</label><input type="range" id="ethics-equality" min="0" max="1" step="0.1" value="1" class="w-full"><span id="ethics-equality-v">1.0</span></div>
+                        <div><label class="text-sm">Transparencia</label><input type="range" id="ethics-transparency" min="0" max="1" step="0.1" value="1" class="w-full"><span id="ethics-transparency-v">1.0</span></div>
+                        <div><label class="text-sm">Privacidad</label><input type="range" id="ethics-privacy" min="0" max="1" step="0.1" value="1" class="w-full"><span id="ethics-privacy-v">1.0</span></div>
+                        <div><label class="text-sm">Sostenibilidad</label><input type="range" id="ethics-sustainability" min="0" max="1" step="0.1" value="0.8" class="w-full"><span id="ethics-sustainability-v">0.8</span></div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Personalidad (0–1)</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-sm">Empatía</label><input type="range" id="pers-empathy" min="0" max="1" step="0.1" value="0.7" class="w-full"><span id="pers-empathy-v">0.7</span></div>
+                        <div><label class="text-sm">Precisión</label><input type="range" id="pers-precision" min="0" max="1" step="0.1" value="0.8" class="w-full"><span id="pers-precision-v">0.8</span></div>
+                        <div><label class="text-sm">Creatividad</label><input type="range" id="pers-creativity" min="0" max="1" step="0.1" value="0.6" class="w-full"><span id="pers-creativity-v">0.6</span></div>
+                        <div><label class="text-sm">Paciencia</label><input type="range" id="pers-patience" min="0" max="1" step="0.1" value="0.7" class="w-full"><span id="pers-patience-v">0.7</span></div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Áreas de conocimiento</h3>
+                    <div class="flex gap-2 flex-wrap mb-2" id="knowledge-tags"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-area" class="flex-1 border rounded px-3 py-2" placeholder="Ej. hydroponics, blockchain">
+                        <button type="button" onclick="addKnowledgeArea()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">Añadir</button>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Accesibilidad</h3>
+                    <label class="block"><input type="checkbox" id="acc-visual" class="mr-2"> Adaptar para discapacidad visual</label>
+                    <label class="block"><input type="checkbox" id="acc-hearing" class="mr-2"> Adaptar para discapacidad auditiva</label>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-6 rounded">Crear Agente</button>
+                    <button type="button" onclick="createAgritech()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">Crear Agente Agritech</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="result" class="card p-4 hidden">
+            <h3 class="font-bold mb-2">Agente creado</h3>
+            <pre id="result-json" class="text-sm bg-gray-50 p-3 rounded overflow-x-auto"></pre>
+            <p class="mt-2 text-sm text-gray-600">Usa el <strong>agent_id</strong> para interactuar: <code>/agents/{agent_id}/chat</code></p>
+        </div>
+    </div>
+
+    <script>
+        var API_BASE = (window.location.port === '3000' && window.location.hostname === 'localhost') ? 'http://localhost:8000' : '';
+        var knowledgeAreas = [];
+
+        function bindSliders(prefix, keys) {
+            keys.forEach(function(k) {
+                var el = document.getElementById(prefix + '-' + k);
+                var val = document.getElementById(prefix + '-' + k + '-v');
+                if (!el) return;
+                el.addEventListener('input', function() { val.textContent = el.value; });
+            });
+        }
+        bindSliders('ethics', ['equity', 'equality', 'transparency', 'privacy', 'sustainability']);
+        bindSliders('pers', ['empathy', 'precision', 'creativity', 'patience']);
+
+        function addKnowledgeArea() {
+            var input = document.getElementById('new-area');
+            var area = (input.value || '').trim();
+            if (area && knowledgeAreas.indexOf(area) === -1) {
+                knowledgeAreas.push(area);
+                var span = document.createElement('span');
+                span.className = 'inline-flex items-center px-2 py-1 rounded bg-green-100 text-green-800 text-sm';
+                span.textContent = area + ' ';
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '×';
+                btn.className = 'ml-1';
+                btn.onclick = function() {
+                    knowledgeAreas = knowledgeAreas.filter(function(a) { return a !== area; });
+                    span.remove();
+                };
+                span.appendChild(btn);
+                document.getElementById('knowledge-tags').appendChild(span);
+                input.value = '';
+            }
+        }
+
+        function getFormData() {
+            return {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                type: document.getElementById('type').value,
+                created_by: 'web',
+                ethics: {
+                    equity: parseFloat(document.getElementById('ethics-equity').value),
+                    equality: parseFloat(document.getElementById('ethics-equality').value),
+                    transparency: parseFloat(document.getElementById('ethics-transparency').value),
+                    privacy: parseFloat(document.getElementById('ethics-privacy').value),
+                    sustainability: parseFloat(document.getElementById('ethics-sustainability').value),
+                },
+                personality: {
+                    empathy: parseFloat(document.getElementById('pers-empathy').value),
+                    precision: parseFloat(document.getElementById('pers-precision').value),
+                    creativity: parseFloat(document.getElementById('pers-creativity').value),
+                    patience: parseFloat(document.getElementById('pers-patience').value),
+                },
+                knowledge_areas: knowledgeAreas.slice(),
+                accessibility: {
+                    visual_impairment: document.getElementById('acc-visual').checked,
+                    hearing_impairment: document.getElementById('acc-hearing').checked,
+                },
+            };
+        }
+
+        document.getElementById('agent-form').onsubmit = async function(e) {
+            e.preventDefault();
+            var resultEl = document.getElementById('result');
+            var jsonEl = document.getElementById('result-json');
+            try {
+                var res = await fetch(API_BASE + '/agents/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getFormData()),
+                });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.detail || res.statusText);
+                resultEl.classList.remove('hidden');
+                jsonEl.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                resultEl.classList.remove('hidden');
+                jsonEl.textContent = 'Error: ' + err.message;
+            }
+        };
+
+        async function createAgritech() {
+            var resultEl = document.getElementById('result');
+            var jsonEl = document.getElementById('result-json');
+            try {
+                var res = await fetch(API_BASE + '/agents/agritech/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getFormData()),
+                });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.detail || res.statusText);
+                resultEl.classList.remove('hidden');
+                jsonEl.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                resultEl.classList.remove('hidden');
+                jsonEl.textContent = 'Error: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>

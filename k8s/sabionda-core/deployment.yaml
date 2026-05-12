@@ -1,0 +1,62 @@
+# CASTÚO-SYSTEM™ Sabionda Core v10.0 — Deployment
+# Auto-escalado vía HPA (ver hpa.yaml)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sabionda-core
+  labels:
+    app: sabionda-core
+    version: "v10.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sabionda-core
+  template:
+    metadata:
+      labels:
+        app: sabionda-core
+        version: "v10.0"
+    spec:
+      containers:
+      - name: sabionda-core
+        image: ghcr.io/castuo-system/sabionda-core:v10.0
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: ENV
+          value: production
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+# Servicio para tráfico interno y balanceo
+apiVersion: v1
+kind: Service
+metadata:
+  name: sabionda-core
+spec:
+  selector:
+    app: sabionda-core
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+  type: ClusterIP

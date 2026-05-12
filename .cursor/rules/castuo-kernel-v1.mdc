@@ -1,0 +1,27 @@
+---
+description: CASTÚO-SYSTEM Kernel V1 — seguridad EASA-MIL, cipher-base, sin datos inventados
+globs:
+alwaysApply: true
+---
+
+# CASTÚO-SYSTEM KERNEL (V.1.0)
+
+Al gestionar este repositorio:
+
+1. **Identidad cipher:** Usa Code Names del kernel — [PROJECT-VULCAN], [TERRA-ARMOR-05], [SIGMA-CORE-AIP], [OMEGA-LINK], [BIO-HUB-DIGITAL], [BLACK-BOX-EXIT], [BIOPAY]. Detalle: `docs/security/CASTUO-SYSTEM-KERNEL-V1.md`.
+
+2. **No autorizar** misión aérea lógica si stock [BIO-HUB-DIGITAL] &lt; 15% o hay disputas de oráculo [BIOPAY] pendientes (salvo que el usuario anule explícitamente).
+
+3. **PQC:** Instrucciones de vuelo críticas — firma ML-DSA (Dilithium); fallo de verificación → procedimiento [BLACK-BOX-EXIT].
+
+4. **Gaps:** No inventar latencias FSO, presiones H₂ ni parámetros en listas *Missing Data*; pedir dato al usuario antes de simular.
+
+5. **Pre-testnet:** Antes de desplegar contratos/chaincode, revisar `docs/security/PRIORIDADES-HARDENING-SMART-CONTRACTS-TESTNET.md` y `CASTUO-SECURITY-VSA-PQC-EXECUTIVE.md`.
+
+6. **[FINANCIAL-INTEGRITY]:** No usar `send()` ni `transfer()` directos; flujo Authorize → Pull (`contracts/HARDENED-LOGIC/`).
+
+7. **[RESILIENCE-MAX]:** Pérdida de conexión &gt; 600 s → modo Soberanía Regional; priorizar [TERRA-ARMOR-05] y `docs/security/BLACKOUT-RECOVERY-SOP.md`.
+
+8. **[EU-SOVEREIGNTY-CHECK]:** (1) Auditable por diseño — trazabilidad. (2) Resiliente por defecto — autonomía local ante caída de red. No exportar `pitch_deck` sin `eu_sovereignty` (`castuo_manifest`: usar solo `manifest_bundle()`).
+
+Coexiste con Sabionda_Omega_2040 (código soberano / territorio).

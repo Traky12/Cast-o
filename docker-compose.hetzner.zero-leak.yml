@@ -1,0 +1,188 @@
+# docker-compose.hetzner.zero-leak.yml
+# Stack mínimo para ejecutar `zero_leak_encrypt_forward_v2` + Feedback Loop + Auditoría federada.
+#
+# Nota MQTT (endurecido):
+# - Este stack usa MQTT autenticado (`allow_anonymous false`).
+# - El workflow `zero_leak_encrypt_forward_v2` debe proporcionar `user/password` por entorno
+#   (CASTUO_MQTT_USER / CASTUO_MQTT_PASS) en los nodos MQTT.
+#
+version: "3.8"
+
+services:
+  # Backend (FastAPI + GaiaChain + PQC + compliance)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: castuo/backend:zero-leak
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+
+      # Keycloak (validación JWT RS256)
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=castuo-system
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-n8n-admin}
+
+      # GaiaChain audit (backend/api/config.py)
+      - GAIA_CHAIN_AUDIT_CONTRACT=${GAIA_CHAIN_AUDIT_CONTRACT:-0x123...abc}
+      - GAIA_CHAIN_AUDIT_ABI=${GAIA_CHAIN_AUDIT_ABI:-'{"inputs": [], "name": "registerEvent"}'}
+      - GAIA_CHAIN_PRIVATE_KEY=${GAIA_CHAIN_PRIVATE_KEY:-0x0}
+    networks:
+      - castuo-internal
+    restart: unless-stopped
+    depends_on:
+      - keycloak
+
+  # n8n (workflows)
+  n8n:
+    image: n8nio/n8n:1.0
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-password}
+      - N8N_HOST=0.0.0.0
+      - N8N_LOG_LEVEL=${N8N_LOG_LEVEL:-warn}
+
+      # JWT que usa el workflow para endpoints admin (PQC + auditoría)
+      - N8N_ADMIN_JWT=${N8N_ADMIN_JWT}
+
+      # Endpoints parametrizados (sin hardcode en el JSON)
+      - CASTUO_ENCRYPT_URL=http://backend:8000/encrypt
+      - CASTUO_PQC_SIGN_URL=http://backend:8000/api/admin/pqc/sign
+      - CASTUO_AUDIT_REGISTER_URL=http://backend:8000/api/audit/register-event
+      - CASTUO_COMPLIANCE_LATEST_URL=http://backend:8000/api/compliance/audit/latest?tokenId=0
+
+      # MQTT broker (para Trigger + Feedback Loop)
+      - CASTUO_MQTT_BROKER=mqtt://mosquitto:1883
+      - CASTUO_MQTT_USER=${CASTUO_MQTT_USER:-n8n-user}
+      - CASTUO_MQTT_PASS=${CASTUO_MQTT_PASS}
+
+      # Destino externo (recibe ciphertext + signature)
+      - ZERO_LEAK_OUT_URL=${ZERO_LEAK_OUT_URL}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      # Opcional: si quieres que n8n tenga export/import listos
+      # - ./n8n/workflows:/home/node/.n8n/workflows
+    networks:
+      - castuo-internal
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - mosquitto
+
+  # Mosquitto (MQTT Broker)
+  mosquitto:
+    image: eclipse-mosquitto:2.0.15
+    command: /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+      - mosquitto_config:/mosquitto/config
+    networks:
+      - castuo-internal
+    restart: unless-stopped
+    depends_on:
+      - mosquitto-setup
+
+  # Genera mosquitto.conf + passwords.txt en un volumen (sin escribir secretos al repo)
+  mosquitto-setup:
+    image: eclipse-mosquitto:2.0.15
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      set -eu;
+      : \"${CASTUO_MQTT_USER:=n8n-user}\";
+      if [ -z \"${CASTUO_MQTT_PASS:-}\" ]; then
+        echo 'Error: CASTUO_MQTT_PASS no definido (se requiere para MQTT autenticado).';
+        exit 1;
+      fi;
+      mkdir -p /mosquitto/config /mosquitto/data /mosquitto/log;
+      cp /seed/mosquitto.conf /mosquitto/config/mosquitto.conf;
+      mosquitto_passwd -b /mosquitto/config/passwords.txt \"${CASTUO_MQTT_USER}\" \"${CASTUO_MQTT_PASS}\";
+      echo '✅ MQTT passwords.txt generado en /mosquitto/config/passwords.txt (volumen).';
+      "
+    environment:
+      - CASTUO_MQTT_USER=${CASTUO_MQTT_USER:-n8n-user}
+      - CASTUO_MQTT_PASS=${CASTUO_MQTT_PASS}
+    volumes:
+      - ./docker/mosquitto.zero-leak.auth.conf:/seed/mosquitto.conf:ro
+      - mosquitto_config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - castuo-internal
+    restart: "no"
+
+  # Keycloak (roles)
+  keycloak:
+    image: jboss/keycloak:18.0.0
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-change-me}
+      - DB_VENDOR=postgres
+      - DB_ADDR=postgres
+      - DB_DATABASE=keycloak
+      - DB_USER=keycloak
+      - DB_PASSWORD=${POSTGRES_KEYCLOAK_PASSWORD:-change-me}
+      - PROXY_ADDRESS_FORWARDING=true
+    ports:
+      - "8080:8080"
+    networks:
+      - castuo-internal
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  # PostgreSQL (Keycloak)
+  postgres:
+    image: postgres:16
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_KEYCLOAK_PASSWORD:-change-me}
+      - POSTGRES_USER=keycloak
+      - POSTGRES_DB=keycloak
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - castuo-internal
+    restart: unless-stopped
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - castuo-internal
+    restart: unless-stopped
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - castuo-internal
+    restart: unless-stopped
+
+networks:
+  castuo-internal:
+    driver: bridge
+
+volumes:
+  n8n_data:
+  mosquitto_data:
+  mosquitto_log:
+  mosquitto_config:
+  postgres_data:
+  grafana_data:
+

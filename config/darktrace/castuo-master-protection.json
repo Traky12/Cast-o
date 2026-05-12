@@ -1,0 +1,76 @@
+{
+  "darktrace": {
+    "rules": [
+      {
+        "name": "CASTUO-Master-Access-Violation",
+        "description": "Intento de acceso no autorizado al sistema maestro",
+        "condition": {
+          "user": "not:authorized_admin",
+          "action": ["sudo", "root_access", "hsm_access"],
+          "anomaly_score": ">99"
+        },
+        "response": [
+          { "type": "block_user", "duration": "permanent" },
+          {
+            "type": "notify",
+            "channels": ["slack", "email", "gaiachain"],
+            "message": "ALERTA CRÍTICA: Intento de acceso no autorizado al sistema maestro. Usuario: {user}, IP: {ip}"
+          },
+          { "type": "gaiachain_alert", "event_type": "MASTER_ACCESS_VIOLATION", "severity": "critical" }
+        ]
+      },
+      {
+        "name": "CASTUO-Cursor-Tampering",
+        "description": "Modificación no autorizada en scripts de Cursor",
+        "condition": {
+          "process": "cursor.js",
+          "action": ["modify", "delete", "execute_untrusted"],
+          "anomaly_score": ">95"
+        },
+        "response": [
+          { "type": "quarantine_host", "duration": "1h" },
+          { "type": "kill_process" },
+          { "type": "notify", "channels": ["slack", "gaiachain"], "message": "ALERTA: Manipulación de Cursor. Host: {host}, Usuario: {user}" }
+        ]
+      },
+      {
+        "name": "CASTUO-GaiaChain-Unauthorized-Access",
+        "description": "Acceso no autorizado a nodos GaiaChain",
+        "condition": {
+          "target": ["gaiachain-node", "gaiachain-validator"],
+          "action": ["login", "data_access", "admin_command"],
+          "user": "not:authorized_admin"
+        },
+        "response": [
+          { "type": "block_ip", "duration": "24h" },
+          { "type": "notify", "channels": ["email", "gaiachain"] },
+          { "type": "gaiachain_alert", "event_type": "GAIACHAIN_UNAUTHORIZED_ACCESS", "severity": "critical" }
+        ]
+      },
+      {
+        "name": "CASTUO-IoT-Firmware-Tampering",
+        "description": "Modificación no autorizada de firmware en IoT",
+        "condition": {
+          "device_type": "iot",
+          "action": ["firmware_update", "firmware_modify"],
+          "anomaly_score": ">90"
+        },
+        "response": [
+          { "type": "disable_device", "duration": "until_manual_review" },
+          { "type": "notify", "channels": ["slack", "gaiachain"] },
+          { "type": "gaiachain_alert", "event_type": "IOT_FIRMWARE_TAMPERING", "severity": "high" }
+        ]
+      }
+    ],
+    "exclusions": {
+      "users": ["authorized_admin"],
+      "ips": ["192.168.1.0/24"],
+      "processes": ["/usr/local/bin/tpm_firmware_verifier", "/opt/castuo/bin/verify-master-access"]
+    },
+    "notifications": {
+      "slack": { "webhook": "https://hooks.slack.com/services/XXX", "channel": "#security-alerts" },
+      "email": { "to": ["security@castuo-system.com"], "from": "security@castuo-system.com" },
+      "gaiachain": { "endpoint": "https://gaiachain.castuo-system.com/api/v1/alert", "api_key": "$GAIA_CHAIN_API_KEY" }
+    }
+  }
+}

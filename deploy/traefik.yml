@@ -1,0 +1,44 @@
+# Traefik v2 – API Gateway EU/OSS (MIT)
+# GDPR + ISO 27001. Certificados Let's Encrypt.
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+        options:
+          default:
+            minVersion: VersionTLS12
+            cipherSuites:
+              - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+              - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+
+providers:
+  docker: {}
+  file:
+    filename: "/etc/traefik/dynamic.yml"
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: dpo@castuo-system.eu
+      storage: /etc/traefik/acme.json
+      httpChallenge:
+        entryPoint: web
+
+api:
+  dashboard: true
+  insecure: false

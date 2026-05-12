@@ -1,0 +1,84 @@
+name: Test and Deploy ForestOwnershipToken
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  DASHBOARD_URL: "https://staging.juntaextremadura.es"
+  API_BASE_URL: "https://api-staging.juntaextremadura.es"
+  TEST_TOKEN_ID: "1"
+  TEST_WALLET_ADDRESS: "0x7A1234567890abcdef1234567890abcdef12345678"
+  TEST_EMAIL: "propietario@test.com"
+
+jobs:
+  test:
+    name: Ejecutar pruebas E2E
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias de tests
+        run: |
+          pip install -r tests/requirements.txt
+
+      - name: Instalar Chrome para Selenium
+        run: |
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Ejecutar pruebas E2E
+        run: |
+          pytest tests/e2e/test_privacy_module.py --html=report.html --self-contained-html
+
+      - name: Subir informe de pruebas
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-pruebas-e2e
+          path: report.html
+
+  deploy-staging:
+    name: Desplegar en Staging
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar Ansible
+        run: pip install ansible
+
+      - name: Preparar clave SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Ejecutar playbook de despliegue de agentes
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          cd ansible
+          ansible-playbook -i inventory/staging.ini deploy_agents.yml --vault-password-file <(echo "$ANSIBLE_VAULT_PASSWORD")
+
+      - name: Notificar despliegue
+        if: success()
+        run: |
+          echo "Agentes desplegados en staging: $DASHBOARD_URL"
+

@@ -1,0 +1,98 @@
+# Evidencia TRL6 regenerable (manifiesto + JUnit; ver reports/trl6/README.md)
+reports/trl6/*
+!reports/trl6/README.md
+!reports/trl6/.gitkeep
+
+# Secretos locales (archivos bearer; ver secrets/README.md)
+secrets/*
+!secrets/README.md
+certs/*
+!certs/.gitkeep
+
+# Variables de entorno con secretos
+.env
+.env.staging
+.env.camera
+.env.production
+.env.cerebros
+.env.n8n-castuo
+.env.n8n-multi
+.env.directus
+deploy/.env.production
+deploy/.env.castuo-enterprise
+deploy/.env.arsys-staging
+deploy/mosquitto.edge.conf
+
+# Mosquitto TLS local (secretos y claves)
+deploy/mqtt-tls/mosquitto/config/passwd
+deploy/mqtt-tls/scripts/init-passwd.sh
+deploy/mqtt-tls/mosquitto/certs/*
+!deploy/mqtt-tls/mosquitto/certs/.gitkeep
+iot/firmware/**/secrets.h
+vault_init.json
+
+# Overrides locales con secretos (no versionar)
+config/global_vars.override.json
+config/global_vars.secret.json
+config/global_vars.local.json
+
+# Clave privada anti-tampering (no commitear; sí commitear castuo-public.key y *.sig)
+castuo-private.key
+**/castuo-private.key
+
+# Clave maestra administrador (nunca versionar)
+security/.admin_master_key
+security/.master-key-hierarchy
+
+# Node (stubs p. ej. scripts/ws-metrics-stub)
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.eggs/
+
+# PEI-001 informes generados (mantener .gitkeep en reports/)
+pei-001-sigpac/reports/*.json
+pei-001-sigpac/reports/*.pdf
+
+# PEI-002 payloads locales (mantener payloads/.gitkeep)
+pei-002-tracechain/payloads/*.json
+!pei-002-tracechain/payloads/.gitkeep
+
+# Adaptadores LoRA generados (mantener models/.gitkeep)
+scripts/ai/mistral_lora/models/*
+!scripts/ai/mistral_lora/models/.gitkeep
+
+# Cerebros Markdown / SilverBullet (solo plantillas .gitkeep en repo)
+cerebros/soberano/*
+!cerebros/soberano/.gitkeep
+cerebros/auditoria/*
+!cerebros/auditoria/.gitkeep
+!cerebros/auditoria/journal/.gitkeep
+cerebros/operativo/*
+!cerebros/operativo/.gitkeep
+
+# Logs y datos locales
+logs/
+*.log
+# Artefactos demo ICEX / gemelo (PDF/XML generados en feria)
+data/demo_trl101/
+data/motioneye/
+certbot/conf/
+certbot/www/
+
+# IDE / Editor (versionar solo política de seguridad del workspace)
+.idea/
+.vscode/*
+!.vscode/settings.json
+# No ignorar .cursor/: en Castúo se versionan rules/, settings.json y security/.
+.DS_Store
+Thumbs.db
+
+# Cuotas locales /water/ctaex (SQLite)
+backend/water_ctaex_usage.db
+backend/db/water_ctaex_usage.db

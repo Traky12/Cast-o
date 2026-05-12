@@ -1,0 +1,52 @@
+{
+  "@context": "https://ref.gs1.org/standards/epcis/2.0.0/context.jsonld",
+  "type": "ObjectEvent",
+  "eventTime": "2026-03-15T10:00:00+01:00",
+  "eventTimeZoneOffset": "+01:00",
+  "epcList": [
+    { "epc": "urn:epc:id:sgtin:0614141.100123.400" }
+  ],
+  "action": "OBSERVE",
+  "bizStep": "urn:epcglobal:cbv:bizStep:harvesting",
+  "disposition": "urn:epcglobal:cbv:disp:in_process",
+  "readPoint": {
+    "id": "urn:epc:id:sgln:0614141.00001.0",
+    "gln": "0614141000001"
+  },
+  "bizLocation": {
+    "id": "urn:epc:id:sgln:0614141.00001.0",
+    "gln": "0614141000001",
+    "address": {
+      "street": "Carretera de Madrid, km 380",
+      "city": "Badajoz",
+      "region": "Extremadura",
+      "country": "ES"
+    }
+  },
+  "extension": {
+    "certifications": [
+      {
+        "type": "Denominación de Origen",
+        "name": "Extremadura",
+        "standard": "UE 1151/2012",
+        "certificate": "DOE-2026-001"
+      },
+      {
+        "type": "Agricultura Ecológica",
+        "name": "CAAE",
+        "standard": "Reglamento UE 2018/848",
+        "certificate": "CAAE-ES-2026-12345"
+      }
+    ],
+    "sustainability": {
+      "carbon_footprint": "12 kg CO₂/ha",
+      "water_usage": "15 L/ha",
+      "energy_source": "agrovoltaica (80% renovable)"
+    },
+    "compliance": {
+      "GDPR": true,
+      "PAC_2027": true,
+      "AEMPS": "RD 903/2025"
+    }
+  }
+}

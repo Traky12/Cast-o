@@ -1,0 +1,59 @@
+{
+  "name": "CASTUO_Node_Security_Integrity",
+  "active": false,
+  "tags": ["CASTUO", "security", "nodes", "integrity"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "castuo-node-security",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cns-wh",
+      "name": "Webhook_NodeSecurity",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [220, 300],
+      "webhookId": "castuo-node-security"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body ?? item;\nconst canon = JSON.stringify(body);\nconst hash = crypto.createHash('sha3-512').update(canon).digest('hex');\nconst nodeId = String(body.node_id || body.nodeId || 'unknown');\nconst base = String($env.GAIACHAIN_NODE_VALIDATE_URL || $env.GAIACHAIN_VALIDATE_URL || '').trim();\nlet gaia = { skipped: true, reason: 'GAIACHAIN_NODE_VALIDATE_URL / GAIACHAIN_VALIDATE_URL no configurada' };\nif (base) {\n  const r = await fetch(base, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ nodeId, hash, ts: new Date().toISOString() }),\n  });\n  const t = await r.text();\n  let parsed;\n  try { parsed = JSON.parse(t); } catch { parsed = { raw: t }; }\n  gaia = { http_status: r.status, response: parsed };\n}\nreturn [{ json: { nodeId, config_hash_sha3_512: hash, gaia } }];"
+      },
+      "id": "cns-code",
+      "name": "Hash_And_GaiaPlaceholder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "cns-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [740, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_NodeSecurity": {
+      "main": [[{ "node": "Hash_And_GaiaPlaceholder", "type": "main", "index": 0 }]]
+    },
+    "Hash_And_GaiaPlaceholder": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120,
+    "saveManualExecutions": false
+  },
+  "meta": {
+    "description": "Integridad de nodo: SHA3-512 del payload + POST opcional a URL GaiaChain/auditoría (env). Sin URL, devuelve hash y skipped. HoneyBadger/BFT solo si vuestro backend lo expone."
+  }
+}

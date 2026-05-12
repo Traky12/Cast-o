@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-backend
+  namespace: castuo-system
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/castuo-system/backend:v1.4.0
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"

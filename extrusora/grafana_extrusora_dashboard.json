@@ -1,0 +1,69 @@
+{
+  "title": "Extrusora de Bio-Compuestos",
+  "panels": [
+    {
+      "title": "Temperatura Boquilla",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "castu_extrusora_temp{sensor=\"boquilla\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 190 },
+              { "color": "red", "value": 210 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Temperatura Cámara",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "castu_extrusora_temp{sensor=\"camara\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "celsius" } }
+    },
+    {
+      "title": "Estado Calentador",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "castu_extrusora_heat",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Velocidad Motor",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "castu_extrusora_motor_speed",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Consumo Energético",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "castu_extrusora_power_consumption",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "watt" } }
+    }
+  ]
+}

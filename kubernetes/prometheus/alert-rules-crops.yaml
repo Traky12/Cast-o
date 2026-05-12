@@ -1,0 +1,11 @@
+groups:
+  - name: crop-alerts
+    rules:
+      - alert: CropTokenized
+        expr: crop_tokenized_total > 0
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "New crop tokenized in {{ $labels.region }}"
+          description: "{{ $labels.cropType }} ({{ $labels.quantity }}) tokenized in {{ $labels.farmId }}"

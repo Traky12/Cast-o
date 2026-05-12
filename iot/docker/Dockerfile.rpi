@@ -1,0 +1,15 @@
+# CASTÚO-SYSTEM — Edge agent (RPi/finca o simulador en Hetzner)
+# Build desde raíz: docker build -f iot/docker/Dockerfile.rpi -t castuo/rpi-edge .
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir paho-mqtt requests
+
+ENV MQTT_BROKER=mqtt
+ENV MQTT_PORT=1883
+ENV BACKEND_URL=http://backend:8000
+
+COPY iot/docker/edge_agent.py /app/edge_agent.py
+
+CMD ["python", "/app/edge_agent.py"]

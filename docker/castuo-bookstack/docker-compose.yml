@@ -1,0 +1,61 @@
+# CASTÚO-SYSTEM™ | BookStack — Producción + Anti-tampering (5 capas)
+# Verificación previa: ./verify-integrity.sh || exit 1
+# Uso: cd docker/castuo-bookstack && cp .env.example .env && docker compose up -d
+
+version: '3.8'
+
+services:
+  bookstack:
+    # PIN DIGEST en prod: image: lscr.io/linuxserver/bookstack@sha256:<digest>
+    image: lscr.io/linuxserver/bookstack:latest
+    container_name: castuo-bookstack
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - APP_URL=${BOOKSTACK_APP_URL}
+      - DB_HOST=mariadb
+      - DB_USER=bookstack
+      - DB_PASS=${BOOKSTACK_DB_PASS}
+      - DB_DATABASE=bookstack_app
+    volumes:
+      - "./data:/config"
+    ports:
+      - "${BOOKSTACK_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:latest
+    container_name: castuo-bookstack-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=bookstack_app
+      - MYSQL_USER=bookstack
+      - MYSQL_PASSWORD=${BOOKSTACK_DB_PASS}
+    volumes:
+      - "./db:/var/lib/mysql"
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped

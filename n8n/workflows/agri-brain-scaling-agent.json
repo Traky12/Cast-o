@@ -1,0 +1,55 @@
+{
+  "name": "AGRI_BRAIN_Scaling_Agent",
+  "active": false,
+  "tags": ["CASTUO", "agri-brain", "scaling", "prometheus"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agri-brain-scaling",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "abl-wh",
+      "name": "Webhook_Scaling",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [200, 300],
+      "webhookId": "agri-brain-scaling"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prom = String($env.PROMETHEUS_QUERY_URL || '').trim();\nconst b = $input.first().json.body ?? $input.first().json;\nconst query = String(b.promql || 'up');\nlet metrics = { skipped: true, reason: 'PROMETHEUS_QUERY_URL no configurada (ej. http://prometheus:9090/api/v1/query)' };\nif (prom) {\n  const u = new URL(prom);\n  u.searchParams.set('query', query);\n  const r = await fetch(u.toString(), { method: 'GET' });\n  const t = await r.text();\n  let parsed;\n  try { parsed = JSON.parse(t); } catch { parsed = { raw: t }; }\n  metrics = { http_status: r.status, promql: query, response: parsed };\n}\nreturn [{ json: { success: true, metrics, kubernetes_hint: 'HPA/replicas vía API del clúster no incluido: usar credenciales mínimas y workflow aparte.' } }];"
+      },
+      "id": "abl-code",
+      "name": "Prometheus_Query_Stub",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "abl-resp",
+      "name": "Respond_JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [740, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_Scaling": {
+      "main": [[{ "node": "Prometheus_Query_Stub", "type": "main", "index": 0 }]]
+    },
+    "Prometheus_Query_Stub": {
+      "main": [[{ "node": "Respond_JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": false },
+  "meta": {
+    "description": "Consulta instantánea Prometheus si PROMETHEUS_QUERY_URL apunta a /api/v1/query. Escalado K8s requiere RBAC dedicado."
+  }
+}

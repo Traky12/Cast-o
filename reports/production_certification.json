@@ -1,0 +1,56 @@
+{
+  "title": "Informe Estratégico: Producción Local (Extremadura)",
+  "date": "2026-03-29",
+  "highlights": {
+    "drones_manufactured": 0,
+    "local_content": "0.0%",
+    "economic_impact": "€0",
+    "co2_saved": "0 kg"
+  },
+  "recommendations": [
+    "Mantener niveles actuales de producción."
+  ],
+  "detailed_data": {
+    "production_stats": {
+      "jobs_created": 0,
+      "local_content": 0.85,
+      "co2_saved": 0.0,
+      "economic_impact": 0.0,
+      "current_orders": 0,
+      "pending_orders": 0,
+      "in_progress_orders": 0,
+      "completed_orders": 0,
+      "inventory_levels": {
+        "Fibra de carbono": 2000.0,
+        "Aleación de aluminio": 5000.0,
+        "PLA biodegradable": 3000.0,
+        "Acero inoxidable": 8000.0,
+        "Cámaras multiespectrales": 200.0,
+        "Módulos GPS": 500.0,
+        "Sensores IoT": 1000.0,
+        "Baterías LiPo": 800.0
+      },
+      "suppliers_count": 7,
+      "total_drones_manufactured": 0,
+      "products_manufactured": {},
+      "local_content_avg": 0.0,
+      "co2_saved_kg": 0
+    },
+    "recent_manufacturing": [],
+    "inventory_levels": {
+      "Fibra de carbono": 2000.0,
+      "Aleación de aluminio": 5000.0,
+      "PLA biodegradable": 3000.0,
+      "Acero inoxidable": 8000.0,
+      "Cámaras multiespectrales": 200.0,
+      "Módulos GPS": 500.0,
+      "Sensores IoT": 1000.0,
+      "Baterías LiPo": 800.0
+    },
+    "local_impact": {
+      "jobs_created": 0,
+      "economic_impact_eur": 0.0,
+      "co2_saved_kg": 0
+    }
+  }
+}

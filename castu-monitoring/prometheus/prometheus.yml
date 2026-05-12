@@ -1,0 +1,66 @@
+# CASTUO-SYSTEM™ | Prometheus (Git + BioCoin + Drones + Sensores IoT)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - 'rules/git.rules.yml'
+  - 'rules/drones_sensors.yml'
+  - 'rules/extrusora_invoicing.yml'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'git-exporter'
+    metrics_path: '/metrics'
+    scheme: 'http'
+    static_configs:
+      - targets: ['git-exporter:9091']
+        labels:
+          repo: 'castu-system'
+      - targets: ['git-exporter-finca2:9091']
+        labels:
+          repo: 'castu-finca2'
+
+  # Drones Castuo Link (API con /metrics en puerto 8000)
+  - job_name: 'drones-castu-link'
+    metrics_path: '/metrics'
+    scheme: 'http'
+    static_configs:
+      - targets: ['api:8000']
+        labels:
+          service: 'drones'
+
+  # Sensores IoT (exporter en 8001; activar cuando exista sensores-api)
+  # - job_name: 'sensores-iot'
+  #   metrics_path: '/metrics'
+  #   static_configs:
+  #     - targets: ['sensores-api:8001']
+
+  # Extrusora PID (métricas temperatura, setpoint, salida PID)
+  - job_name: 'extrusora'
+    scrape_interval: 5s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['extrusora-exporter:9100']
+        labels:
+          service: 'extrusora'
+
+  # Odoo (ventas, producción materiales; exporter en 9101)
+  # - job_name: 'odoo'
+  #   scrape_interval: 10s
+  #   static_configs:
+  #     - targets: ['odoo-exporter:9101']
+
+  # Energía agrovoltaica (exporter en 9102)
+  # - job_name: 'energia'
+  #   scrape_interval: 10s
+  #   static_configs:
+  #     - targets: ['energia:9102']
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']

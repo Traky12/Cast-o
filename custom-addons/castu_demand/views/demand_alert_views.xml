@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_demand_alert_tree" model="ir.ui.view">
+        <field name="name">castu.demand.alert.tree</field>
+        <field name="model">castu.demand.alert</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="material_id"/>
+                <field name="type"/>
+                <field name="date"/>
+                <field name="resolved"/>
+            </tree>
+        </field>
+    </record>
+    <record id="action_castu_demand_alert" model="ir.actions.act_window">
+        <field name="name">Alertas de Demanda</field>
+        <field name="res_model">castu.demand.alert</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_demand_alert" name="Alertas de Demanda"
+        parent="castu_materials.menu_castu_materials_root" action="action_castu_demand_alert" sequence="41"/>
+</odoo>

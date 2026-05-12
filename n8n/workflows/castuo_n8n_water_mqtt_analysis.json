@@ -1,0 +1,128 @@
+{
+  "name": "CASTUO_Water_MQTT_CTAEX_Analyze",
+  "active": false,
+  "tags": ["CASTUO", "MQTT", "water", "CTAEX", "hydroponics"],
+  "nodes": [
+    {
+      "parameters": {
+        "topic": "castuo/water/sensor/+",
+        "qos": 1,
+        "retain": false,
+        "user": "={{ $env.CASTUO_MQTT_USER || '' }}",
+        "password": "={{ $env.CASTUO_MQTT_PASS || '' }}",
+        "broker": {
+          "__rl": true,
+          "value": "={{ $env.CASTUO_MQTT_BROKER || 'mqtt://mqtt:1883' }}",
+          "mode": "value"
+        }
+      },
+      "id": "mqtt-water",
+      "name": "MQTT_Water_Sensors",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [160, 300],
+      "notesInFlow": true,
+      "notes": "Equivale a escuchar castuo/water/sensor/orp|tds|ph (QoS 1). Env: CASTUO_MQTT_BROKER, CASTUO_MQTT_USER, CASTUO_MQTT_PASS. Credencial MQTT en UI si no usas env."
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst topic = String(j.topic || j.mqttTopic || '');\nconst topicParts = topic.split('/');\nconst sensorType = (topicParts[topicParts.length - 1] || '').toLowerCase();\nconst raw = j.message !== undefined ? j.message : j.payload;\nconst sensorValue = parseFloat(String(raw).trim());\nif (Number.isNaN(sensorValue)) {\n  throw new Error('Payload no es un número válido');\n}\nif (!['orp', 'tds', 'ph'].includes(sensorType)) {\n  return [];\n}\nreturn [\n  {\n    json: {\n      sensor_type: sensorType,\n      sensor_value: sensorValue,\n      timestamp: new Date().toISOString(),\n      raw_topic: topic,\n      raw_payload: String(raw),\n    },\n  },\n];\n"
+      },
+      "id": "prep-water",
+      "name": "Prepare_Analysis_Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [360, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ String($env.CASTUO_BASE_URL || $env.CASTUO_API_URL || 'http://castuo-api:8000').replace(/\\/+$/, '') + '/water/ctaex/analyze' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-KEY", "value": "={{ $env.CASTUO_API_KEY || '' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { sensor_type: $('Prepare_Analysis_Data').first().json.sensor_type, sensor_value: $('Prepare_Analysis_Data').first().json.sensor_value, historical_data: [] } }}",
+        "options": { "timeout": 120000 }
+      },
+      "id": "http-water",
+      "name": "Call_CASTUO_Water_Analysis_API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [560, 300],
+      "notesInFlow": true,
+      "notes": "POST /water/ctaex/analyze (también /api/v1/water/ctaex/analyze). Sustituye URL si usas solo prefijo /api/v1."
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $('Prepare_Analysis_Data').first().json;\nconst api = $input.first().json;\nconst critical = Boolean(api && api.analysis && api.analysis.status === 'critical');\nconst rec = Array.isArray(api.recommendations) ? api.recommendations : [];\nconst oa = api.ollama_analysis || {};\nconst iaOk = oa.model_used && oa.model_used !== 'disabled' && oa.model_used !== 'fallback';\nreturn [\n  {\n    json: {\n      status: 'processed',\n      alert: critical,\n      sensor_type: prep.sensor_type,\n      sensor_value: prep.sensor_value,\n      timestamp: prep.timestamp,\n      alert_message: critical ? `Alerta ${api.sensor_type}: ${api.analysis.status}` : '',\n      recommendations: rec,\n      ollama_model: oa.model_used || '',\n      ollama_ia_active: iaOk,\n      api_response: api,\n    },\n  },\n];\n"
+      },
+      "id": "proc-water",
+      "name": "Process_API_Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{ $json.alert }}", "value2": true }]
+        }
+      },
+      "id": "if-critical",
+      "name": "IF_Critical",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_WATER || $env.SLACK_WEBHOOK || '' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { text: '💧 Alerta de agua CASTÚO (crítico)\\n' + JSON.stringify($('Process_API_Response').first().json, null, 2).slice(0, 3500) } }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "slack-water",
+      "name": "Notify_Critical_Slack_Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [960, 480],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "Activa y define SLACK_WEBHOOK_WATER o SLACK_WEBHOOK. Solo recibe rama IF cuando alert=true."
+    }
+  ],
+  "connections": {
+    "MQTT_Water_Sensors": {
+      "main": [[{ "node": "Prepare_Analysis_Data", "type": "main", "index": 0 }]]
+    },
+    "Prepare_Analysis_Data": {
+      "main": [[{ "node": "Call_CASTUO_Water_Analysis_API", "type": "main", "index": 0 }]]
+    },
+    "Call_CASTUO_Water_Analysis_API": {
+      "main": [[{ "node": "Process_API_Response", "type": "main", "index": 0 }]]
+    },
+    "Process_API_Response": {
+      "main": [[{ "node": "IF_Critical", "type": "main", "index": 0 }]]
+    },
+    "IF_Critical": {
+      "main": [
+        [{ "node": "Notify_Critical_Slack_Webhook", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "saveManualExecutions": true
+  },
+  "meta": {
+    "description": "MQTT → POST /water/ctaex/analyze (timeout 120s si Ollama). ollama_analysis en respuesta. Ver docs/agrotech/WATER-SYSTEM-CTAEX.md"
+  }
+}

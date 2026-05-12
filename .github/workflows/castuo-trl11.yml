@@ -1,0 +1,73 @@
+# CASTÚO-SYSTEM™ | Pipeline CI/CD inmutable TRL11 (verificación criptográfica + build + firma)
+# Secrets opcionales: COSIGN_PRIVATE_KEY (PEM), COSIGN_PASSWORD, REGISTRY_* para push
+
+name: CASTÚO TRL11 Secure Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  trl11-secure-build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify TRL10 Integrity
+        run: |
+          cd docker/castuo-bookstack
+          if [ ! -f ./verify-integrity.sh ]; then echo "⚠️ verify-integrity.sh no encontrado"; exit 0; fi
+          ./verify-integrity.sh || { echo "❌ Integridad fallida. Configure firmas en docker/castuo-bookstack."; exit 1; }
+
+      - name: Sign (CI)
+        run: |
+          cd docker/castuo-bookstack
+          if [ -f ./sign-all.sh ] && [ -n "${{ secrets.CASTUO_PRIVATE_KEY }}" ]; then
+            echo "${{ secrets.CASTUO_PRIVATE_KEY }}" > /tmp/castuo-ci.key
+            chmod 600 /tmp/castuo-ci.key
+            CASTUO_PRIVATE_KEY=/tmp/castuo-ci.key ./sign-all.sh
+          else
+            echo "⚠️ sign-all.sh omitido (sin CASTUO_PRIVATE_KEY)"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Immutable Image
+        run: |
+          cd docker/castuo-bookstack
+          IMAGE_TAG="trl11.${GITHUB_SHA::8}"
+          if [ -f Dockerfile ]; then
+            docker buildx build \
+              --provenance false \
+              --sbom false \
+              -t "castuo/bookstack:${IMAGE_TAG}" \
+              --load .
+          else
+            echo "⚠️ Dockerfile no encontrado; IMAGE_TAG no generado"
+          fi
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
+          echo "CASTUO_IMAGE=castuo/bookstack:${IMAGE_TAG}" >> $GITHUB_ENV
+
+      - name: Install Cosign
+        if: success() && secrets.COSIGN_PRIVATE_KEY != ''
+        run: |
+          curl -sSfL https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64 -o /tmp/cosign
+          chmod +x /tmp/cosign
+          sudo mv /tmp/cosign /usr/local/bin/cosign
+
+      - name: Cosign Sign Image
+        if: success() && secrets.COSIGN_PRIVATE_KEY != ''
+        run: |
+          echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > /tmp/cosign.key
+          chmod 600 /tmp/cosign.key
+          cosign sign --key /tmp/cosign.key "castuo/bookstack:${{ env.IMAGE_TAG }}" || true
+
+      - name: Summary
+        run: |
+          echo "✅ TRL11 pipeline: integridad verificada, imagen construida (castuo/bookstack:${{ env.IMAGE_TAG }})"

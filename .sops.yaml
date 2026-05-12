@@ -1,0 +1,25 @@
+creation_rules:
+  # Regla inicial: cifrar manuales y SOPs más sensibles con SOPS.
+  # Sustituir KEYID_PLACEHOLDER por el ID real de la llave PGP asociada a YubiKey/hardware.
+  - path_regex: 'docs/(operations/MANUAL-CRISIS-TIERRA-FIRME\.md|security/PROTOCOLO-DESPERTAR-V2-HARDENED\.md)'
+    pgp: ['KEYID_PLACEHOLDER']
+
+# .sops.yaml - Configuración de Encriptación Maestra del Administrador
+# CASTÚO-SYSTEM v1.7.0 (Omega Protocol)
+# Sustituir TU_FINGERPRINT_PGP_AQUÍ por tu huella PGP (gpg --list-keys --with-colons | grep ^fpr)
+
+creation_rules:
+  - path_regex: .*\.env\.sops$
+    # Identidad única del Administrador Principal (Root of Trust)
+    pgp: "TU_FINGERPRINT_PGP_AQUÍ"
+    # Alternativa con clave en nube (descomentar y ajustar ARN):
+    # kms: "arn:aws:kms:eu-central-1:123456789012:key/tu-clave-maestra"
+
+  - path_regex: backend/config/secrets/.*
+    pgp: "TU_FINGERPRINT_PGP_AQUÍ"
+
+  - path_regex: security/.*\.sops$
+    pgp: "TU_FINGERPRINT_PGP_AQUÍ"
+
+# Solo el Administrador Principal puede rotar estas llaves.
+# Rotación: sops updatekeys .env.sops (con tu clave actual)

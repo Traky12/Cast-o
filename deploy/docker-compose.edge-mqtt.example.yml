@@ -1,0 +1,29 @@
+# Broker MQTT en borde (solo ejemplo). Ajustar TLS, passwd y segmentación VLAN antes de producción.
+# No incluye PLC ni gateway Modbus: eso es hardware/proyecto OT aparte.
+#
+# Uso:
+#   cp deploy/mosquitto.edge.example.conf deploy/mosquitto.edge.conf
+#   docker compose -f deploy/docker-compose.edge-mqtt.example.yml up -d
+# (mosquitto.edge.conf está en .gitignore si contiene secretos)
+
+version: "3.8"
+
+services:
+  mosquitto-edge:
+    image: eclipse-mosquitto:2.0
+    container_name: castuo-edge-mqtt
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./mosquitto.edge.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_edge_data:/mosquitto/data
+    networks:
+      - edge_local
+
+networks:
+  edge_local:
+    driver: bridge
+
+volumes:
+  mosquitto_edge_data:

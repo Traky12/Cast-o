@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CASTÚO-SYSTEM · Sabionda · Panel Agentes n8n</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --castuo-green: #228b22;
+      --castuo-holo: #00bfff;
+      --castuo-bg: #0d1117;
+      --castuo-surface: #161b22;
+      --castuo-border: #30363d;
+      --castuo-text: #e6edf3;
+      --castuo-muted: #8b949e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--castuo-bg);
+      color: var(--castuo-text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    header {
+      background: linear-gradient(135deg, var(--castuo-green), #145214);
+      padding: 1.25rem 1.5rem;
+      border-bottom: 2px solid var(--castuo-holo);
+    }
+    header h1 { margin: 0; font-size: 1.35rem; }
+    header p { margin: 0.35rem 0 0; font-size: 0.85rem; opacity: 0.95; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
+    .config {
+      background: var(--castuo-surface);
+      border: 1px solid var(--castuo-border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .config label { display: block; font-size: 0.75rem; color: var(--castuo-muted); margin-top: 0.65rem; }
+    .config label:first-of-type { margin-top: 0; }
+    .config input { width: 100%; padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid var(--castuo-border); background: var(--castuo-bg); color: var(--castuo-text); margin-top: 0.25rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-top: 0.75rem; }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 0.55rem 1rem;
+      font-weight: 600;
+      background: var(--castuo-holo);
+      color: #001018;
+    }
+    button.secondary { background: transparent; color: var(--castuo-holo); border: 1px solid var(--castuo-holo); }
+    button:hover { filter: brightness(1.08); }
+    .agents-wrap {
+      margin-bottom: 1.5rem;
+    }
+    .agents {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.85rem;
+    }
+    .agent-card {
+      background: var(--castuo-surface);
+      border: 1px solid var(--castuo-border);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      font-size: 0.82rem;
+    }
+    .agent-card h3 { margin: 0 0 0.35rem; font-size: 0.95rem; color: var(--castuo-holo); }
+    .agent-card p { margin: 0; color: var(--castuo-muted); }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .tabs button { background: var(--castuo-surface); color: var(--castuo-text); border: 1px solid var(--castuo-border); }
+    .tabs button.active { background: var(--castuo-green); color: #fff; border-color: var(--castuo-green); }
+    .panel {
+      background: var(--castuo-surface);
+      border: 1px solid var(--castuo-border);
+      border-radius: 10px;
+      padding: 1rem;
+      min-height: 200px;
+    }
+    .panel h2 { margin: 0 0 0.75rem; font-size: 1rem; }
+    pre {
+      margin: 0;
+      padding: 0.75rem;
+      background: var(--castuo-bg);
+      border-radius: 8px;
+      overflow: auto;
+      font-size: 0.72rem;
+      max-height: 420px;
+      border: 1px solid var(--castuo-border);
+    }
+    .status { font-size: 0.8rem; margin-bottom: 0.5rem; }
+    .status.err { color: #f85149; }
+    .status.ok { color: #3fb950; }
+    .chart-wrap { max-width: 100%; height: 260px; margin-top: 1rem; }
+    .hint { font-size: 0.75rem; color: var(--castuo-muted); margin-top: 0.75rem; }
+    a { color: var(--castuo-holo); }
+    footer { margin-top: 2rem; font-size: 0.75rem; color: var(--castuo-muted); text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-project-diagram" aria-hidden="true"></i> CASTÚO-SYSTEM · Sabionda · Agentes IA (n8n)</h1>
+    <p>Panel que consume el webhook <code>api/query</code> (tipos: sensores, cultivos, cosechas, analisis). Configura la URL base de tu instancia n8n.</p>
+  </header>
+  <div class="wrap">
+    <section class="config" aria-label="Configuración API">
+      <label for="baseUrl">URL del webhook (sin barra final). Ejemplo: <span style="user-select:all">https://TU-INSTANCIA.app.n8n.cloud/webhook/api/query</span></label>
+      <input type="url" id="baseUrl" placeholder="https://…/webhook/api/query" autocomplete="off" />
+      <label for="apiHeader">Cabecera opcional (nombre)</label>
+      <input type="text" id="apiHeader" placeholder="X-API-Key o Authorization" autocomplete="off" />
+      <label for="apiSecret">Valor opcional de la cabecera (no guardar en producción en equipos compartidos)</label>
+      <input type="password" id="apiSecret" placeholder="token / API key" autocomplete="off" />
+      <div class="row">
+        <button type="button" id="btnSave">Guardar en este navegador</button>
+        <button type="button" class="secondary" id="btnClear">Limpiar almacenamiento local</button>
+      </div>
+      <p class="hint">Si el navegador bloquea la petición por CORS, expón n8n tras un proxy (nginx/Traefik) con cabeceras <code>Access-Control-Allow-Origin</code> o sirve esta página desde el mismo origen que n8n. Ver <code>docs/architecture/SABIONDA-N8N-WEB-FRONTEND.md</code>.</p>
+    </section>
+
+    <section class="agents-wrap" aria-label="Agentes del flujo AGRI-BRAIN" id="agentsSection">
+      <div class="agents" id="agentsGrid"></div>
+    </section>
+
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" data-type="sensores">Sensores</button>
+      <button type="button" class="tab" data-type="cultivos">Cultivos</button>
+      <button type="button" class="tab" data-type="cosechas">Cosechas</button>
+      <button type="button" class="tab" data-type="analisis">Análisis</button>
+    </div>
+
+    <section class="panel">
+      <h2 id="panelTitle">Datos · sensores</h2>
+      <div id="status" class="status"></div>
+      <div class="chart-wrap"><canvas id="chart" aria-hidden="true"></canvas></div>
+      <pre id="raw"></pre>
+    </section>
+
+    <footer>
+      CASTÚO-SYSTEM · Datos mostrados según respuesta JSON de n8n (<code>success</code>, <code>data</code>). Sin cifras de demostración hardcodeadas.
+      · <a href="control-center.html">Control Center</a>
+    </footer>
+  </div>
+
+  <script>
+(function () {
+  var STORAGE = "castuo_n8n_query_api_v1";
+  var chartInstance = null;
+
+  var agentsData = {
+    "Análisis Hidropónico": { status: "active", description: "Mistral · EC, pH, tendencias y prioridad.", icon: "fa-water" },
+    "Gestión de Cultivos": { status: "active", description: "OpenAI · etapa, nutrientes, riesgos.", icon: "fa-seedling" },
+    "Optimización de Recursos": { status: "active", description: "OpenAI · agua, energía, ROI operativo.", icon: "fa-chart-line" },
+    "Supervisor Maestro": { status: "active", description: "OpenAI · KPIs y prioridades ejecutivas.", icon: "fa-eye" },
+    "Orquestador CASTÚO": { status: "active", description: "OpenAI · incidencias y API CASTÚO.", icon: "fa-network-wired" },
+    "Auditor Trazabilidad": { status: "active", description: "Mistral · cumplimiento y datos sensibles.", icon: "fa-search" }
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function renderAgents() {
+    var grid = $("agentsGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    Object.keys(agentsData).forEach(function (name) {
+      var data = agentsData[name];
+      var card = document.createElement("div");
+      card.className = "agent-card";
+      card.innerHTML =
+        '<h3><i class="fas ' + data.icon + '" aria-hidden="true"></i> ' + name + "</h3>" +
+        "<p>" + data.description + "</p>" +
+        '<p class="hint">Estado: ' + data.status + "</p>";
+      grid.appendChild(card);
+    });
+  }
+
+  function loadConfig() {
+    try {
+      var j = JSON.parse(localStorage.getItem(STORAGE) || "{}");
+      if (j.baseUrl) $("baseUrl").value = j.baseUrl;
+      if (j.apiHeader) $("apiHeader").value = j.apiHeader;
+      if (j.apiSecret) $("apiSecret").value = j.apiSecret;
+    } catch (e) {}
+  }
+
+  function saveConfig() {
+    var payload = {
+      baseUrl: $("baseUrl").value.trim(),
+      apiHeader: $("apiHeader").value.trim(),
+      apiSecret: $("apiSecret").value
+    };
+    localStorage.setItem(STORAGE, JSON.stringify(payload));
+    $("status").className = "status ok";
+    $("status").textContent = "Configuración guardada en localStorage.";
+  }
+
+  function clearConfig() {
+    localStorage.removeItem(STORAGE);
+    $("baseUrl").value = "";
+    $("apiHeader").value = "";
+    $("apiSecret").value = "";
+    $("status").className = "status";
+    $("status").textContent = "Almacenamiento local limpiado.";
+  }
+
+  function buildHeaders() {
+    var h = { "Content-Type": "application/json", "Accept": "application/json" };
+    var name = $("apiHeader").value.trim();
+    var val = $("apiSecret").value;
+    if (name && val) h[name] = val;
+    return h;
+  }
+
+  function extractRows(data) {
+    if (data == null) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data === "object") {
+      if (Array.isArray(data.data)) return data.data;
+      if (Array.isArray(data.rows)) return data.rows;
+      if (Array.isArray(data.items)) return data.items;
+    }
+    return [data];
+  }
+
+  function numericSeries(rows) {
+    var labels = [];
+    var values = [];
+    rows.slice(0, 48).forEach(function (row, i) {
+      if (!row || typeof row !== "object") return;
+      var v = row.value;
+      if (typeof v !== "number" && v != null && !isNaN(Number(v))) v = Number(v);
+      if (typeof v !== "number") return;
+      labels.push(String(row.sensor_id || row.timestamp || row.id || i + 1));
+      values.push(v);
+    });
+    return { labels: labels, values: values };
+  }
+
+  function renderChart(type, payload) {
+    var canvas = $("chart");
+    var ctx = canvas.getContext("2d");
+    var rows = extractRows(payload && payload.data !== undefined ? payload.data : payload);
+    var series = numericSeries(rows);
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+    if (type !== "sensores" || series.values.length < 2) {
+      canvas.style.display = "none";
+      return;
+    }
+    canvas.style.display = "block";
+    chartInstance = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: series.labels,
+        datasets: [{
+          label: "value (muestra)",
+          data: series.values,
+          borderColor: "#00bfff",
+          backgroundColor: "rgba(0,191,255,0.15)",
+          tension: 0.25,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: "#8b949e" } } },
+        scales: {
+          x: { ticks: { color: "#8b949e", maxRotation: 45 } },
+          y: { ticks: { color: "#8b949e" } }
+        }
+      }
+    });
+  }
+
+  async function fetchType(type) {
+    var url = $("baseUrl").value.trim();
+    $("panelTitle").textContent = "Datos · " + type;
+    $("raw").textContent = "";
+    $("status").className = "status";
+    $("status").textContent = "Cargando…";
+
+    if (!url) {
+      $("status").className = "status err";
+      $("status").textContent = "Indica la URL completa del webhook api/query.";
+      return;
+    }
+
+    var body = JSON.stringify({ query: { type: type } });
+
+    try {
+      var res = await fetch(url, { method: "POST", headers: buildHeaders(), body: body });
+      var text = await res.text();
+      var json;
+      try { json = JSON.parse(text); } catch (e) { json = { _raw: text }; }
+      if (!res.ok) {
+        $("status").className = "status err";
+        $("status").textContent = "HTTP " + res.status + " — revisa URL, método POST y CORS.";
+      } else {
+        $("status").className = "status ok";
+        $("status").textContent = "OK · " + new Date().toISOString();
+      }
+      $("raw").textContent = JSON.stringify(json, null, 2);
+      renderChart(type, json);
+    } catch (err) {
+      $("status").className = "status err";
+      $("status").textContent = String(err.message || err);
+      $("raw").textContent = "Error de red o CORS. Comprueba la URL y el proxy.";
+      if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+      $("chart").style.display = "none";
+    }
+  }
+
+  document.querySelectorAll(".tab").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      fetchType(btn.getAttribute("data-type"));
+    });
+  });
+
+  $("btnSave").addEventListener("click", saveConfig);
+  $("btnClear").addEventListener("click", clearConfig);
+
+  loadConfig();
+  renderAgents();
+  var params = new URLSearchParams(window.location.search);
+  var qUrl = params.get("n8n");
+  if (qUrl) $("baseUrl").value = qUrl;
+
+  fetchType("sensores");
+})();
+  </script>
+</body>
+</html>

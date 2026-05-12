@@ -1,0 +1,49 @@
+# Misma imagen que robotics lab; puerto 8012 para no chocar con 8011.
+# OctoPrint opcional: docker compose -f docker-compose.scan3d.yml --profile octoprint up
+#
+# Secretos — estado trazable:
+#   Opción A (prod): *_FILE → p.ej. /run/secrets/castuo_admin_general_bearer, /run/secrets/robotics_lab_bearer
+#   Opción B: VAULT_ADDR + VAULT_TOKEN_FILE (vault.py + hvac); KV paths en VAULT_KV_PATHS.md
+#   No Opción C: tokens en .env plano (solo dev local; nunca commit)
+# Ref: docs/deploy/robotics-lab-hetzner.env.example · backend/security/VAULT_KV_PATHS.md
+# Healthcheck: GET /health en :80 (docker compose ps → healthy)
+#
+# Volúmenes reservados para futuros artefactos locales (el stub no persiste mallas aún).
+
+services:
+  robotics-lab-scan3d:
+    build:
+      context: .
+      dockerfile: backend/integrations/robotics/Dockerfile.lab
+    ports:
+      - "8012:80"
+    environment:
+      CASTUO_ROBOTICS_LAB_BEARER_TOKEN: ${CASTUO_ROBOTICS_LAB_BEARER_TOKEN:-dev-scan3d-change-me}
+      CASTUO_ROBOTICS_LAB: ${CASTUO_ROBOTICS_LAB:-0}
+      CASTUO_PRINT_MAX_BUILD_MM: ${CASTUO_PRINT_MAX_BUILD_MM:-256}
+    volumes:
+      - scan3d_scans:/app/scans
+      - scan3d_gcode:/app/gcode
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:80/health', timeout=5).read()"]
+      interval: 30s
+      timeout: 6s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  octoprint:
+    profiles: ["octoprint"]
+    image: octoprint/octoprint:latest
+    ports:
+      - "8013:80"
+    volumes:
+      - octoprint_data:/octoprint
+    environment:
+      # TLS: terminar en reverse proxy (Caddy/Traefik) con Let's Encrypt; no API key en texto plano en repo.
+      OCTOPRINT_APIKEY: ${OCTOPRINT_APIKEY:-}
+
+volumes:
+  scan3d_scans:
+  scan3d_gcode:
+  octoprint_data:

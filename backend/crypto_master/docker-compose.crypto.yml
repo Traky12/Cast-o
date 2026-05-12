@@ -1,0 +1,41 @@
+# backend/crypto_master/docker-compose.crypto.yml
+# Vault encriptado total — CLAVE MAESTRA GREGORIO Shamir 3/5 — puerto 11000
+# *** SOLO GREGORIO J JIMÉNEZ BODES - ADMIN GENERAL CASTÚO 360 S.L. ***
+
+version: "3.9"
+
+services:
+  crypto-master-vault:
+    build:
+      context: .
+      dockerfile: Dockerfile.crypto
+    image: castuo/crypto-master-vault:trl9
+    container_name: crypto-master-vault
+    ports:
+      - "11000:11000"
+    environment:
+      - MASTER_KEY_ENABLED=true
+      - SHAMIR_THRESHOLD=3_of_5
+      - KYBER_MODE=2048
+      - RISK_THRESHOLD=0.1
+      - VAULT_PORT=11000
+      - CRYPTO_DEMO_AUTH=1
+    volumes:
+      - crypto_vault:/data/vault
+      - shamir_shares:/data/shares
+    networks:
+      - castuo_crypto
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  crypto_vault:
+  shamir_shares:
+
+networks:
+  castuo_crypto:
+    driver: bridge

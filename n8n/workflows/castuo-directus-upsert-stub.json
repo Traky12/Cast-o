@@ -1,0 +1,54 @@
+{
+  "name": "CASTUO_Directus_Upsert_Stub",
+  "tags": ["CASTUO", "directus", "cms"],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cms-upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "dus-wh",
+      "name": "Webhook_CMS_Upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "castuo-directus-upsert"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst collection = String(body.collection || 'castuo_metrics').trim();\nif (!collection || collection.includes('..') || collection.includes('/')) {\n  return [{ json: { ok: false, error: 'collection inválida' } }];\n}\nconst fields = body.fields && typeof body.fields === 'object' ? body.fields : {};\nconst base = String($env.DIRECTUS_URL || 'http://127.0.0.1:8055').replace(/\\/+$/, '');\nconst url = `${base}/items/${encodeURIComponent(collection)}`;\nreturn [{\n  json: {\n    ok: true,\n    collection,\n    directus_post_url: url,\n    directus_body: { data: fields },\n    hint: 'Insertar nodo HTTP Request POST entre este Code y Respond: url = directus_post_url, body JSON = directus_body, Authorization Bearer DIRECTUS_STATIC_TOKEN',\n  },\n}];"
+      },
+      "id": "dus-code",
+      "name": "Code_Prepare_Directus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "dus-resp",
+      "name": "Respond_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook_CMS_Upsert": {
+      "main": [[{ "node": "Code_Prepare_Directus", "type": "main", "index": 0 }]]
+    },
+    "Code_Prepare_Directus": {
+      "main": [[{ "node": "Respond_Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "description": "POST /webhook/cms-upsert { collection, fields } → URL y cuerpo listos para Directus /items/:collection (API HTTP, no puerto 5432). Añade HTTP Request antes de Respond cuando DIRECTUS_URL y token existan."
+  }
+}

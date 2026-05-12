@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_material_certification_tree" model="ir.ui.view">
+        <field name="name">castu.material.certification.tree</field>
+        <field name="model">castu.material.certification</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="production_id"/>
+                <field name="certification_body"/>
+                <field name="date"/>
+                <field name="validity"/>
+                <field name="blockchain_tx"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_material_certification_form" model="ir.ui.view">
+        <field name="name">castu.material.certification.form</field>
+        <field name="model">castu.material.certification</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name" readonly="1"/>
+                        <field name="production_id"/>
+                        <field name="material_id" readonly="1"/>
+                        <field name="certification_body"/>
+                        <field name="date"/>
+                        <field name="validity"/>
+                        <field name="document"/>
+                        <field name="blockchain_tx" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_register_blockchain" string="Registrar en Blockchain" type="object" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_material_certification" model="ir.actions.act_window">
+        <field name="name">Certificaciones</field>
+        <field name="res_model">castu.material.certification</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_material_certification" name="Certificaciones" parent="menu_castu_materials_root" action="action_castu_material_certification" sequence="40"/>
+</odoo>

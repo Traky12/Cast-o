@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CASTUO Panel de Control Federado v2.0</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root { --primary: #22c55e; --secondary: #16a34a; --dark: #064e3b; }
+    body { font-family: 'Inter', sans-serif; background-color: #0b1220; color: #e5e7eb; }
+    .card { background: rgba(15, 23, 42, 0.85); border-radius: 0.6rem; border: 1px solid rgba(148, 163, 184, 0.25); box-shadow: 0 10px 20px rgba(0,0,0,0.25); }
+    .card:hover { border-color: rgba(34,197,94,0.45); }
+  </style>
+</head>
+<body class="flex h-screen">
+  <div class="w-64 space-y-6 py-7 px-2 fixed inset-y-0 left-0 bg-gradient-to-b from-green-600/90 to-green-800/90 text-white">
+    <div class="text-center">
+      <h1 class="text-2xl font-bold">🌿 CASTUO</h1>
+      <p class="text-sm opacity-90">Panel Federado v2.0</p>
+    </div>
+    <nav class="space-y-3">
+      <a href="index.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded">
+        <i class="fas fa-home mr-3"></i> Inicio
+      </a>
+      <a href="sabionda-ia.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded">
+        <i class="fas fa-brain mr-3"></i> Sabionda IA
+      </a>
+      <a href="control-center.html" class="flex items-center px-4 py-2 text-white rounded bg-green-700/80">
+        <i class="fas fa-th-large mr-3"></i> Control Center
+      </a>
+      <a href="panel-control-federado.html" class="flex items-center px-4 py-2 text-white rounded bg-green-700/80 border border-white/10">
+        <i class="fas fa-network-wired mr-3"></i> Panel Federado
+      </a>
+    </nav>
+    <div class="px-4 text-xs opacity-90">
+      Solo lectura: los socios ven estado y auditoria; las ordenes nacen en el búnker tras consenso.
+    </div>
+  </div>
+
+  <div class="ml-64 p-8 w-full overflow-y-auto">
+    <h2 class="text-2xl font-bold mb-6">SABIONDA_IA // PANEL_FEDERADO</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="card p-5">
+        <span class="text-xs text-slate-300 font-mono">CONSENSUS_PCT</span>
+        <p id="w-consensus" class="text-2xl font-bold text-emerald-400 mt-2">--%</p>
+        <div class="w-full bg-slate-700 h-2 mt-3 rounded overflow-hidden">
+          <div id="w-consensus-bar" class="bg-emerald-500 h-full" style="width: 0%"></div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Consenso federado + trazabilidad</p>
+      </div>
+
+      <div class="card p-5">
+        <span class="text-xs text-slate-300 font-mono">BIO-HUB / ENERGIA</span>
+        <p id="w-uptime" class="text-2xl font-bold text-emerald-400 mt-2">--%</p>
+        <p id="w-kyber-days" class="text-sm text-slate-300 mt-1">Kyber rotacion: -- d</p>
+        <p class="text-xs text-slate-400 mt-2">Estado local + duracion PQC</p>
+      </div>
+
+      <div class="card p-5">
+        <span class="text-xs text-slate-300 font-mono">AUDIT / BLOQUES</span>
+        <p id="w-blocks" class="text-2xl font-bold text-emerald-400 mt-2">--</p>
+        <p id="w-last-block" class="text-sm text-slate-300 mt-1 font-mono">Last: --</p>
+        <p id="w-ipfs-pins" class="text-xs text-slate-400 mt-2 font-mono">IPFS pins: --</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div class="card p-5 lg:col-span-1">
+        <h3 class="font-bold text-lg mb-3">Agentes activos</h3>
+        <ul id="w-agents" class="text-sm text-slate-200 space-y-2">
+          <li class="text-slate-400">Cargando...</li>
+        </ul>
+      </div>
+
+      <div class="card p-5 lg:col-span-2">
+        <h3 class="font-bold text-lg mb-3">Semaforo de Auditoria (ultimos 10 eventos)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-slate-400">
+                <th class="py-2 px-2">Estado</th>
+                <th class="py-2 px-2">Audit ID</th>
+                <th class="py-2 px-2">Evento</th>
+                <th class="py-2 px-2">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="w-audit-rows" class="divide-y divide-slate-700">
+              <tr><td class="py-3 px-2 text-slate-500" colspan="4">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-4 text-xs text-slate-400">
+          🟢 Verificado, 🟡 En revision, 🔴 Bloqueado (heuristica por severidad del kernel).
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card p-5">
+        <h3 class="font-bold text-lg mb-3">Estado Bunker / OMEGA-LINK (read-only)</h3>
+        <div class="text-sm text-slate-200">
+          <div class="flex justify-between"><span>O3 Inyeccion</span><span id="w-ozone" class="font-mono">--</span></div>
+          <div class="flex justify-between mt-2"><span>Cop Geotermico</span><span id="w-cop" class="font-mono">--</span></div>
+          <div class="flex justify-between mt-2"><span>Demanda Riego</span><span id="w-irr" class="font-mono">--</span></div>
+          <div class="flex justify-between mt-2"><span>Quantum Conf</span><span id="w-quantum" class="font-mono">--</span></div>
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <h3 class="font-bold text-lg mb-3">Ultima lectura / estado del sistema</h3>
+        <div class="text-sm text-slate-200">
+          <div class="flex justify-between"><span>Fecha carga</span><span id="w-last-fetch" class="font-mono">--</span></div>
+          <div class="flex justify-between mt-2"><span>iso_pct</span><span id="w-iso" class="font-mono">--%</span></div>
+          <div class="flex justify-between mt-2"><span>gdpr_consents</span><span id="w-gdpr" class="font-mono">--%</span></div>
+          <div class="flex justify-between mt-2"><span>nodes_online</span><span id="w-nodes-online" class="font-mono">--</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Local-first: por defecto, solo intentamos endpoints dentro del bunker/UE.
+    const FEDERATED_DASHBOARD_URL = window.FEDERATED_DASHBOARD_URL || "http://localhost:8001/federated/dashboard";
+    const API_BASE_URL = window.API_BASE_URL || "http://localhost:8000";
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text ?? '';
+      return div.innerHTML;
+    }
+
+    function severityToChip(sev) {
+      const s = String(sev || '').toLowerCase();
+      if (s.includes('error') || s.includes('critical')) return { bg: 'bg-red-500', dot: 'bg-red-400', label: 'Bloqueado' };
+      if (s.includes('warn')) return { bg: 'bg-yellow-500', dot: 'bg-yellow-400', label: 'En revision' };
+      return { bg: 'bg-emerald-500', dot: 'bg-emerald-400', label: 'Verificado' };
+    }
+
+    async function fetchJson(url, opts) {
+      try {
+        const res = await fetch(url, opts || {});
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return await res.json();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function setConsensus(consensusPct) {
+      const pct = Number(consensusPct || 0);
+      document.getElementById('w-consensus').textContent = pct.toFixed(0) + "%";
+      document.getElementById('w-consensus-bar').style.width = Math.max(0, Math.min(100, pct)) + "%";
+    }
+
+    function setBlocks(audit) {
+      document.getElementById('w-blocks').textContent = audit?.audit_trail_blocks ?? '--';
+      const lb = audit?.last_block ?? '--';
+      document.getElementById('w-last-block').textContent = 'Last: ' + (typeof lb === 'string' ? lb : '--');
+    }
+
+    function setAuditRows(events) {
+      const tbody = document.getElementById('w-audit-rows');
+      if (!Array.isArray(events) || events.length === 0) {
+        tbody.innerHTML = '<tr><td class="py-3 px-2 text-slate-500" colspan="4">Sin datos</td></tr>';
+        return;
+      }
+      tbody.innerHTML = events.slice(0, 10).map(ev => {
+        const chip = severityToChip(ev.severity);
+        const dot = `<span class="inline-block w-2 h-2 rounded-full ${chip.dot} mr-2"></span>`;
+        return `
+          <tr class="text-slate-200">
+            <td class="py-2 px-2">
+              <span class="inline-flex items-center">${dot}<span class="text-xs">${chip.label}</span></span>
+            </td>
+            <td class="py-2 px-2 font-mono text-xs">${escapeHtml(ev.audit_id || '--')}</td>
+            <td class="py-2 px-2 text-xs">${escapeHtml(ev.event || ev.action || '--')}</td>
+            <td class="py-2 px-2 font-mono text-xs">${escapeHtml(ev.timestamp || '--')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function setLocalState(state) {
+      const ozoneVal = state?.ozone_injection_enabled ?? state?.ozoneInjectionEnabled;
+      document.getElementById('w-ozone').textContent = ozoneVal === undefined ? '--' : String(ozoneVal);
+      document.getElementById('w-cop').textContent = state?.cop_geothermal != null ? String(state.cop_geothermal) : '--';
+      document.getElementById('w-irr').textContent = state?.irrigation_demand_factor != null ? String(state.irrigation_demand_factor) : '--';
+      document.getElementById('w-quantum').textContent = state?.quantum_confidence_score != null ? String(state.quantum_confidence_score) : '--';
+    }
+
+    function setFetchMeta(meta) {
+      document.getElementById('w-last-fetch').textContent = new Date().toISOString().replace("T", " ").slice(0, 19);
+      document.getElementById('w-iso').textContent = (meta?.local?.iso_pct ?? '--') + '%';
+      document.getElementById('w-gdpr').textContent = (meta?.local?.gdpr_consents_pct ?? '--') + '%';
+      document.getElementById('w-nodes-online').textContent = meta?.federated?.nodes_online ?? '--';
+    }
+
+    async function refreshDashboard() {
+      const now = new Date();
+      document.getElementById('w-agents').innerHTML = '<li class="text-slate-400">Consultando...</li>';
+      try {
+        const fed = await fetchJson(FEDERATED_DASHBOARD_URL);
+        if (fed?.federated) setConsensus(fed.federated.consensus_pct || 0);
+        if (fed?.blockchain) {
+          setBlocks({
+            audit_trail_blocks: fed.blockchain.audit_trail_blocks,
+            last_block: fed.blockchain.last_block
+          });
+          const ipfsPins = fed.blockchain.ipfs_pins ?? '--';
+          document.getElementById('w-ipfs-pins').textContent = 'IPFS pins: ' + ipfsPins;
+        }
+        document.getElementById('w-kyber-days').textContent = 'Kyber rotacion: ' + (fed?.local?.kyber_days ?? '--') + ' d';
+        document.getElementById('w-uptime').textContent = (fed?.local?.uptime_pct ?? '--') + '%';
+
+        const agents = Array.isArray(fed?.agents) ? fed.agents : (Array.isArray(fed?.federated_agents) ? fed.federated_agents : []);
+        const list = agents.length ? agents.map(a => `<li>🤖 ${escapeHtml(String(a))}</li>`).join('') : '<li class="text-slate-400">Sin agentes</li>';
+        document.getElementById('w-agents').innerHTML = list;
+
+        setFetchMeta(fed);
+
+        // Auditoria kernel (agri-sense) para semaforo por severidad
+        const audit = await fetchJson(API_BASE_URL + '/api/agri-sense/audit?n=10');
+        setAuditRows(audit || []);
+
+        // Estado bunker/orquestador (proxy: agri-sense state)
+        const state = await fetchJson(API_BASE_URL + '/api/agri-sense/state');
+        setLocalState(state || {});
+
+        // Bloque tags extra
+        document.getElementById('w-last-fetch').textContent = now.toISOString().replace("T", " ").slice(0, 19);
+        document.querySelectorAll('#w-blocks, #w-last-block').forEach(el => el);
+      } catch (e) {
+        // No romper UI
+        document.getElementById('w-agents').innerHTML = '<li class="text-red-400 text-xs">Error: ' + escapeHtml(e.message) + '</li>';
+      }
+    }
+
+    refreshDashboard();
+    setInterval(refreshDashboard, 15000);
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,122 @@
+# docker/docker-compose.production.yml
+# Despliegue integrado backend, frontend, MQTT y GaiaChain para producción
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=castuo_system
+      - DB_USER=castuo_admin
+      - DB_PASSWORD=${DB_PASSWORD}
+      - GAIA_CHAIN_RPC_URL=http://gaiachain:8545
+      - GAIA_CHAIN_CONTRACT_ADDRESS=${GAIA_CHAIN_CONTRACT_ADDRESS:-0x5FbDB2315678afecb367f032d93F642f64180aa3}
+      - GAIA_CHAIN_PRIVATE_KEY=${GAIA_CHAIN_PRIVATE_KEY}
+      - IOT_MQTT_BROKER=mqtt
+      - IOT_MQTT_PORT=1883
+      - IOT_MQTT_USER=castuo_iot
+      - IOT_MQTT_PASSWORD=${MQTT_PASSWORD}
+      - SHOPIFY_API_KEY=${SHOPIFY_API_KEY:-}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET:-}
+      - SHOPIFY_STORE_URL=${SHOPIFY_STORE_URL:-}
+      - SHOPIFY_WEBHOOK_SECRET=${SHOPIFY_WEBHOOK_SECRET:-}
+      - WOOCOMMERCE_API_KEY=${WOOCOMMERCE_API_KEY:-}
+      - WOOCOMMERCE_API_SECRET=${WOOCOMMERCE_API_SECRET:-}
+      - WOOCOMMERCE_STORE_URL=${WOOCOMMERCE_STORE_URL:-}
+    depends_on:
+      - postgres
+      - mqtt
+      - gaiachain
+    networks:
+      - castuo-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_MQTT_BROKER=ws://mqtt:9001
+      - NEXT_PUBLIC_MQTT_USER=castuo_iot
+      - NEXT_PUBLIC_MQTT_PASSWORD=${MQTT_PASSWORD}
+      - NEXT_PUBLIC_SHOPIFY_STORE_URL=${SHOPIFY_STORE_URL:-}
+      - NEXT_PUBLIC_WOOCOMMERCE_STORE_URL=${WOOCOMMERCE_STORE_URL:-}
+    depends_on:
+      - backend
+    networks:
+      - castuo-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=castuo_system
+      - POSTGRES_USER=castuo_admin
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - castuo-network
+    restart: unless-stopped
+
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - castuo-network
+    restart: unless-stopped
+
+  gaiachain:
+    image: trufflesuite/ganache:latest
+    command: ganache --wallet.accounts "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80,1000000000000000000000" --chain.chainId 1337 --host 0.0.0.0
+    ports:
+      - "8545:8545"
+    networks:
+      - castuo-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - castuo-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - castuo-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mosquitto_data:
+  mosquitto_log:
+  grafana_data:
+
+networks:
+  castuo-network:
+    driver: bridge

@@ -1,0 +1,212 @@
+# CASTÚO-SYSTEM™ – Stack EU/OSS (Keycloak, Vault, Traefik, Backend, Wazuh, OpenSearch)
+# Uso: docker-compose -f docker-compose.eu-oss.yml up -d
+# Requiere: .env con KEYCLOAK_ADMIN_PASSWORD, VAULT_TOKEN (tras init), etc.
+
+version: "3.8"
+
+services:
+  traefik:
+    networks:
+      - backend_network
+    image: traefik:v2.10
+    command:
+      - "--configfile=/etc/traefik/traefik.yml"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./deploy/traefik.yml:/etc/traefik/traefik.yml:ro"
+      - "./deploy/dynamic.yml:/etc/traefik/dynamic.yml:ro"
+      - "traefik_acme:/etc/traefik"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.castuo-system.eu`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: castuo-backend:eu-oss
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN:-dev-token}
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=castuo-system
+      - KEYCLOAK_CLIENT_ID=backend
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-dev-secret}
+      - AUTH_DISABLED=${AUTH_DISABLED:-false}
+      - WAZUH_ENABLED=${WAZUH_ENABLED:-false}
+      - WAZUH_URL=http://wazuh:1515
+      - WAZUH_API_KEY=${WAZUH_API_KEY:-dev-key}
+      - STABLE_DIFFUSION_EU_URL=http://sd-eu:7860
+      - SADTALKER_EU_URL=http://sadtalker-eu:8000
+      - ANIMATEDIFF_EU_URL=http://animatediff-eu:7861
+      - ENVIRONMENT=production
+      - SLACK_API_TOKEN=${SLACK_API_TOKEN:-}
+      - SLACK_ALERT_CHANNEL=${SLACK_ALERT_CHANNEL:-#security-alerts}
+      - SMTP_SERVER=${SMTP_SERVER:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - AEPD_EMAIL=${AEPD_EMAIL:-incidencias@aepd.es}
+      - JUNTA_EMAIL=${JUNTA_EMAIL:-seguridad@juntaex.es}
+      - SECURITY_TEAM_EMAIL=${SECURITY_TEAM_EMAIL:-security@castuo-system.eu}
+    volumes:
+      - "./backend/logs:/app/logs"
+    networks:
+      - backend_network
+    depends_on:
+      - vault
+      - media_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.backend.rule=Host(`api.castuo-system.eu`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend.middlewares=rate-limit@file,security-headers@file,eu-compliance@file"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.5
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_PROXY=edge
+      - KC_HOSTNAME=auth.castuo-system.eu
+      - KC_HTTP_ENABLED=true
+    command: ["start-dev"]
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    networks:
+      - backend_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`auth.castuo-system.eu`)"
+      - "traefik.http.routers.keycloak.tls=true"
+      - "traefik.http.routers.keycloak.tls.certresolver=letsencrypt"
+
+  vault:
+    image: hashicorp/vault:1.14
+    cap_add:
+      - IPC_LOCK
+    environment:
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://0.0.0.0:8200
+      - HSM_PIN=${HSM_PIN:-}
+    command: ["server", "-dev", "-dev-root-token-id=root-token"]
+    volumes:
+      - vault_data:/vault/data
+      - ./backend/config/hsm_config.hcl:/etc/vault.d/hsm_config.hcl:ro
+    networks:
+      - backend_network
+    labels:
+      - "traefik.enable=false"
+
+  auto-rotate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: castuo-backend:eu-oss
+    command: ["python", "scripts/auto_rotate_keys.py"]
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=${VAULT_TOKEN:-root-token}
+      - SLACK_API_TOKEN=${SLACK_API_TOKEN:-}
+      - SLACK_ALERT_CHANNEL=${SLACK_ALERT_CHANNEL:-#security-alerts}
+      - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL:-3600}
+    networks:
+      - backend_network
+    depends_on:
+      - vault
+    restart: unless-stopped
+
+  wazuh:
+    image: wazuh/wazuh:4.7.0
+    volumes:
+      - wazuh_data:/var/ossec/data
+    ports:
+      - "1514:1514/udp"
+      - "1515:1515"
+      - "55000:55000"
+    networks:
+      - backend_network
+    labels:
+      - "traefik.enable=false"
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    environment:
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - backend_network
+    labels:
+      - "traefik.enable=false"
+
+  sd-eu:
+    image: python:3.11-slim
+    command: ["sleep", "infinity"]
+    environment:
+      - EU_COMPLIANCE=true
+      - LICENSE=EUPL-1.2
+    volumes:
+      - sd_models:/models
+    networks:
+      - media_network
+    labels:
+      - "traefik.enable=false"
+
+  sadtalker-eu:
+    image: python:3.11-slim
+    command: ["sleep", "infinity"]
+    environment:
+      - EU_COMPLIANCE=true
+      - LICENSE=MIT
+    volumes:
+      - sadtalker_models:/app/checkpoints
+    networks:
+      - media_network
+    labels:
+      - "traefik.enable=false"
+
+  animatediff-eu:
+    image: python:3.11-slim
+    command: ["sleep", "infinity"]
+    environment:
+      - EU_COMPLIANCE=true
+      - LICENSE=MIT
+    volumes:
+      - animatediff_models:/app/models
+    networks:
+      - media_network
+    labels:
+      - "traefik.enable=false"
+
+networks:
+  backend_network:
+    driver: bridge
+  media_network:
+    driver: bridge
+    internal: true
+
+volumes:
+  keycloak_data:
+  vault_data:
+  wazuh_data:
+  opensearch_data:
+  traefik_acme:
+  sd_models:
+  sadtalker_models:
+  animatediff_models:

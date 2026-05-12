@@ -1,0 +1,236 @@
+{
+  "name": "Trillizo_Persistencia_Auditoria_Markdown",
+  "tags": [
+    "CASTUO",
+    "trillizo",
+    "auditoria",
+    "markdown"
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit-trigger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh-audit",
+      "name": "Webhook_Auditoria",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "castuo-trillizo-audit-trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst fs = require('fs');\nconst path = require('path');\nconst item = $input.first().json;\nconst hdrs = item.headers || {};\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\n\nfunction stableStringify(v) {\n  if (v === null || v === undefined) return 'null';\n  const t = typeof v;\n  if (t === 'number' || t === 'boolean') return JSON.stringify(v);\n  if (t === 'string') return JSON.stringify(v);\n  if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';\n  if (t === 'object') {\n    const keys = Object.keys(v).sort();\n    return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify(v[k])).join(',') + '}';\n  }\n  return JSON.stringify(String(v));\n}\n\nconst secret = String($env.CASTUO_AUDIT_WEBHOOK_SECRET || '').trim();\nif (secret) {\n  const signingPayload = stableStringify(body);\n  const expected = crypto.createHmac('sha256', secret).update(signingPayload, 'utf8').digest('hex');\n  const rawSig = String(hdrs['x-castuo-signature'] || hdrs['X-Castuo-Signature'] || '').trim();\n  const normalized = rawSig.replace(/^sha256=/i, '').trim();\n  if (!normalized || normalized.toLowerCase() !== expected) {\n    return [{ json: { ok: false, audit_error: true, error: 'INVALID_SIGNATURE' } }];\n  }\n}\n\nconst kindRaw = String(body.kind || body.entry_kind || 'sistema').toLowerCase();\nconst isIA =\n  kindRaw === 'ia' ||\n  kindRaw === 'analitico' ||\n  kindRaw === 'analítico';\n\nconst out = body.output && typeof body.output === 'object' ? body.output : {};\nconst agenteId =\n  body.agente_id != null\n    ? String(body.agente_id)\n    : body.agente != null\n      ? String(body.agente)\n      : 'agente-desconocido';\nconst decision =\n  body.decision != null\n    ? String(body.decision)\n    : out.decision != null\n      ? String(out.decision)\n      : '(sin decisión)';\nconst confianza =\n  body.confianza != null ? Number(body.confianza) : out.confianza != null ? Number(out.confianza) : null;\nconst confStr = Number.isFinite(confianza) ? String(confianza) : 'n/d';\n\nconst event = body.event != null ? String(body.event) : 'Acción rutinaria';\nconst actor = body.actor != null ? String(body.actor) : 'Sistema automático';\nconst status = body.status != null ? String(body.status) : 'OK';\nconst details =\n  body.details != null ? JSON.stringify(body.details, null, 2) : '(sin detalles)';\n\nconst now = new Date();\nconst isoShort = now.toISOString();\nconst ymd = now.toISOString().slice(0, 10);\n\nlet ctx = '';\nif (body.contexto != null) ctx = String(body.contexto);\nelse if (body.details != null) ctx = JSON.stringify(body.details, null, 2);\nelse ctx = '';\nif (ctx.length > 8000) ctx = ctx.slice(0, 8000) + '\\n...(truncado)';\nif (!ctx) ctx = '(sin contexto adicional)';\n\nlet block;\nif (isIA) {\n  const iaParts = [\n    '',\n    '### [' + isoShort + '] IA · **' + agenteId + '** #ia-decision',\n    '- **Confianza (0-100):** ' + confStr,\n    '- **Decisión:** ' + decision\n  ];\n  if (Array.isArray(body.tags) && body.tags.length > 0) {\n    iaParts.push('- **Etiquetas:** ' + body.tags.map(function (x) { return String(x); }).join(' '));\n  }\n  iaParts.push('- **Contexto / datos:**', ctx, '');\n  block = iaParts.join('\\n');\n} else {\n  block = [\n    '',\n    '### [' + isoShort + '] Sistema · **' + actor + '** #evento-sistema',\n    '- **Evento:** ' + event,\n    '- **Estado:** ' + status,\n    '- **Detalles:**',\n    details,\n    ''\n  ].join('\\n');\n}\n\nconst baseDir = path.join('/data/cerebros-auditoria', 'journal');\nconst filePath = path.join(baseDir, 'diario-' + ymd + '.md');\n\nconst dayHeader =\n  '---\\n' +\n  'tags: [diario, operacion, castuo-agri-brain]\\n' +\n  'fecha: \"' +\n  ymd +\n  '\"\\n' +\n  'estado_general: \"ok\"\\n' +\n  '---\\n' +\n  '# Diario de operación: ' +\n  ymd +\n  '\\n\\n' +\n  '## Decisiones de IA (cerebro analítico)\\n' +\n  '_Antes de actuaciones físicas, el análisis queda registrado aquí._\\n\\n' +\n  '## Eventos del sistema (cerebro operativo)\\n' +\n  '_Telemetría, webhooks y estado operativo._\\n\\n';\n\ntry {\n  fs.mkdirSync(baseDir, { recursive: true });\n  if (!fs.existsSync(filePath)) {\n    fs.writeFileSync(filePath, dayHeader, 'utf8');\n  }\n  fs.appendFileSync(filePath, block, 'utf8');\n} catch (e) {\n  return [\n    {\n      json: {\n        ok: false,\n        audit_error: true,\n        error: 'FILE_WRITE_FAILED',\n        message: String(e.message)\n      }\n    }\n  ];\n}\n\nreturn [{ json: { ok: true, filePath, ymd, kind: isIA ? 'ia' : 'sistema' } }];"
+      },
+      "id": "code-append-md",
+      "name": "Code_Append_Diario_Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "if-ok",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-audit-ok",
+      "name": "IF_Auditoria_OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "if-sig",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "INVALID_SIGNATURE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-err-kind",
+      "name": "IF_Error_Firma",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        820,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-audit-ok",
+      "name": "Respond_Webhook_OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "respond-audit-401",
+      "name": "Respond_401_Firma",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1040,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-audit-500",
+      "name": "Respond_500_Disco",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1040,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "height": 560,
+        "width": 440,
+        "color": 4,
+        "content": "## CASTÚO — Trillizo: diario en Markdown\n\n**Webhook:** `POST .../webhook/audit-trigger`\n\n**Fichero:** `journal/diario-YYYY-MM-DD.md` bajo `/data/cerebros-auditoria`. Si no existe el día, se crea con frontmatter + secciones IA / sistema.\n\n**Body:** opcional `tags: string[]` → línea **Etiquetas** en el .md. `kind` `ia` | `analitico` | `sistema` (default). IA: `agente_id` o `agente`, `decision` o `output.decision`, `confianza` o `output.confianza`, `contexto` opcional. Sistema: `event`, `actor`, `status`, `details`.\n\n**HMAC:** con `CASTUO_AUDIT_WEBHOOK_SECRET`, cabecera `X-Castuo-Signature` = hex HMAC-SHA256 de **todo el body JSON** (stableStringify). Prefijo opcional `sha256=`. Ver `scripts/n8n/sign_audit_webhook_body.py`.\n\n**HTTP:** 200 OK | 401 firma | 500 disco.\n\n**Plantillas:** `n8n/templates/journal/plantilla.md`, `n8n/templates/silverbullet-journal-index.md`\n\n**Backup:** `scripts/backup_castuo_cerebros.sh` + `deploy/RUNBOOK-BACKUP-CEREBROS-POSTGRES.md`"
+      },
+      "id": "sticky-trillizo-audit",
+      "name": "Nota_Auditoria_MD",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        120,
+        20
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook_Auditoria": {
+      "main": [
+        [
+          {
+            "node": "Code_Append_Diario_Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Append_Diario_Markdown": {
+      "main": [
+        [
+          {
+            "node": "IF_Auditoria_OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_Auditoria_OK": {
+      "main": [
+        [
+          {
+            "node": "Respond_Webhook_OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF_Error_Firma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_Error_Firma": {
+      "main": [
+        [
+          {
+            "node": "Respond_401_Firma",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond_500_Disco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Auditoría Trillizo: journal/*.md, frontmatter diario, IA vs sistema (#ia-decision / #evento-sistema), HMAC opcional sobre body completo."
+  }
+}

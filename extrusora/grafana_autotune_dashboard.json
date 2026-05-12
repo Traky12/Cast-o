@@ -1,0 +1,38 @@
+{
+  "title": "Auto-Calibración del PID",
+  "uid": "extrusora-autotune",
+  "panels": [
+    {
+      "title": "Histórico de Parámetros PID",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {"expr": "castu_extrusora_pid_kp", "legendFormat": "Kp", "refId": "A"},
+        {"expr": "castu_extrusora_pid_ki", "legendFormat": "Ki", "refId": "B"},
+        {"expr": "castu_extrusora_pid_kd", "legendFormat": "Kd", "refId": "C"}
+      ],
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull"]}}
+    },
+    {
+      "title": "Respuesta durante Calibración",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {"expr": "castu_extrusora_temp{sensor=\"boquilla\"}", "legendFormat": "Temp Real", "refId": "A"},
+        {"expr": "castu_extrusora_setpoint", "legendFormat": "Setpoint", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "celsius"}}
+    },
+    {
+      "title": "Eventos Auto-Calibración",
+      "type": "logs",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 8},
+      "targets": [{"expr": "{job=\"extrusora\"} |= \"AUTOTUNE\"", "refId": "A"}],
+      "options": {"showTime": true, "showLabels": true}
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 38,
+  "version": 1,
+  "time": {"from": "now-24h", "to": "now"}
+}

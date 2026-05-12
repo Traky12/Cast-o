@@ -1,0 +1,41 @@
+# CASTÚO-SYSTEM™ — Ejecución inmutable de Cursor (anti-hacking v1.0)
+# Verificación de firma/hash antes de ejecución; registro en GaiaChain opcional
+name: Cursor Immutable Execution
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cursor/**'
+      - 'scripts/cursor/**'
+
+jobs:
+  verify-and-execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Cursor signature (if present)
+        run: |
+          if [ -f cursor/cursor_pub.pem ] && [ -f cursor/cursor.sig ] && [ -f cursor/cursor.js ]; then
+            openssl dgst -sha256 -verify cursor/cursor_pub.pem -signature cursor/cursor.sig cursor/cursor.js || exit 1
+            echo "Firma OK"
+          else
+            echo "Archivos de firma no presentes; omitiendo verificación (dev)."
+          fi
+
+      - name: Verify checksum (if cursor.hash present)
+        run: |
+          if [ -f cursor/cursor.hash ] && [ -f cursor/cursor.js ]; then
+            want=$(cat cursor/cursor.hash)
+            got=$(sha256sum cursor/cursor.js | awk '{print $1}')
+            [ "$want" = "$got" ] || { echo "Hash mismatch"; exit 1; }
+            echo "Checksum OK"
+          fi
+
+      - name: Log execution hash (for GaiaChain)
+        run: |
+          if [ -f cursor/cursor.js ]; then
+            EXECUTION_HASH=$(sha256sum cursor/cursor.js | awk '{print $1}')
+            echo "EXECUTION_HASH=$EXECUTION_HASH" >> $GITHUB_ENV
+            echo "Hash: $EXECUTION_HASH"
+          fi

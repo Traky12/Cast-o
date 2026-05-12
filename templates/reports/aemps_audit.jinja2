@@ -1,0 +1,42 @@
+{
+  "normative_notice": {{ normative_notice | tojson }},
+  "audit_type": "AEMPS",
+  "batch_id": {{ batch_id | tojson }},
+  "parcel_id": {{ parcel_id | tojson }},
+  "crop_type": {{ crop_type | tojson }},
+  "traceability_events": [
+    {% for event in events %}
+    {
+      "event_type": {{ event.event_type | tojson }},
+      "timestamp": {{ event.timestamp | tojson }},
+      "responsible": {{ event.responsible | tojson }},
+      "sigpac_compliance": {
+        "status": {{ (event.sigpac_metadata.get('validation_status') if event.sigpac_metadata else 'not_validated') | tojson }},
+        "area_ha": {% if event.sigpac_metadata and event.sigpac_metadata.get('area_ha') is not none %}{{ event.sigpac_metadata.get('area_ha') | float }}{% else %}null{% endif %},
+        "compliance": {{ event.compliance | tojson }}
+      }{% if event.event_type == 'harvest_registered' %},
+      "quality_parameters": {
+        "thc_percentage": {{ event.quality_parameters.get('thc_percentage', 0) }},
+        "cbd_percentage": {{ event.quality_parameters.get('cbd_percentage', 0) }},
+        "moisture": {{ event.quality_parameters.get('moisture', 0) }},
+        "compliance": ["RD 903/2025", "Reglamento (UE) 2019/1009"]
+      }{% endif %}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "water_usage": {
+    "total_liters": {{ water_usage.get('total_liters', 0) }},
+    "savings_percent": {{ water_usage.get('savings_percent', 0) }},
+    "compliance": ["UNE 50510", "RD 169/2021"]
+  },
+  "compliance_summary": {
+    "status": {{ compliance_status | tojson }},
+    "issues": {{ compliance_issues | tojson }},
+    "normatives": ["Reglamento (UE) 2019/1009", "RD 903/2025", "UNE-EN ISO 22005"]
+  },
+  "generated_at": {{ generated_at | tojson }},
+  "metadata": {
+    "source": "Castuo-System Audit Report Generator",
+    "compliance": ["Reglamento (UE) 2019/1009", "RD 903/2025"]
+  }
+}

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_material_tree" model="ir.ui.view">
+        <field name="name">castu.material.tree</field>
+        <field name="model">castu.material</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="type"/>
+                <field name="raw_materials"/>
+                <field name="stock_kg"/>
+                <field name="price_per_kg"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_material_form" model="ir.ui.view">
+        <field name="name">castu.material.form</field>
+        <field name="model">castu.material</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="code"/>
+                        <field name="type"/>
+                        <field name="raw_materials"/>
+                        <field name="properties"/>
+                        <field name="density"/>
+                        <field name="tensile_strength"/>
+                        <field name="biodegradable"/>
+                        <field name="price_per_kg"/>
+                        <field name="stock_kg" readonly="1"/>
+                        <field name="image" widget="image" class="oe_avatar"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_material" model="ir.actions.act_window">
+        <field name="name">Materiales Compuestos</field>
+        <field name="res_model">castu.material</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_materials_root" name="Materiales (Inventario)" sequence="50"/>
+    <menuitem id="menu_castu_material" name="Productos" parent="menu_castu_materials_root" action="action_castu_material" sequence="10"/>
+</odoo>

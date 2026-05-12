@@ -1,0 +1,5 @@
+# CASTÚO-SYSTEM™ | Imagen TRL4 para validación criptográfica (código por volume)
+FROM python:3.11-slim
+RUN pip install --no-cache-dir cryptography
+WORKDIR /app
+CMD ["python", "/app/tests/trl4/crypto_validation.py"]

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://castuo.system/schemas/castuo_xai_ledger_log.v1.json",
+  "title": "CASTUO XAI Ledger Log v1",
+  "description": "Decisión IA explicable firmada por Secure Element; encadenamiento ledger.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "event_id",
+    "timestamp",
+    "unit_id",
+    "decision",
+    "telemetry_snapshot",
+    "ledger_hash",
+    "event_anchor_hash",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": { "const": "castuo.xai_ledger_log.v1" },
+    "event_id": {
+      "type": "string",
+      "pattern": "^URN:CASTUO:LOG:[0-9]{4}:[0-9]+$",
+      "description": "URN único por evento"
+    },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "mission_id": { "type": "string", "description": "Opcional, p.ej. CRIPTA-SILENCIO-2026" },
+    "unit_id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
+    "decision": {
+      "type": "object",
+      "required": ["action", "reason_code", "natural_language_explanation"],
+      "properties": {
+        "action": { "type": "string" },
+        "reason_code": { "type": "string" },
+        "natural_language_explanation": { "type": "string" }
+      }
+    },
+    "telemetry_snapshot": { "type": "object" },
+    "ledger_hash": {
+      "type": "string",
+      "pattern": "^(0x)?[a-fA-F0-9]{64}$",
+      "description": "Ancla del evento previo en cadena (genesis: 64 ceros hex)"
+    },
+    "event_anchor_hash": {
+      "type": "string",
+      "pattern": "^(0x)?[a-fA-F0-9]{64}$",
+      "description": "SHA-256( parent || canonical_unsigned ); firma SE es sobre este digest"
+    },
+    "signature": {
+      "type": "string",
+      "description": "ECDSA secp256k1 65 bytes hex (r||s||v) o DER según política SE"
+    },
+    "signer_pubkey_hint": {
+      "type": "string",
+      "description": "Opcional: identificador clave pública registrada del módulo"
+    }
+  },
+  "additionalProperties": false
+}

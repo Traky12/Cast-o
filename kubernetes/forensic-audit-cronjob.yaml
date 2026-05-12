@@ -1,0 +1,40 @@
+# CronJob: auditoría forense diaria (medianoche)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: forensic-audit
+  namespace: castuo-prod
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+          - name: auditor
+            image: ghcr.io/tu-organizacion/castuo-system:v2.1-defense
+            command: ["python", "-m", "backend.compliance.forensic_audit"]
+            args:
+            - "--period"
+            - "7"
+            - "--output"
+            - "/var/traceability/daily_forensic_audit.json"
+            envFrom:
+            - configMapRef:
+                name: defense-config
+            - configMapRef:
+                name: encryption-config
+            volumeMounts:
+            - name: traceability-data
+              mountPath: /var/traceability
+          restartPolicy: OnFailure
+          volumes:
+          - name: traceability-data
+            persistentVolumeClaim:
+              claimName: traceability-pvc

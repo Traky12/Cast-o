@@ -1,0 +1,31 @@
+name: Sync ArgoCD Global
+on:
+  push:
+    branches: [main]
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install argocd CLI
+        run: |
+          curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+      - name: Login to ArgoCD
+        run: |
+          argocd login ${{ secrets.ARGOCD_SERVER }} --username ${{ secrets.ARGOCD_USERNAME }} --password ${{ secrets.ARGOCD_PASSWORD }} --insecure
+      - name: Sync All Clusters
+        run: |
+          argocd app sync castuo-system-eu
+          argocd app sync castuo-system-latam
+          argocd app sync castuo-system-asia
+          argocd app sync castuo-system-africa
+          argocd app sync castuo-system-oceania
+          argocd app sync castuo-system-extremadura
+          argocd app wait --health castuo-system-eu
+          argocd app wait --health castuo-system-latam
+          argocd app wait --health castuo-system-asia
+          argocd app wait --health castuo-system-africa
+          argocd app wait --health castuo-system-oceania
+          argocd app wait --health castuo-system-extremadura

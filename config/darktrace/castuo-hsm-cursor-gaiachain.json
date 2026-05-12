@@ -1,0 +1,78 @@
+{
+  "darktrace": {
+    "rules": [
+      {
+        "name": "CASTUO-HSM-Unauthorized-Access",
+        "description": "Acceso no autorizado al HSM Thales Luna",
+        "condition": {
+          "target": ["hsm-socket", "/var/run/hsm"],
+          "action": ["login", "sign", "derive"],
+          "user": "not:authorized_admin",
+          "anomaly_score": ">99"
+        },
+        "response": [
+          { "type": "block_process", "duration": "permanent" },
+          {
+            "type": "notify",
+            "channels": ["slack", "email", "gaiachain"],
+            "message": "ALERTA CRÍTICA: Acceso no autorizado al HSM. Usuario: {user}, IP: {ip}, Acción: {action}"
+          },
+          { "type": "gaiachain_alert", "event_type": "HSM_ACCESS_VIOLATION", "severity": "critical" },
+          {
+            "type": "execute_script",
+            "script": "/opt/castuo/scripts/security/activate-dms.sh",
+            "require_confirmation": true,
+            "confirmation_channels": ["yubikey_otp"]
+          }
+        ]
+      },
+      {
+        "name": "CASTUO-Cursor-Tampering",
+        "description": "Modificación no autorizada en scripts de Cursor",
+        "condition": {
+          "process": ["cursor.js", "cursor.py"],
+          "action": ["modify", "delete", "execute_untrusted"],
+          "file_hash_change": true,
+          "anomaly_score": ">95"
+        },
+        "response": [
+          { "type": "quarantine_host", "duration": "1h" },
+          { "type": "kill_process" },
+          {
+            "type": "notify",
+            "channels": ["slack", "gaiachain"],
+            "message": "ALERTA: Tampering detectado en Cursor. Host: {host}, Proceso: {process}, Hash: {file_hash}"
+          },
+          { "type": "gaiachain_alert", "event_type": "CURSOR_TAMPERING", "severity": "high" }
+        ]
+      },
+      {
+        "name": "CASTUO-GaiaChain-Anomaly",
+        "description": "Comportamiento anómalo en nodos GaiaChain",
+        "condition": {
+          "target": ["gaiachain-node", "gaiachain-validator"],
+          "anomaly_score": ">90",
+          "behaviors": ["unusual_process", "data_exfiltration", "privilege_escalation"]
+        },
+        "response": [
+          { "type": "isolate_host", "duration": "until_review" },
+          {
+            "type": "notify",
+            "channels": ["slack", "email", "gaiachain"],
+            "message": "ALERTA: Comportamiento anómalo en GaiaChain. Host: {host}, Score: {anomaly_score}, Comportamientos: {behaviors}"
+          },
+          { "type": "gaiachain_alert", "event_type": "GAIACHAIN_ANOMALY", "severity": "critical" }
+        ]
+      }
+    ],
+    "exclusions": {
+      "users": ["authorized_admin"],
+      "processes": [
+        "/opt/castuo/scripts/security/*",
+        "/usr/local/bin/secure_tpm_verifier",
+        "/opt/cursor/verify-with-hsm.py"
+      ],
+      "ips": ["192.168.1.0/24"]
+    }
+  }
+}

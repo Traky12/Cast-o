@@ -1,0 +1,10 @@
+capa,componente,material_ref,especificacion_tecnica,espesor_um,proveedor_tipo,funcion_critica,norma_ref
+nucleo_estructural,matriz_biopolimero,PHB/PLA_blend,PHB 70% / PLA 30% inyectable moldeo baja T,2000-3500,grado_medico_candidato,matriz_carbono_negativo,ISO_10993_screening
+nucleo_estructural,fibra_refuerzo,Ca_hamo_cert_GNSS,65% peso fibra largo orientada layup 0-90-0,lamina_total_2mm,cosecha_trazada_GNSS,estabilidad_dimensional_CO2_negativo,UE_organic_hemp
+microencapsulado,chlorella_silice,Chlorella_sp_microencapsulada,SiO2 shell 1-50 um pigmento bio-optico,1-50,biotech,proteccion_fotooxidacion_UV,REACH_pre_registro
+sensora,nanocapa_piezo,Matriz_nanocargada_piezoresistiva,Polimero_conductivo_nanoparticulas,2-10,sensor_fab,integridad_apertura_estres_termico,IPC_class
+recubrimiento,PVD_ALD,Nanoceramica_TiAlN_SiO2,PVD o ALD anti-abrasion,200-800,metalurgia_fina,durabilidad_superficial,ISO_4520_referencia
+anillo_masa,aluminio_reciclado,Al_6061_100pct_reciclado,Grado aeronautico mecanizado CNC,anillo_1.2mm,reciclaje_CE,hand_feel_secure_element,FIPS_140-3_housing
+forense,slot_jara,Taggant_Cistus_ladanifer,Extracto/seal forense ISO17025,crimp_metalico,lab_acreditado,fingerprint_quimico_disputa,ISO_17025
+nfc,secure_element,SE_FIPS_140-3,NFC + clave enclave fabricacion,modulo_embed,FIPS_listed,nonce_firmado_evidence,NFC_Forum_Type4
+adhesivo,union_capas,Epoxi_biocompatible_bajo_VOC,Curado UV secundario,10-30,REACH,lamination_stack,REACH_XVII

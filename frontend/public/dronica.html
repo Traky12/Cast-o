@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dronica | CASTUO-SYSTEM</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #22c55e; --secondary: #16a34a; --dark: #064e3b; --light: #dcfce7; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: var(--dark); }
+        .sidebar { background: linear-gradient(to bottom, var(--primary), var(--secondary)); color: white; }
+        .card { background: white; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+    </style>
+</head>
+<body class="flex h-screen bg-gray-50">
+    <div class="sidebar w-64 space-y-6 py-7 px-2 fixed inset-y-0 left-0">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold">🌿 CASTUO-SYSTEM</h1>
+            <p class="text-sm">Cultivos sostenibles</p>
+        </div>
+        <nav class="space-y-3">
+            <a href="index.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-home mr-3"></i> Inicio</a>
+            <a href="grid-iot.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-th-large mr-3"></i> Grid IoT</a>
+            <a href="dronica.html" class="flex items-center px-4 py-2 bg-green-700 rounded text-white"><i class="fas fa-drone mr-3"></i> Dronica</a>
+            <a href="sabionda-ia.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-brain mr-3"></i> SABIONDA IA</a>
+            <a href="catalogo.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-seedling mr-3"></i> Catálogo</a>
+            <a href="control-rpi.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-microchip mr-3"></i> Control RPi</a>
+            <a href="ayuda.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-question-circle mr-3"></i> Ayuda</a>
+            <a href="mi-cuenta.html" class="flex items-center px-4 py-2 text-gray-100 hover:bg-green-700 rounded"><i class="fas fa-user mr-3"></i> Mi cuenta</a>
+        </nav>
+    </div>
+
+    <div class="ml-64 p-8 w-full">
+        <h2 class="text-2xl font-bold mb-8">Dronica</h2>
+
+        <div class="card p-6 mb-8">
+            <h3 class="font-bold mb-4">Estado de la Conexión</h3>
+            <div id="connection-status" class="p-4 border rounded-lg">
+                <p>Cargando estado...</p>
+            </div>
+        </div>
+
+        <div class="card p-6 mb-8">
+            <h3 class="font-bold mb-4">Crear Misión</h3>
+            <div class="mb-4">
+                <label for="mission-id" class="block text-gray-700">ID de Misión:</label>
+                <input type="text" id="mission-id" class="border rounded p-2 w-full" placeholder="Ej. mission_001">
+            </div>
+            <div class="mb-4">
+                <label for="drone-id" class="block text-gray-700">ID del Drone:</label>
+                <input type="text" id="drone-id" class="border rounded p-2 w-full" placeholder="Ej. drone_001">
+            </div>
+            <div class="mb-4">
+                <label for="waypoints" class="block text-gray-700">Waypoints (JSON):</label>
+                <textarea id="waypoints" class="border rounded p-2 w-full" rows="3" placeholder='[{"lat": 40.416775, "lng": -3.703790}, {"lat": 40.416875, "lng": -3.703890}]'></textarea>
+            </div>
+            <button type="button" onclick="createMission()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                Crear Misión
+            </button>
+        </div>
+
+        <div class="card p-6">
+            <h3 class="font-bold mb-4">Estado de la Misión</h3>
+            <div class="mb-4">
+                <label for="check-mission-id" class="block text-gray-700">ID de Misión:</label>
+                <input type="text" id="check-mission-id" class="border rounded p-2 w-full inline-block max-w-xs" placeholder="Ej. mission_001">
+                <button type="button" onclick="checkMissionStatus()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2 ml-2">
+                    Ver Estado
+                </button>
+            </div>
+            <div id="mission-status" class="mt-4 p-4 border rounded-lg">
+                <p>Introduce un ID de misión para ver su estado.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var API_BASE = (window.location.port === '3000' && window.location.hostname === 'localhost') ? 'http://localhost:8000' : '/api';
+
+        async function fetchConnectionStatus() {
+            try {
+                var response = await fetch(API_BASE + '/dronica/connection');
+                var data = await response.json();
+                var statusDiv = document.getElementById('connection-status');
+                statusDiv.innerHTML = '<p><strong>Estado:</strong> ' + (data.status || '-') + '</p>' +
+                    '<p><strong>Drones:</strong> ' + (Array.isArray(data.drones) ? data.drones.join(', ') : '-') + '</p>' +
+                    '<p><strong>Gateway:</strong> ' + (data.gateway || '-') + '</p>' +
+                    '<p><strong>Última conexión:</strong> ' + (data.last_connection || '-') + '</p>';
+            } catch (e) {
+                document.getElementById('connection-status').innerHTML = '<p class="text-red-500">Error: ' + e.message + '</p>';
+            }
+        }
+
+        async function createMission() {
+            var missionId = document.getElementById('mission-id').value.trim();
+            var droneId = document.getElementById('drone-id').value.trim();
+            var waypointsText = document.getElementById('waypoints').value.trim();
+            if (!missionId || !droneId) {
+                alert('Introduce ID de misión e ID del drone.');
+                return;
+            }
+            try {
+                var waypointsParsed = waypointsText ? JSON.parse(waypointsText) : [];
+                var response = await fetch(API_BASE + '/dronica/missions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mission_id: missionId, drone_id: droneId, waypoints: waypointsParsed })
+                });
+                var data = await response.json();
+                if (!response.ok) throw new Error(data.detail || response.statusText);
+                alert('Misión creada: ' + data.mission_id);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function checkMissionStatus() {
+            var missionId = document.getElementById('check-mission-id').value.trim();
+            var statusDiv = document.getElementById('mission-status');
+            if (!missionId) {
+                statusDiv.innerHTML = '<p>Introduce un ID de misión.</p>';
+                return;
+            }
+            try {
+                var response = await fetch(API_BASE + '/dronica/missions/' + encodeURIComponent(missionId));
+                var data = await response.json();
+                if (data.status === 'not_found') {
+                    statusDiv.innerHTML = '<p class="text-red-500">Misión no encontrada: ' + missionId + '</p>';
+                } else {
+                    statusDiv.innerHTML = '<p><strong>ID de Misión:</strong> ' + missionId + '</p><p><strong>Estado:</strong> ' + data.status + '</p>';
+                }
+            } catch (e) {
+                statusDiv.innerHTML = '<p class="text-red-500">Error: ' + e.message + '</p>';
+            }
+        }
+
+        fetchConnectionStatus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+---
+- name: Instalar dependencias
+  apt:
+    name:
+      - docker.io
+      - docker-compose
+      - python3-pip
+    state: present
+    update_cache: yes
+
+- name: Crear directorio para agentes
+  file:
+    path: "/opt/{{ project_name }}/agents"
+    state: directory
+    mode: "0755"
+
+- name: Copiar docker-compose.yml para agentes
+  template:
+    src: "docker-compose.yml.j2"
+    dest: "/opt/{{ project_name }}/agents/docker-compose.yml"
+    mode: "0644"
+
+- name: Iniciar agentes con docker-compose
+  command: "docker-compose -f /opt/{{ project_name }}/agents/docker-compose.yml up -d"
+  register: docker_compose_output
+  changed_when: "'Creating' in docker_compose_output.stdout or 'Recreating' in docker_compose_output.stdout"
+
+- name: Verificar que los agentes están corriendo
+  uri:
+    url: "http://localhost:{{ item.port }}/health"
+    method: GET
+    status_code: 200
+  loop:
+    - { name: "sigpac", port: "{{ agent_sigpac_port }}" }
+    - { name: "subsidies", port: "{{ agent_subsidies_port }}" }
+  loop_control:
+    label: "{{ item.name }}"
+

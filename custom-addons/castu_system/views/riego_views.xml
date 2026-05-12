@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_castu_riego_tree" model="ir.ui.view">
+        <field name="name">castu.riego.tree</field>
+        <field name="model">castu.riego</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="granja_id"/>
+                <field name="tipo"/>
+                <field name="estado"/>
+                <field name="ozono"/>
+                <field name="ph_objetivo"/>
+                <field name="ec_objetivo"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_castu_riego_form" model="ir.ui.view">
+        <field name="name">castu.riego.form</field>
+        <field name="model">castu.riego</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="granja_id"/>
+                        <field name="tipo"/>
+                        <field name="estado"/>
+                        <field name="ozono"/>
+                        <field name="ph_objetivo"/>
+                        <field name="ec_objetivo"/>
+                    </group>
+                    <group string="Válvulas">
+                        <field name="valvula_ids" nolabel="1">
+                            <tree>
+                                <field name="name"/>
+                                <field name="estado"/>
+                                <field name="gpio_pin"/>
+                            </tree>
+                        </field>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_activar_riego" string="Activar Riego (30 min)" type="object" class="btn-primary"/>
+                    <button name="action_ajustar_ph_ec" string="Ajustar pH/EC" type="object" class="btn-secondary"/>
+                    <button name="action_decidir_riego" string="Decidir Riego (sensores)" type="object"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_castu_riego" model="ir.actions.act_window">
+        <field name="name">Sistemas de Riego</field>
+        <field name="res_model">castu.riego</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_castu_riego" name="Riego Automático" parent="menu_castu_root" action="action_castu_riego" sequence="60"/>
+</odoo>
