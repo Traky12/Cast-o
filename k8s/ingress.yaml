@@ -1,0 +1,120 @@
+---
+# CASTÚO-SYSTEM™ v3.1 — Multi-domain Ingress
+# ─────────────────────────────────────────────────────────────────────────────
+# CORRECCIÓN CRÍTICA: ClusterIssuer era "letsencrypt-production" (incorrecto).
+# El issuer real en cluster-issuer.yaml se llama "letsencrypt-prod".
+# ─────────────────────────────────────────────────────────────────────────────
+# Dominios cubiertos:
+#   castuo-system.cloud       → castuo-frontend-service:80  (frontend raíz)
+#   www.castuo-system.cloud   → castuo-frontend-service:80  (frontend raíz)
+#   api.castuo-system.cloud   → castuo-api-service:80       (FastAPI backend)
+#   n8n.castuo-system.cloud   → castuo-n8n-service:80       (n8n workflows)
+# ─────────────────────────────────────────────────────────────────────────────
+# Si castuo-frontend-service NO está desplegado, usar ingress-no-frontend.yaml
+# (mismo nombre de Ingress: kubectl apply -f k8s/ingress-no-frontend.yaml)
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: castuo-ingress
+  namespace: castuo-system
+  labels:
+    app: castuo
+    component: ingress
+    version: "pr19"
+  annotations:
+    # FIX: nombre correcto del ClusterIssuer (era letsencrypt-production → ERROR)
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+    # nginx — TLS y redirección
+    nginx.ingress.kubernetes.io/ssl-redirect:       "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Proxying
+    nginx.ingress.kubernetes.io/proxy-body-size:       "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout:    "60"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout:    "60"
+
+    # Rate limiting (primera línea — Cloudflare WAF refuerza esto en producción)
+    nginx.ingress.kubernetes.io/limit-rps:         "30"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+
+    # www → raíz (canonical redirect)
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+
+    # Seguridad HTTP (complementan los headers del middleware FastAPI)
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+    # Un secreto por grupo de hosts (cert-manager crea uno por entrada tls[])
+    - hosts:
+        - castuo-system.cloud
+        - www.castuo-system.cloud
+      secretName: castuo-root-tls
+
+    - hosts:
+        - api.castuo-system.cloud
+      secretName: castuo-api-tls
+
+    - hosts:
+        - n8n.castuo-system.cloud
+      secretName: castuo-n8n-tls
+
+  rules:
+    # ── Raíz: Frontend dedicado ──────────────────────────────────────────────
+    - host: castuo-system.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-frontend-service
+                port:
+                  number: 80
+
+    # ── www: redirige a raíz (from-to-www-redirect lo gestiona automáticamente)
+    - host: www.castuo-system.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-frontend-service
+                port:
+                  number: 80
+
+    # ── API: FastAPI backend (puerto Service = 80, targetPort Pod = 8000) ─────
+    - host: api.castuo-system.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-api-service
+                port:
+                  number: 80
+
+    # ── n8n: Workflows de automatización (puerto Service = 80, targetPort = 5678)
+    - host: n8n.castuo-system.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-n8n-service
+                port:
+                  number: 80

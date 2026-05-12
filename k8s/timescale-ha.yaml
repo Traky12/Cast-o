@@ -1,0 +1,509 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# CASTÚO-SYSTEM™ v3.1 — TimescaleDB HA (Patroni)
+# Namespace: castuo-system
+# Series temporales + streaming replication para datos históricos de invernadero
+# Arquitectura: 1 primary + 2 standbys con Patroni (automatic failover)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─── ConfigMap Patroni ────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: patroni-config
+  namespace: castuo-system
+  labels:
+    app: timescaledb
+    component: timeseries
+data:
+  patroni.yml: |
+    scope: castuo-timescale
+    namespace: /castuo/
+    name: $(POD_NAME)
+
+    restapi:
+      listen: 0.0.0.0:8008
+      connect_address: $(POD_IP):8008
+
+    etcd3:
+      hosts: etcd.castuo-system.svc.cluster.local:2379
+
+    bootstrap:
+      dcs:
+        ttl: 30
+        loop_wait: 10
+        retry_timeout: 10
+        maximum_lag_on_failover: 1048576
+        postgresql:
+          use_pg_rewind: true
+          use_slots: true
+          parameters:
+            wal_level: replica
+            hot_standby: "on"
+            wal_keep_size: 128
+            max_wal_senders: 10
+            max_replication_slots: 10
+            shared_preload_libraries: timescaledb
+            timescaledb.max_background_workers: 8
+            # Optimización para series temporales
+            work_mem: 64MB
+            maintenance_work_mem: 512MB
+            checkpoint_completion_target: 0.9
+            effective_cache_size: 4GB
+            shared_buffers: 1GB
+
+      initdb:
+        - encoding: UTF8
+        - data-checksums
+
+      pg_hba:
+        - host replication replicator 0.0.0.0/0 md5
+        - host all all 0.0.0.0/0 md5
+
+      users:
+        castuo:
+          password: $(POSTGRES_PASSWORD)
+          options:
+            - createrole
+            - createdb
+
+    postgresql:
+      listen: 0.0.0.0:5432
+      connect_address: $(POD_IP):5432
+      data_dir: /var/lib/postgresql/data/pgdata
+      pgpass: /tmp/pgpass
+      authentication:
+        replication:
+          username: replicator
+          password: $(REPLICATION_PASSWORD)
+        superuser:
+          username: postgres
+          password: $(POSTGRES_PASSWORD)
+      parameters:
+        unix_socket_directories: /var/run/postgresql
+
+    tags:
+      nofailover: false
+      noloadbalance: false
+      clonefrom: false
+      nosync: false
+
+---
+# ─── Secret TimescaleDB ───────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: timescaledb-secret
+  namespace: castuo-system
+  labels:
+    app: timescaledb
+type: Opaque
+stringData:
+  # Cambiar en producción. Generar con: openssl rand -hex 32
+  postgres-password: "CHANGE_ME_POSTGRES_PASSWORD"
+  replication-password: "CHANGE_ME_REPLICATION_PASSWORD"
+
+---
+# ─── Servicio Headless para Patroni ──────────────────────────────────────────
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb-headless
+  namespace: castuo-system
+  labels:
+    app: timescaledb
+spec:
+  clusterIP: None
+  selector:
+    app: timescaledb
+  ports:
+    - port: 5432
+      name: postgresql
+    - port: 8008
+      name: patroni
+
+---
+# ─── Servicio para lectura/escritura (primary) ────────────────────────────────
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb
+  namespace: castuo-system
+  labels:
+    app: timescaledb
+    component: timeseries
+  annotations:
+    # Patroni marca el primary con role=master label
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  selector:
+    app: timescaledb
+    role: master
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgresql
+  type: ClusterIP
+
+---
+# ─── Servicio para lectura en réplicas ────────────────────────────────────────
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb-replica
+  namespace: castuo-system
+  labels:
+    app: timescaledb
+    role: replica
+spec:
+  selector:
+    app: timescaledb
+    role: replica
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgresql
+  type: ClusterIP
+
+---
+# ─── StatefulSet TimescaleDB HA ───────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb
+  namespace: castuo-system
+  labels:
+    app: timescaledb
+    component: timeseries
+spec:
+  serviceName: timescaledb-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port:   "9187"
+    spec:
+      serviceAccountName: castuo-api
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+      initContainers:
+        # Esperar a que etcd esté disponible
+        - name: wait-for-etcd
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z etcd.castuo-system.svc.cluster.local 2379; do echo "Waiting for etcd..."; sleep 2; done
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+
+      containers:
+        - name: timescaledb
+          image: timescale/timescaledb:2.13.0-pg16
+          ports:
+            - containerPort: 5432
+              name: postgresql
+            - containerPort: 8008
+              name: patroni
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescaledb-secret
+                  key: postgres-password
+            - name: REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescaledb-secret
+                  key: replication-password
+            - name: PATRONI_KUBERNETES_LABELS
+              value: '{"app": "timescaledb"}'
+            - name: PATRONI_KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Instalar Patroni si no está en la imagen
+              pip install patroni[etcd3] psycopg2-binary --quiet 2>/dev/null || true
+              # Sustituir variables en la configuración
+              envsubst < /etc/patroni/patroni.yml > /tmp/patroni.yml
+              patroni /tmp/patroni.yml
+          volumeMounts:
+            - name: patroni-config
+              mountPath: /etc/patroni
+            - name: timescale-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu:    "500m"
+              memory: "2Gi"
+            limits:
+              cpu:    "2000m"
+              memory: "8Gi"
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 8008
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 8008
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+        # PostgreSQL Exporter para Prometheus
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:v0.15.0
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://postgres:$(POSTGRES_PASSWORD)@localhost:5432/postgres?sslmode=disable"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescaledb-secret
+                  key: postgres-password
+          ports:
+            - containerPort: 9187
+              name: metrics
+          resources:
+            requests:
+              cpu:  "50m"
+              memory: "64Mi"
+            limits:
+              cpu:  "200m"
+              memory: "128Mi"
+
+      volumes:
+        - name: patroni-config
+          configMap:
+            name: patroni-config
+
+  volumeClaimTemplates:
+    - metadata:
+        name: timescale-data
+        labels:
+          app: timescaledb
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: hcloud-volumes
+        resources:
+          requests:
+            storage: 50Gi
+
+---
+# ─── PodDisruptionBudget ──────────────────────────────────────────────────────
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: timescaledb-pdb
+  namespace: castuo-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: timescaledb
+
+---
+# ─── etcd (coordinación Patroni) ──────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: etcd
+  namespace: castuo-system
+  labels:
+    app: etcd
+    component: coordination
+spec:
+  serviceName: etcd
+  replicas: 3
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+        - name: etcd
+          image: bitnami/etcd:3.5
+          ports:
+            - containerPort: 2379
+              name: client
+            - containerPort: 2380
+              name: peer
+          env:
+            - name: ETCD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ETCD_DATA_DIR
+              value: /bitnami/etcd/data
+            - name: ETCD_LISTEN_CLIENT_URLS
+              value: http://0.0.0.0:2379
+            - name: ETCD_LISTEN_PEER_URLS
+              value: http://0.0.0.0:2380
+            - name: ETCD_ADVERTISE_CLIENT_URLS
+              value: http://$(ETCD_NAME).etcd.castuo-system.svc.cluster.local:2379
+            - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+              value: http://$(ETCD_NAME).etcd.castuo-system.svc.cluster.local:2380
+            - name: ETCD_INITIAL_CLUSTER
+              value: >-
+                etcd-0=http://etcd-0.etcd.castuo-system.svc.cluster.local:2380,
+                etcd-1=http://etcd-1.etcd.castuo-system.svc.cluster.local:2380,
+                etcd-2=http://etcd-2.etcd.castuo-system.svc.cluster.local:2380
+            - name: ETCD_INITIAL_CLUSTER_STATE
+              value: new
+            - name: ETCD_INITIAL_CLUSTER_TOKEN
+              value: castuo-etcd-cluster
+            - name: ALLOW_NONE_AUTHENTICATION
+              value: "yes"
+          volumeMounts:
+            - name: etcd-data
+              mountPath: /bitnami/etcd/data
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "256Mi"
+            limits:
+              cpu:    "500m"
+              memory: "512Mi"
+          livenessProbe:
+            exec:
+              command:
+                - etcdctl
+                - endpoint
+                - health
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+  volumeClaimTemplates:
+    - metadata:
+        name: etcd-data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: hcloud-volumes
+        resources:
+          requests:
+            storage: 5Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd
+  namespace: castuo-system
+  labels:
+    app: etcd
+spec:
+  clusterIP: None
+  selector:
+    app: etcd
+  ports:
+    - port: 2379
+      name: client
+    - port: 2380
+      name: peer
+
+---
+# ─── Job inicialización TimescaleDB ──────────────────────────────────────────
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: timescaledb-init
+  namespace: castuo-system
+  labels:
+    component: timeseries
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: db-init
+          image: timescale/timescaledb:2.13.0-pg16
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescaledb-secret
+                  key: postgres-password
+          command:
+            - sh
+            - -c
+            - |
+              echo "Esperando TimescaleDB..."
+              until pg_isready -h timescaledb.castuo-system.svc.cluster.local -U postgres; do
+                sleep 3
+              done
+              psql -h timescaledb.castuo-system.svc.cluster.local -U postgres -c "
+                CREATE DATABASE castuo_ts;
+                CREATE DATABASE castuo_audit;
+              " || true
+              psql -h timescaledb.castuo-system.svc.cluster.local -U postgres -d castuo_ts -c "
+                CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+                CREATE TABLE IF NOT EXISTS sensor_readings (
+                  time        TIMESTAMPTZ NOT NULL,
+                  zona        TEXT        NOT NULL,
+                  lote_id     TEXT,
+                  cultivo     TEXT,
+                  temperatura_c    DOUBLE PRECISION,
+                  humedad_pct      DOUBLE PRECISION,
+                  co2_ppm          DOUBLE PRECISION,
+                  ph               DOUBLE PRECISION,
+                  ec_ms_cm         DOUBLE PRECISION,
+                  o2_disuelto_mgl  DOUBLE PRECISION,
+                  vpd_kpa          DOUBLE PRECISION,
+                  luz_par_umol     DOUBLE PRECISION
+                );
+                SELECT create_hypertable('sensor_readings', 'time', if_not_exists => TRUE);
+                SELECT add_retention_policy('sensor_readings', INTERVAL '90 days', if_not_exists => TRUE);
+                CREATE TABLE IF NOT EXISTS energy_readings (
+                  time          TIMESTAMPTZ NOT NULL,
+                  potencia_kw   DOUBLE PRECISION,
+                  kwh_hoy       DOUBLE PRECISION,
+                  temperatura_panel_c DOUBLE PRECISION,
+                  eficiencia_pct      DOUBLE PRECISION,
+                  cobertura_sombra_pct DOUBLE PRECISION
+                );
+                SELECT create_hypertable('energy_readings', 'time', if_not_exists => TRUE);
+                SELECT add_retention_policy('energy_readings', INTERVAL '365 days', if_not_exists => TRUE);
+              "
+              echo "TimescaleDB inicializado correctamente."
+          resources:
+            requests:
+              cpu:  "100m"
+              memory: "128Mi"

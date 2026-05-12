@@ -1,0 +1,96 @@
+---
+# CASTÚO-SYSTEM™ v3.1 — Ingress SIN frontend dedicado (fallback)
+# ─────────────────────────────────────────────────────────────────────────────
+# Usar este fichero cuando castuo-frontend-service NO está desplegado.
+# Raíz y www apuntan directamente al backend FastAPI (Swagger UI accesible en /).
+#
+# Aplicar con:
+#   kubectl apply -f k8s/ingress-no-frontend.yaml
+#
+# Para volver al ingress con frontend:
+#   kubectl apply -f k8s/ingress.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: castuo-ingress          # mismo nombre → sobrescribe el ingress anterior
+  namespace: castuo-system
+  labels:
+    app: castuo
+    component: ingress
+    version: "pr19-no-frontend"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect:       "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size:       "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout:    "60"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/limit-rps:         "30"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - castuo-system.cloud
+        - www.castuo-system.cloud
+      secretName: castuo-root-tls
+    - hosts:
+        - api.castuo-system.cloud
+      secretName: castuo-api-tls
+    - hosts:
+        - n8n.castuo-system.cloud
+      secretName: castuo-n8n-tls
+
+  rules:
+    # Raíz + www → API backend (FastAPI /docs accesible como UI)
+    - host: castuo-system.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-api-service
+                port:
+                  number: 80
+
+    - host: www.castuo-system.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-api-service
+                port:
+                  number: 80
+
+    - host: api.castuo-system.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-api-service
+                port:
+                  number: 80
+
+    - host: n8n.castuo-system.cloud
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: castuo-n8n-service
+                port:
+                  number: 80

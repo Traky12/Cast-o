@@ -1,0 +1,183 @@
+groups:
+  # ── Pods y Deployment ────────────────────────────────────────────────────────
+  - name: castuo.pods
+    interval: 30s
+    rules:
+      - alert: CastuoPodDown
+        expr: |
+          kube_pod_status_phase{namespace="castuo-system", pod=~"castuo-api.*", phase!="Running"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          team: castuo-ops
+        annotations:
+          summary: "Pod {{ $labels.pod }} no está Running"
+          description: "El pod {{ $labels.pod }} lleva más de 1 minuto en fase {{ $labels.phase }}."
+          runbook: "kubectl describe pod {{ $labels.pod }} -n castuo-system"
+
+      - alert: CastuoDeploymentReplicasMismatch
+        expr: |
+          kube_deployment_spec_replicas{namespace="castuo-system", deployment="castuo-api"}
+          != kube_deployment_status_available_replicas{namespace="castuo-system", deployment="castuo-api"}
+        for: 3m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "Deployment castuo-api: réplicas disponibles no coinciden con las deseadas"
+          description: "Spec={{ $value }} vs available={{ $value }}. Puede haber pods en CrashLoopBackOff."
+
+      - alert: CastuoContainerRestarting
+        expr: |
+          rate(kube_pod_container_status_restarts_total{namespace="castuo-system",container="castuo-api"}[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "Container castuo-api reiniciando frecuentemente"
+          description: "Tasa de reinicios: {{ $value | humanize }}/min. Revisar logs."
+
+  # ── CPU y Memoria ─────────────────────────────────────────────────────────────
+  - name: castuo.resources
+    interval: 60s
+    rules:
+      - alert: CastuoHighCPU
+        expr: |
+          avg(rate(container_cpu_usage_seconds_total{namespace="castuo-system",container="castuo-api"}[5m])) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "CPU alta en castuo-api ({{ $value | humanize }}%)"
+          description: "CPU por encima del 85% durante 5 minutos. Considerar escalar manualmente."
+
+      - alert: CastuoCriticalCPU
+        expr: |
+          avg(rate(container_cpu_usage_seconds_total{namespace="castuo-system",container="castuo-api"}[5m])) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: castuo-ops
+        annotations:
+          summary: "CPU crítica en castuo-api ({{ $value | humanize }}%)"
+          description: "CPU por encima del 95% durante 2 minutos. Acción inmediata requerida."
+
+      - alert: CastuoHighMemory
+        expr: |
+          avg(container_memory_working_set_bytes{namespace="castuo-system",container="castuo-api"})
+          / avg(kube_pod_container_resource_limits{namespace="castuo-system",container="castuo-api",resource="memory"}) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "Memoria alta en castuo-api ({{ $value | humanize }}%)"
+          description: "Uso de memoria por encima del 90% del límite durante 5 minutos."
+
+  # ── HTTP Errors ───────────────────────────────────────────────────────────────
+  - name: castuo.http
+    interval: 30s
+    rules:
+      - alert: CastuoHigh5xxRate
+        expr: |
+          sum(rate(http_requests_total{namespace="castuo-system",status=~"5.."}[5m]))
+          / sum(rate(http_requests_total{namespace="castuo-system"}[5m])) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          team: castuo-ops
+        annotations:
+          summary: "Tasa de errores 5xx alta ({{ $value | humanize }}%)"
+          description: "Más del 5% de las peticiones están devolviendo errores 5xx en los últimos 5 minutos."
+
+      - alert: CastuoHigh4xxRate
+        expr: |
+          sum(rate(http_requests_total{namespace="castuo-system",status=~"4.."}[5m]))
+          / sum(rate(http_requests_total{namespace="castuo-system"}[5m])) * 100 > 20
+        for: 10m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "Tasa de errores 4xx alta ({{ $value | humanize }}%)"
+          description: "Más del 20% de peticiones con 4xx. Posibles ataques o clientes mal configurados."
+
+      - alert: CastuoHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket{namespace="castuo-system"}[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "Latencia p95 alta ({{ $value | humanize }}s)"
+          description: "El percentil 95 de latencia supera los 2 segundos."
+
+  # ── HPA ──────────────────────────────────────────────────────────────────────
+  - name: castuo.autoscaling
+    interval: 60s
+    rules:
+      - alert: CastuoHPAMaxReplicas
+        expr: |
+          kube_horizontalpodautoscaler_status_current_replicas{
+            namespace="castuo-system",
+            horizontalpodautoscaler="castuo-api-hpa"
+          } >= 10
+        for: 10m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "HPA castuo-api-hpa en número máximo de réplicas (10)"
+          description: "El HPA lleva 10 minutos en el máximo de réplicas. Considerar aumentar maxReplicas o escalar el cluster."
+
+  # ── PVC ───────────────────────────────────────────────────────────────────────
+  - name: castuo.storage
+    interval: 300s
+    rules:
+      - alert: CastuoPVCAlmostFull
+        expr: |
+          (
+            kubelet_volume_stats_used_bytes{namespace="castuo-system",persistentvolumeclaim="castuo-data-pvc"}
+            / kubelet_volume_stats_capacity_bytes{namespace="castuo-system",persistentvolumeclaim="castuo-data-pvc"}
+          ) * 100 > 85
+        for: 30m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "PVC castuo-data-pvc al {{ $value | humanize }}% de capacidad"
+          description: "El volumen de datos está por encima del 85%. Ampliar el PVC o limpiar datos antiguos."
+
+      - alert: CastuoPVCCritical
+        expr: |
+          (
+            kubelet_volume_stats_used_bytes{namespace="castuo-system",persistentvolumeclaim="castuo-data-pvc"}
+            / kubelet_volume_stats_capacity_bytes{namespace="castuo-system",persistentvolumeclaim="castuo-data-pvc"}
+          ) * 100 > 95
+        for: 5m
+        labels:
+          severity: critical
+          team: castuo-ops
+        annotations:
+          summary: "PVC castuo-data-pvc CRÍTICO ({{ $value | humanize }}%)"
+          description: "El volumen está por encima del 95%. Acción inmediata requerida para evitar pérdida de datos."
+
+  # ── GaiaChain ────────────────────────────────────────────────────────────────
+  - name: castuo.blockchain
+    interval: 120s
+    rules:
+      - alert: CastuoBlockchainFallback
+        expr: |
+          increase(castuo_blockchain_fallback_total{namespace="castuo-system"}[1h]) > 10
+        for: 0m
+        labels:
+          severity: warning
+          team: castuo-ops
+        annotations:
+          summary: "Más de 10 transacciones GaiaChain en modo fallback en 1h"
+          description: "Posible problema de conectividad con el nodo GaiaChain. Verificar GAIACHAIN_RPC_URL."

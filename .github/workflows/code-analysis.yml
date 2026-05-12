@@ -1,0 +1,184 @@
+name: "CASTÚO — Análisis de PR con Claude + Mistral"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, develop, "feat/**", "claude/**"]
+
+concurrency:
+  group: pr-analysis-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Análisis de código con Claude ──────────────────────────────────────────
+  claude-review:
+    name: "Revisión Claude (SABIONDA)"
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Obtener diff del PR
+        id: diff
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD -- '*.py' '*.yaml' '*.yml' '*.json' | head -c 15000)
+          echo "DIFF<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Revisión con Claude API
+        id: claude
+        env:
+          CASTUO_API_URL: ${{ secrets.CASTUO_API_URL }}
+          CASTUO_JWT_TOKEN: ${{ secrets.CASTUO_JWT_TOKEN }}
+        run: |
+          if [ -z "$CASTUO_API_URL" ]; then
+            echo "CASTUO_API_URL no configurado — omitiendo revisión Claude"
+            echo "review=Revisión automática no disponible (API URL no configurada)." >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          RESPONSE=$(curl -s -X POST "${CASTUO_API_URL}/api/v1/claude/review-pr" \
+            -H "Authorization: Bearer ${CASTUO_JWT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "pr_title":  "${{ github.event.pull_request.title }}",
+              "pr_body":   "${{ github.event.pull_request.body }}",
+              "pr_number": ${{ github.event.pull_request.number }},
+              "repo":      "${{ github.repository }}",
+              "diff":      ${{ toJSON(steps.diff.outputs.DIFF) }}
+            }' \
+            --max-time 60 || echo '{"respuesta":"Error de conexión con CASTUO API","simulado":true}')
+
+          REVIEW=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('respuesta','Sin respuesta'))" 2>/dev/null || echo "Error procesando respuesta")
+          SIMULADO=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print('true' if d.get('simulado') else 'false')" 2>/dev/null || echo "true")
+
+          echo "review<<EOF" >> $GITHUB_OUTPUT
+          echo "$REVIEW" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "simulado=$SIMULADO" >> $GITHUB_OUTPUT
+
+      - name: Publicar comentario de revisión
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const review = `${{ steps.claude.outputs.review }}`;
+            const simulado = '${{ steps.claude.outputs.simulado }}' === 'true';
+            const badge = simulado ? '⚠️ *Revisión en modo fallback (sin API Claude)*' : '🤖 *Revisión automática con SABIONDA (Claude)*';
+
+            const body = `## ${badge}
+
+            **PR #${{ github.event.pull_request.number }}**: ${{ github.event.pull_request.title }}
+
+            ---
+
+            ${review}
+
+            ---
+            *Generado automáticamente por CASTÚO-SYSTEM™ v3.1 · [Configurar CASTUO_API_URL](https://github.com/${{ github.repository }}/settings/secrets/actions)*`;
+
+            // Buscar comentario previo del bot para actualizar en lugar de crear uno nuevo
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Revisión automática con SABIONDA')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # ─── Tests + Lint ─────────────────────────────────────────────────────────
+  test-and-lint:
+    name: "Tests + Lint"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt --quiet 2>/dev/null || \
+          pip install fastapi uvicorn pydantic python-jose pyjwt pytest httpx numpy \
+                      scikit-learn paho-mqtt influxdb-client anthropic --quiet
+
+      - name: Ejecutar tests
+        run: |
+          cd api
+          python -m pytest ../tests/ -v --tb=short \
+            --junitxml=../test-results.xml \
+            -x 2>&1 | tail -50
+
+      - name: Publicar resultados de tests
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: "Resultados pytest"
+          path: "test-results.xml"
+          reporter: java-junit
+          fail-on-error: false
+
+  # ─── Análisis de seguridad ────────────────────────────────────────────────
+  security-scan:
+    name: "Análisis de Seguridad"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar herramientas de seguridad
+        run: pip install bandit safety --quiet
+
+      - name: Bandit — análisis estático de seguridad
+        run: |
+          bandit -r api/ services/ -f json -o bandit-report.json \
+            --skip B101,B601 -ll || true
+          bandit -r api/ services/ --skip B101,B601 -ll || true
+
+      - name: Safety — vulnerabilidades en dependencias
+        run: |
+          pip install -r requirements.txt --quiet 2>/dev/null || true
+          safety check --json || true

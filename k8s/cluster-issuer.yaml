@@ -1,0 +1,35 @@
+# ── Instalar Cert-Manager ANTES de aplicar este fichero ──────────────────────
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+# kubectl wait --for=condition=ready pod -l app=cert-manager -n cert-manager --timeout=90s
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Usar letsencrypt-staging para pruebas (evita rate-limits)
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@castuo360.eu
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+---
+# Issuer de staging para pruebas (no consume cuota de producción)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@castuo360.eu
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx

@@ -1,0 +1,421 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# CASTÚO-SYSTEM™ v3.1 — Redis HA (Sentinel mode)
+# Namespace: castuo-system
+# Cache distribuida para: rate limiting, session store, queue de resultados IA
+# Arquitectura: 1 master + 2 replicas + 3 sentinels
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─── ConfigMap Redis ──────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: castuo-system
+  labels:
+    app: redis
+    component: cache
+data:
+  redis.conf: |
+    # Persistencia AOF para durabilidad
+    appendonly yes
+    appendfsync everysec
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # Persistencia RDB cada 60s si ≥1000 cambios, 300s si ≥10 cambios
+    save 60 1000
+    save 300 10
+
+    # Memoria: 512MB máximo, evict con LRU
+    maxmemory 512mb
+    maxmemory-policy allkeys-lru
+
+    # Seguridad
+    protected-mode yes
+    bind 0.0.0.0
+
+    # Replicación
+    repl-diskless-sync yes
+    repl-diskless-sync-delay 5
+
+    # Latencia / timeout
+    tcp-keepalive 300
+    timeout 0
+
+  sentinel.conf: |
+    sentinel monitor castuo-redis redis-master.castuo-system.svc.cluster.local 6379 2
+    sentinel down-after-milliseconds castuo-redis 5000
+    sentinel failover-timeout castuo-redis 60000
+    sentinel parallel-syncs castuo-redis 1
+
+---
+# ─── Secret Redis (contraseña) ────────────────────────────────────────────────
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+  namespace: castuo-system
+  labels:
+    app: redis
+type: Opaque
+stringData:
+  # Cambiar en producción. Generar con: openssl rand -hex 32
+  redis-password: "CHANGE_ME_REDIS_PASSWORD"
+
+---
+# ─── Redis Master ─────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-master
+  namespace: castuo-system
+  labels:
+    app: redis
+    role: master
+    component: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: master
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: master
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          command:
+            - redis-server
+            - /etc/redis/redis.conf
+            - --requirepass
+            - $(REDIS_PASSWORD)
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+          ports:
+            - containerPort: 6379
+              name: redis
+          volumeMounts:
+            - name: redis-config
+              mountPath: /etc/redis
+            - name: redis-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "128Mi"
+            limits:
+              cpu:    "500m"
+              memory: "768Mi"
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a $REDIS_PASSWORD ping | grep PONG
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a $REDIS_PASSWORD ping | grep PONG
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+        # Redis Exporter para Prometheus
+        - name: redis-exporter
+          image: oliver006/redis_exporter:v1.55.0-alpine
+          env:
+            - name: REDIS_ADDR
+              value: "redis://localhost:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+          ports:
+            - containerPort: 9121
+              name: metrics
+          resources:
+            requests:
+              cpu:  "25m"
+              memory: "32Mi"
+            limits:
+              cpu:  "100m"
+              memory: "64Mi"
+
+      volumes:
+        - name: redis-config
+          configMap:
+            name: redis-config
+        - name: redis-data
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-master
+  namespace: castuo-system
+  labels:
+    app: redis
+    role: master
+spec:
+  selector:
+    app: redis
+    role: master
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+    - port: 9121
+      targetPort: 9121
+      name: metrics
+  type: ClusterIP
+
+---
+# ─── Redis Replica ────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-replica
+  namespace: castuo-system
+  labels:
+    app: redis
+    role: replica
+    component: cache
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis
+      role: replica
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: replica
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          command:
+            - redis-server
+            - /etc/redis/redis.conf
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            - --replicaof
+            - redis-master.castuo-system.svc.cluster.local
+            - "6379"
+            - --masterauth
+            - $(REDIS_PASSWORD)
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redis-config
+              mountPath: /etc/redis
+            - name: redis-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "128Mi"
+            limits:
+              cpu:    "500m"
+              memory: "768Mi"
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a $REDIS_PASSWORD ping | grep PONG
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+        - name: redis-exporter
+          image: oliver006/redis_exporter:v1.55.0-alpine
+          env:
+            - name: REDIS_ADDR
+              value: "redis://localhost:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+          ports:
+            - containerPort: 9121
+              name: metrics
+          resources:
+            requests:
+              cpu:  "25m"
+              memory: "32Mi"
+            limits:
+              cpu:  "100m"
+              memory: "64Mi"
+
+      volumes:
+        - name: redis-config
+          configMap:
+            name: redis-config
+        - name: redis-data
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-replica
+  namespace: castuo-system
+  labels:
+    app: redis
+    role: replica
+spec:
+  selector:
+    app: redis
+    role: replica
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  type: ClusterIP
+
+---
+# ─── Redis Sentinel ───────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-sentinel
+  namespace: castuo-system
+  labels:
+    app: redis-sentinel
+    component: cache
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-sentinel
+  template:
+    metadata:
+      labels:
+        app: redis-sentinel
+    spec:
+      containers:
+        - name: sentinel
+          image: redis:7.2-alpine
+          command:
+            - redis-sentinel
+            - /etc/redis/sentinel.conf
+          ports:
+            - containerPort: 26379
+              name: sentinel
+          volumeMounts:
+            - name: redis-config
+              mountPath: /etc/redis
+          resources:
+            requests:
+              cpu:  "50m"
+              memory: "32Mi"
+            limits:
+              cpu:  "200m"
+              memory: "64Mi"
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -p 26379 ping | grep PONG
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+      volumes:
+        - name: redis-config
+          configMap:
+            name: redis-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel
+  namespace: castuo-system
+  labels:
+    app: redis-sentinel
+spec:
+  selector:
+    app: redis-sentinel
+  ports:
+    - port: 26379
+      targetPort: 26379
+      name: sentinel
+  type: ClusterIP
+
+---
+# ─── Redis Service (alias para clientes) ─────────────────────────────────────
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: castuo-system
+  labels:
+    app: redis
+    component: cache
+spec:
+  selector:
+    app: redis
+    role: master
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  type: ClusterIP
+
+---
+# ─── PodDisruptionBudget ──────────────────────────────────────────────────────
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-sentinel-pdb
+  namespace: castuo-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: redis-sentinel

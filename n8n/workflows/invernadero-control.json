@@ -1,0 +1,360 @@
+{
+  "_meta": {
+    "description": "CASTÚO-SYSTEM™ v3.1 — Flujos de automatización del invernadero agrovoltaico hidropónico",
+    "version": "1.0.0",
+    "workflows": ["temperatura-control", "ph-ec-control", "energia-solar"],
+    "requires": ["n8n-nodes-base.mqtt", "n8n-nodes-base.httpRequest", "n8n-nodes-base.function"]
+  },
+  "workflows": [
+    {
+      "id": "invernadero-temperatura-001",
+      "name": "Invernadero — Control Automático de Temperatura",
+      "active": true,
+      "nodes": [
+        {
+          "id": "n1",
+          "name": "MQTT Temperatura",
+          "type": "n8n-nodes-base.mqtt",
+          "position": [250, 300],
+          "parameters": {
+            "topic": "castuo/invernadero/sensores/+/temperatura",
+            "operation": "subscribe",
+            "options": {
+              "qos": 1
+            }
+          }
+        },
+        {
+          "id": "n2",
+          "name": "Parsear Lectura",
+          "type": "n8n-nodes-base.function",
+          "position": [450, 300],
+          "parameters": {
+            "jsCode": "const data = typeof $input.all()[0].json === 'string' ? JSON.parse($input.all()[0].json) : $input.all()[0].json; const topic = $input.all()[0].json.topic || ''; const zona = topic.split('/')[3] || 'general'; return [{ json: { temperatura: parseFloat(data.temperatura || data.value || 0), humedad: parseFloat(data.humedad || 0), zona, lote_id: data.lote_id || 'unknown', timestamp: data.timestamp || new Date().toISOString() } }];"
+          }
+        },
+        {
+          "id": "n3",
+          "name": "Evaluar Temperatura",
+          "type": "n8n-nodes-base.function",
+          "position": [650, 300],
+          "parameters": {
+            "jsCode": "const input = $input.all()[0].json; const temp = input.temperatura; const TEMP_MIN = 18; const TEMP_MAX = 28; const ALERTA_ALTA = 32; if (temp > ALERTA_ALTA) { return [{ json: { ...input, accion: 'emergencia_ventilacion', nivel_pct: 100, alerta: true, severidad: 'CRITICA', motivo: `Temperatura ${temp}°C CRÍTICA > ${ALERTA_ALTA}°C — ventilación máxima` } }]; } else if (temp > TEMP_MAX) { const nivel = Math.min(100, Math.round((temp - TEMP_MAX) * 15 + 30)); return [{ json: { ...input, accion: 'ajustar_ventilacion', nivel_pct: nivel, alerta: temp > 30, severidad: 'ALTA', motivo: `Temperatura ${temp}°C > ${TEMP_MAX}°C — ventilación al ${nivel}%` } }]; } else if (temp < TEMP_MIN) { return [{ json: { ...input, accion: 'encender_calefaccion', alerta: temp < 15, severidad: temp < 15 ? 'ALTA' : 'MEDIA', motivo: `Temperatura ${temp}°C < ${TEMP_MIN}°C — activar calefacción` } }]; } else { return [{ json: { ...input, accion: 'mantener', alerta: false, motivo: `Temperatura ${temp}°C dentro de rango [${TEMP_MIN}-${TEMP_MAX}]°C` } }]; }"
+          }
+        },
+        {
+          "id": "n4",
+          "name": "¿Acción Requerida?",
+          "type": "n8n-nodes-base.if",
+          "position": [850, 300],
+          "parameters": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json.accion}}",
+                  "operation": "notEqual",
+                  "value2": "mantener"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "n5",
+          "name": "API Controlar Actuador",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [1050, 200],
+          "parameters": {
+            "url": "http://castuo-api-service.castuo-system.svc.cluster.local:8000/api/v1/actuadores/automatico",
+            "method": "POST",
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpHeaderAuth",
+            "sendBody": true,
+            "contentType": "json",
+            "body": "={{ { zona: $json.zona, temperatura_c: $json.temperatura, temp_min: 18, temp_max: 28 } }}",
+            "options": {
+              "timeout": 5000
+            }
+          }
+        },
+        {
+          "id": "n6",
+          "name": "Enviar Alerta Crítica",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [1050, 100],
+          "parameters": {
+            "url": "https://api.castuo-system.eu/api/v1/alerts",
+            "method": "POST",
+            "sendBody": true,
+            "contentType": "json",
+            "body": "={{ { tipo: 'temperatura', severidad: $json.severidad, zona: $json.zona, valor: $json.temperatura, motivo: $json.motivo, lote_id: $json.lote_id, timestamp: $json.timestamp } }}"
+          }
+        },
+        {
+          "id": "n7",
+          "name": "MQTT Publicar Comando",
+          "type": "n8n-nodes-base.mqtt",
+          "position": [1250, 200],
+          "parameters": {
+            "topic": "={{`castuo/invernadero/actuadores/${$json.zona}/ventilacion`}}",
+            "message": "={{ JSON.stringify({ accion: $json.accion, nivel_pct: $json.nivel_pct || 0, timestamp: new Date().toISOString(), triggered_by: 'n8n-temperatura' }) }}",
+            "operation": "publish",
+            "options": { "qos": 1, "retain": false }
+          }
+        },
+        {
+          "id": "n8",
+          "name": "Registrar en InfluxDB",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [1250, 350],
+          "parameters": {
+            "url": "http://influxdb.castuo-system.svc.cluster.local:8086/api/v2/write?org=castuo&bucket=invernadero_actuadores&precision=s",
+            "method": "POST",
+            "sendBody": true,
+            "contentType": "rawBody",
+            "body": "={{`actuador_evento,actuador=ventilacion,zona=${$json.zona},triggered_by=n8n accion=1,temperatura=${$json.temperatura} ${Math.floor(Date.now()/1000)}`}}"
+          }
+        }
+      ],
+      "connections": {
+        "MQTT Temperatura": { "main": [[{ "node": "Parsear Lectura", "type": "main", "index": 0 }]] },
+        "Parsear Lectura":  { "main": [[{ "node": "Evaluar Temperatura", "type": "main", "index": 0 }]] },
+        "Evaluar Temperatura": { "main": [[{ "node": "¿Acción Requerida?", "type": "main", "index": 0 }]] },
+        "¿Acción Requerida?": {
+          "main": [
+            [
+              { "node": "API Controlar Actuador", "type": "main", "index": 0 },
+              { "node": "MQTT Publicar Comando", "type": "main", "index": 0 },
+              { "node": "Registrar en InfluxDB", "type": "main", "index": 0 }
+            ]
+          ]
+        },
+        "API Controlar Actuador": {
+          "main": [[{ "node": "Enviar Alerta Crítica", "type": "main", "index": 0 }]]
+        }
+      }
+    },
+
+    {
+      "id": "invernadero-ph-ec-002",
+      "name": "Invernadero — Control pH y EC (Solución Nutritiva)",
+      "active": true,
+      "nodes": [
+        {
+          "id": "ph1",
+          "name": "MQTT pH/EC",
+          "type": "n8n-nodes-base.mqtt",
+          "position": [250, 300],
+          "parameters": {
+            "topic": "castuo/invernadero/sensores/+/hidroponia",
+            "operation": "subscribe",
+            "options": { "qos": 1 }
+          }
+        },
+        {
+          "id": "ph2",
+          "name": "Parsear pH y EC",
+          "type": "n8n-nodes-base.function",
+          "position": [450, 300],
+          "parameters": {
+            "jsCode": "const data = typeof $input.all()[0].json === 'string' ? JSON.parse($input.all()[0].json) : $input.all()[0].json; const topic = $input.all()[0].json.topic || ''; const zona = topic.split('/')[3] || 'general'; return [{ json: { ph: parseFloat(data.ph || 6.0), ec: parseFloat(data.ec || data.ec_ms_cm || 2.0), o2: parseFloat(data.o2_disuelto || data.o2 || 8.0), zona, cultivo: data.cultivo || 'tomate', lote_id: data.lote_id || 'unknown', timestamp: data.timestamp || new Date().toISOString() } }];"
+          }
+        },
+        {
+          "id": "ph3",
+          "name": "Evaluar pH",
+          "type": "n8n-nodes-base.function",
+          "position": [650, 200],
+          "parameters": {
+            "jsCode": "const { ph, zona, cultivo, lote_id, timestamp } = $input.all()[0].json; const PH_MIN = { tomate: 5.8, lechuga: 5.5, pimiento: 5.8, pepino: 5.5, fresa: 5.5, albahaca: 5.5, espinaca: 6.0, cilantro: 6.0 }[cultivo] || 5.5; const PH_MAX = { tomate: 6.3, lechuga: 6.2, pimiento: 6.3, pepino: 6.0, fresa: 6.0, albahaca: 6.5, espinaca: 7.0, cilantro: 6.7 }[cultivo] || 6.5; let accion = 'mantener'; let actuador = null; let ml = 0; if (ph > PH_MAX) { accion = 'pulso_acido'; actuador = 'acido'; ml = Math.min(50, Math.round((ph - PH_MAX) * 20)); } else if (ph < PH_MIN) { accion = 'pulso_base'; actuador = 'base'; ml = Math.min(50, Math.round((PH_MIN - ph) * 20)); } return [{ json: { ph, ph_min: PH_MIN, ph_max: PH_MAX, zona, cultivo, lote_id, timestamp, accion, actuador, ml_dosis: ml, alerta: accion !== 'mantener', motivo: accion === 'mantener' ? `pH ${ph} en rango [${PH_MIN}-${PH_MAX}]` : `pH ${ph} ${ph > PH_MAX ? '> máximo ' + PH_MAX : '< mínimo ' + PH_MIN} — dosificar ${ml} ml` } }];"
+          }
+        },
+        {
+          "id": "ph4",
+          "name": "Evaluar EC",
+          "type": "n8n-nodes-base.function",
+          "position": [650, 400],
+          "parameters": {
+            "jsCode": "const { ec, zona, cultivo, lote_id, timestamp } = $input.all()[0].json; const EC_RANGES = { tomate: [2.0, 4.0], lechuga: [0.8, 1.6], pimiento: [2.0, 3.5], pepino: [1.7, 2.5], fresa: [1.0, 2.0], albahaca: [0.7, 1.4], espinaca: [1.8, 2.3], cilantro: [1.0, 1.8] }; const [ec_min, ec_max] = EC_RANGES[cultivo] || [1.5, 3.0]; let accion = 'mantener'; let actuador = null; let ml = 0; if (ec < ec_min) { accion = 'pulso_nutrientes'; actuador = 'nutrientes_a'; ml = Math.min(100, Math.round((ec_min - ec) * 50)); } else if (ec > ec_max) { accion = 'diluir'; actuador = 'riego'; } return [{ json: { ec, ec_min, ec_max, zona, cultivo, lote_id, timestamp, accion, actuador, ml_dosis: ml, alerta: accion !== 'mantener', motivo: accion === 'mantener' ? `EC ${ec} mS/cm en rango [${ec_min}-${ec_max}]` : `EC ${ec} ${ec < ec_min ? '< mínimo ' + ec_min + ' — añadir ' + ml + ' ml nutrientes' : '> máximo ' + ec_max + ' — diluir solución'}` } }];"
+          }
+        },
+        {
+          "id": "ph5",
+          "name": "Ejecutar pH",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [900, 200],
+          "parameters": {
+            "url": "http://castuo-api-service.castuo-system.svc.cluster.local:8000/api/v1/actuadores/automatico",
+            "method": "POST",
+            "sendBody": true,
+            "contentType": "json",
+            "body": "={{ { zona: $json.zona, ph: $json.ph, ph_min: $json.ph_min, ph_max: $json.ph_max, cultivo: $json.cultivo } }}"
+          }
+        },
+        {
+          "id": "ph6",
+          "name": "Ejecutar EC",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [900, 400],
+          "parameters": {
+            "url": "http://castuo-api-service.castuo-system.svc.cluster.local:8000/api/v1/actuadores/automatico",
+            "method": "POST",
+            "sendBody": true,
+            "contentType": "json",
+            "body": "={{ { zona: $json.zona, ec_ms_cm: $json.ec, ec_min: $json.ec_min, ec_max: $json.ec_max, cultivo: $json.cultivo } }}"
+          }
+        },
+        {
+          "id": "ph7",
+          "name": "Alerta Nutrición",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [1100, 300],
+          "parameters": {
+            "url": "https://api.castuo-system.eu/api/v1/alerts",
+            "method": "POST",
+            "sendBody": true,
+            "contentType": "json",
+            "body": "={{ { tipo: 'nutricion', zona: $json.zona, lote_id: $json.lote_id, motivo: $json.motivo, timestamp: $json.timestamp } }}"
+          }
+        }
+      ],
+      "connections": {
+        "MQTT pH/EC":   { "main": [[{ "node": "Parsear pH y EC", "type": "main", "index": 0 }]] },
+        "Parsear pH y EC": {
+          "main": [
+            [{ "node": "Evaluar pH", "type": "main", "index": 0 }],
+            [{ "node": "Evaluar EC", "type": "main", "index": 0 }]
+          ]
+        },
+        "Evaluar pH": { "main": [[{ "node": "Ejecutar pH", "type": "main", "index": 0 }]] },
+        "Evaluar EC": { "main": [[{ "node": "Ejecutar EC", "type": "main", "index": 0 }]] },
+        "Ejecutar pH": { "main": [[{ "node": "Alerta Nutrición", "type": "main", "index": 0 }]] },
+        "Ejecutar EC": { "main": [[{ "node": "Alerta Nutrición", "type": "main", "index": 0 }]] }
+      }
+    },
+
+    {
+      "id": "invernadero-energia-003",
+      "name": "Invernadero — Optimización Energía Solar y Sombra",
+      "active": true,
+      "nodes": [
+        {
+          "id": "e1",
+          "name": "MQTT Energía Solar",
+          "type": "n8n-nodes-base.mqtt",
+          "position": [250, 300],
+          "parameters": {
+            "topic": "castuo/invernadero/energia/solar",
+            "operation": "subscribe",
+            "options": { "qos": 1 }
+          }
+        },
+        {
+          "id": "e2",
+          "name": "Parsear Datos Solares",
+          "type": "n8n-nodes-base.function",
+          "position": [450, 300],
+          "parameters": {
+            "jsCode": "const data = typeof $input.all()[0].json === 'string' ? JSON.parse($input.all()[0].json) : $input.all()[0].json; return [{ json: { potencia_w: parseFloat(data.potencia_w || data.potencia || 0), voltaje_v: parseFloat(data.voltaje_v || data.voltaje || 380), corriente_a: parseFloat(data.corriente_a || data.corriente || 0), kwh_hoy: parseFloat(data.kwh_hoy || 0), temperatura_panel_c: parseFloat(data.temperatura_panel_c || 25), luz_par_umol: parseFloat(data.luz_par_umol || data.irradiancia_par || 400), cobertura_sombra_pct: parseFloat(data.cobertura_sombra_pct || 20), cultivo: data.cultivo || 'tomate', zona: data.zona || 'general', timestamp: data.timestamp || new Date().toISOString() } }];"
+          }
+        },
+        {
+          "id": "e3",
+          "name": "Calcular Ajuste Sombra",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [650, 200],
+          "parameters": {
+            "url": "={{`http://castuo-api-service.castuo-system.svc.cluster.local:8000/api/v1/actuadores/sombra/ajuste?luz_par_umol=${$json.luz_par_umol}&cultivo=${$json.cultivo}&cobertura_actual_pct=${$json.cobertura_sombra_pct}`}}",
+            "method": "GET"
+          }
+        },
+        {
+          "id": "e4",
+          "name": "¿Ajuste Necesario?",
+          "type": "n8n-nodes-base.if",
+          "position": [850, 200],
+          "parameters": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json.accion}}",
+                  "operation": "notEqual",
+                  "value2": "mantener"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "e5",
+          "name": "Ajustar Pantalla Sombra",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [1050, 150],
+          "parameters": {
+            "url": "http://castuo-api-service.castuo-system.svc.cluster.local:8000/api/v1/actuadores/control",
+            "method": "POST",
+            "sendBody": true,
+            "contentType": "json",
+            "body": "={{ { actuador: 'sombra', accion: 'ajustar', zona: 'general', valor: $json.nueva_cobertura_pct, triggered_by: 'n8n-energia' } }}"
+          }
+        },
+        {
+          "id": "e6",
+          "name": "Alerta Panel Sobrecalentado",
+          "type": "n8n-nodes-base.if",
+          "position": [650, 400],
+          "parameters": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json.temperatura_panel_c}}",
+                  "operation": "larger",
+                  "value2": 75
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "e7",
+          "name": "Notificar Panel Caliente",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [850, 450],
+          "parameters": {
+            "url": "https://api.castuo-system.eu/api/v1/alerts",
+            "method": "POST",
+            "sendBody": true,
+            "contentType": "json",
+            "body": "={{ { tipo: 'energia_solar', severidad: 'ALTA', motivo: `Panel a ${$json.temperatura_panel_c}°C > 75°C — posible degradación`, valor: $json.temperatura_panel_c, timestamp: $json.timestamp } }}"
+          }
+        },
+        {
+          "id": "e8",
+          "name": "Registrar Producción InfluxDB",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [1050, 350],
+          "parameters": {
+            "url": "http://influxdb.castuo-system.svc.cluster.local:8086/api/v2/write?org=castuo&bucket=invernadero_energia&precision=s",
+            "method": "POST",
+            "sendBody": true,
+            "contentType": "rawBody",
+            "body": "={{`agrovoltaico,zona=${$json.zona},cultivo=${$json.cultivo} potencia_w=${$json.potencia_w},kwh_hoy=${$json.kwh_hoy},temperatura_panel_c=${$json.temperatura_panel_c},luz_par_umol=${$json.luz_par_umol} ${Math.floor(Date.now()/1000)}`}}"
+          }
+        }
+      ],
+      "connections": {
+        "MQTT Energía Solar":    { "main": [[{ "node": "Parsear Datos Solares", "type": "main", "index": 0 }]] },
+        "Parsear Datos Solares": {
+          "main": [
+            [{ "node": "Calcular Ajuste Sombra", "type": "main", "index": 0 }],
+            [{ "node": "Alerta Panel Sobrecalentado", "type": "main", "index": 0 }],
+            [{ "node": "Registrar Producción InfluxDB", "type": "main", "index": 0 }]
+          ]
+        },
+        "Calcular Ajuste Sombra":      { "main": [[{ "node": "¿Ajuste Necesario?", "type": "main", "index": 0 }]] },
+        "¿Ajuste Necesario?":          { "main": [[{ "node": "Ajustar Pantalla Sombra", "type": "main", "index": 0 }]] },
+        "Alerta Panel Sobrecalentado": { "main": [[{ "node": "Notificar Panel Caliente", "type": "main", "index": 0 }]] }
+      }
+    }
+  ]
+}

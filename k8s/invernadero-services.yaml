@@ -1,0 +1,403 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# CASTÚO-SYSTEM™ v3.1 — Servicios de Invernadero Agrovoltaico Hidropónico
+# Namespace: castuo-system
+#
+# Recursos:
+#   1. InfluxDB 2.x  — series temporales de sensores e histórico energético
+#   2. Mosquitto     — broker MQTT para sensores y actuadores IoT
+#   3. Node-RED      — flujos de control y orquestación IoT
+#   4. GDPR CronJob  — eliminación de datos con más de 90 días (retención legal)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─── 1. InfluxDB ──────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: influxdb-pvc
+  namespace: castuo-system
+  labels:
+    app: influxdb
+    component: storage
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: influxdb-config
+  namespace: castuo-system
+data:
+  DOCKER_INFLUXDB_INIT_MODE:    "setup"
+  DOCKER_INFLUXDB_INIT_ORG:     "castuo"
+  DOCKER_INFLUXDB_INIT_BUCKET:  "invernadero_sensores"
+  DOCKER_INFLUXDB_INIT_RETENTION: "90d"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+  namespace: castuo-system
+  labels:
+    app: influxdb
+    version: "2.7"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      containers:
+        - name: influxdb
+          image: influxdb:2.7
+          ports:
+            - containerPort: 8086
+          envFrom:
+            - configMapRef:
+                name: influxdb-config
+          env:
+            - name: DOCKER_INFLUXDB_INIT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: INFLUXDB_USERNAME
+                  optional: true
+            - name: DOCKER_INFLUXDB_INIT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: INFLUXDB_PASSWORD
+                  optional: true
+            - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: INFLUXDB_TOKEN
+                  optional: true
+          volumeMounts:
+            - name: influxdb-data
+              mountPath: /var/lib/influxdb2
+          resources:
+            requests:
+              cpu:    "200m"
+              memory: "512Mi"
+            limits:
+              cpu:    "1000m"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8086
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8086
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: influxdb-data
+          persistentVolumeClaim:
+            claimName: influxdb-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+  namespace: castuo-system
+  labels:
+    app: influxdb
+spec:
+  selector:
+    app: influxdb
+  ports:
+    - port: 8086
+      targetPort: 8086
+      name: http
+  type: ClusterIP
+
+---
+# ─── 2. Mosquitto MQTT Broker ─────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-config
+  namespace: castuo-system
+data:
+  mosquitto.conf: |
+    # CASTÚO-SYSTEM™ — Mosquitto MQTT Broker
+    listener 1883
+    allow_anonymous false
+    password_file /mosquitto/config/passwd
+    persistence true
+    persistence_location /mosquitto/data/
+    log_dest stdout
+    log_type all
+    # QoS 1 max in-flight
+    max_inflight_messages 20
+    # Retención de mensajes: 24h para telemetría
+    message_size_limit 65536
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mosquitto-pvc
+  namespace: castuo-system
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+  namespace: castuo-system
+  labels:
+    app: mosquitto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosquitto
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port:   "9234"
+    spec:
+      containers:
+        - name: mosquitto
+          image: eclipse-mosquitto:2.0
+          ports:
+            - containerPort: 1883
+              name: mqtt
+            - containerPort: 9001
+              name: ws
+          volumeMounts:
+            - name: config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+            - name: data
+              mountPath: /mosquitto/data
+          resources:
+            requests:
+              cpu:    "50m"
+              memory: "64Mi"
+            limits:
+              cpu:    "200m"
+              memory: "256Mi"
+        # Exporter Prometheus para Mosquitto
+        - name: mosquitto-exporter
+          image: sapcc/mosquitto-exporter:0.8.0
+          ports:
+            - containerPort: 9234
+          env:
+            - name: BROKER_ENDPOINT
+              value: "tcp://localhost:1883"
+          resources:
+            requests:
+              cpu:  "10m"
+              memory: "32Mi"
+            limits:
+              cpu:  "100m"
+              memory: "64Mi"
+      volumes:
+        - name: config
+          configMap:
+            name: mosquitto-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: mosquitto-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto
+  namespace: castuo-system
+  labels:
+    app: mosquitto
+spec:
+  selector:
+    app: mosquitto
+  ports:
+    - port: 1883
+      targetPort: 1883
+      name: mqtt
+    - port: 9001
+      targetPort: 9001
+      name: websocket
+  type: ClusterIP
+
+---
+# ─── 3. Node-RED ──────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nodered-pvc
+  namespace: castuo-system
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodered
+  namespace: castuo-system
+  labels:
+    app: nodered
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodered
+  template:
+    metadata:
+      labels:
+        app: nodered
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: nodered
+          image: nodered/node-red:3.1
+          ports:
+            - containerPort: 1880
+          env:
+            - name: NODE_RED_ENABLE_SAFE_MODE
+              value: "false"
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=256"
+          volumeMounts:
+            - name: nodered-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "256Mi"
+            limits:
+              cpu:    "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 1880
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      volumes:
+        - name: nodered-data
+          persistentVolumeClaim:
+            claimName: nodered-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodered
+  namespace: castuo-system
+  labels:
+    app: nodered
+spec:
+  selector:
+    app: nodered
+  ports:
+    - port: 1880
+      targetPort: 1880
+  type: ClusterIP
+
+---
+# ─── 4. GDPR CronJob — retención de datos (90 días) ──────────────────────────
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gdpr-data-retention
+  namespace: castuo-system
+  labels:
+    component: compliance
+    gdpr: "true"
+spec:
+  schedule: "0 2 * * *"    # Diariamente a las 02:00 UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            job: gdpr-data-retention
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cleanup
+              image: influxdb:2.7
+              env:
+                - name: INFLUXDB_URL
+                  value: "http://influxdb.castuo-system.svc.cluster.local:8086"
+                - name: INFLUXDB_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: castuo-secrets
+                      key: INFLUXDB_TOKEN
+                      optional: true
+                - name: INFLUXDB_ORG
+                  value: "castuo"
+                - name: RETENTION_DAYS
+                  value: "90"
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  echo "[gdpr-retention] Iniciando limpieza de datos > ${RETENTION_DAYS} días"
+                  STOP_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                  START_DATE="1970-01-01T00:00:00Z"
+                  for BUCKET in invernadero_sensores invernadero_energia invernadero_actuadores; do
+                    echo "[gdpr-retention] Procesando bucket: ${BUCKET}"
+                    influx delete \
+                      --host "${INFLUXDB_URL}" \
+                      --token "${INFLUXDB_TOKEN}" \
+                      --org  "${INFLUXDB_ORG}" \
+                      --bucket "${BUCKET}" \
+                      --start "${START_DATE}" \
+                      --stop "$(date -u -d "${RETENTION_DAYS} days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-${RETENTION_DAYS}d +%Y-%m-%dT%H:%M:%SZ)" \
+                      --predicate '_measurement != ""' 2>/dev/null || \
+                      echo "[gdpr-retention] Bucket ${BUCKET} vacío o error — continuando"
+                  done
+                  echo "[gdpr-retention] Completado — $(date -u)"
+              resources:
+                requests:
+                  cpu:    "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu:    "200m"
+                  memory: "128Mi"

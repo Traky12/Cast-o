@@ -1,0 +1,502 @@
+## CASTÚO-SYSTEM™ v3.0 — Arquitectura Completa Soberana UE
+## Servicios: SABIONDA · n8n · PostgreSQL · GaiaChain · IPFS · LoRaWAN · QR · Monitoring
+## Soberanía: 100% infraestructura europea (Hetzner + Arsys)
+## Cumplimiento: RGPD | AI Act UE | eIDAS
+
+
+# ─────────────────────────────────────────────────────────────
+# Redes
+# ─────────────────────────────────────────────────────────────
+networks:
+  castuo-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.1.0/24
+  castuo-blockchain:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.2.0/24
+  castuo-monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.3.0/24
+  castuo-iot:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.4.0/24
+
+# ─────────────────────────────────────────────────────────────
+# Volúmenes persistentes
+# ─────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  n8n_data:
+  ipfs_data:
+  ipfs_staging:
+  prometheus_data:
+  grafana_data:
+  elasticsearch_data:
+  gaiachain_data:
+  qr_cache:
+
+# ─────────────────────────────────────────────────────────────
+# Servicios
+# ─────────────────────────────────────────────────────────────
+services:
+
+  # ── SABIONDA Core Agent ──────────────────────────────────────
+  openclaw-agente:
+    image: openclaw/openclaw:latest
+    container_name: sabionda-agent
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./agents/sabionda:/app/agents/sabionda:ro
+      - ./config:/app/config:ro
+      - ./services:/app/services:ro
+    environment:
+      - AGENT_NAME=SABIONDA
+      - AGENT_VERSION=3.0
+      - RAG_ENABLED=true
+      - RAG_MODEL=openclaw-rag-2.0
+      - DATABASE_URL=postgresql://castuo:${POSTGRES_PASSWORD}@postgres:5432/castuo_db
+      - FASTAPI_URL=http://fastapi:8000
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - GAIACHAIN_API_KEY=${GAIACHAIN_API_KEY}
+      - SIEX_API_URL=${SIEX_API_URL:-https://siex.mapa.gob.es/api}
+      - TRACES_API_URL=${TRACES_API_URL:-https://webgate.ec.europa.eu/tracesnt/api}
+      - SIGPAC_API_URL=${SIGPAC_API_URL:-https://sigpac.mapa.gob.es/api}
+      - REGEPA_API_URL=${REGEPA_API_URL:-https://regepa.mapa.gob.es/api}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fastapi:
+        condition: service_started
+    networks:
+      - castuo-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.5"
+
+  # ── FastAPI — SABIONDA Backend ───────────────────────────────
+  fastapi:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: sabionda-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config/schemas:/app/schemas:ro
+    environment:
+      - DATABASE_URL=postgresql://castuo:${POSTGRES_PASSWORD}@postgres:5432/castuo_db
+      - SIEX_API_URL=${SIEX_API_URL:-https://siex.mapa.gob.es/api}
+      - TRACES_API_URL=${TRACES_API_URL:-https://webgate.ec.europa.eu/tracesnt/api}
+      - SIGPAC_API_URL=${SIGPAC_API_URL:-https://sigpac.mapa.gob.es/api}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - GAIACHAIN_API_KEY=${GAIACHAIN_API_KEY}
+      - IPFS_API_KEY=${IPFS_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+
+  # ── n8n — Orquestación de Workflows ─────────────────────────
+  n8n-main:
+    image: n8nio/n8n:latest
+    container_name: sabionda-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows:ro
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - N8N_API_KEY=${N8N_API_KEY}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=castuo_db
+      - DB_POSTGRESDB_USER=castuo
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=30
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+
+  # ── PostgreSQL 16 — Arsys (Soberanía UE) ────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: sabionda-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=castuo_db
+      - POSTGRES_USER=castuo
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=es_ES.UTF-8
+    command: >
+      postgres
+        -c log_min_duration_statement=1000
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c work_mem=4MB
+        -c max_connections=100
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U castuo -d castuo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - castuo-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+
+  # ── PostgreSQL Exporter (Prometheus) ─────────────────────────
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: castuo-postgres-exporter
+    restart: unless-stopped
+    environment:
+      - DATA_SOURCE_NAME=postgresql://castuo:${POSTGRES_PASSWORD}@postgres:5432/castuo_db?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network
+      - castuo-monitoring
+
+  # ── GaiaChain 3.0 Node — Blockchain Soberana UE ─────────────
+  gaiachain-node:
+    image: gaiachain/node:3.0
+    container_name: gaiachain-node
+    restart: unless-stopped
+    ports:
+      - "8545:8545"   # RPC
+      - "30303:30303" # P2P
+    volumes:
+      - gaiachain_data:/data/gaiachain
+    environment:
+      - GAIACHAIN_NETWORK_ID=31337
+      - GAIACHAIN_CONSENSUS=poa
+      - GAIACHAIN_API_KEY=${GAIACHAIN_API_KEY}
+      - GAIACHAIN_CONTRACT_TRAZABILIDAD=${GAIACHAIN_CONTRACT_TRAZABILIDAD:-0x7aCeE349bD40ED460d8575A3F245790E81Ce3AdB}
+      - GAIACHAIN_CONTRACT_GEOTRACE=${GAIACHAIN_CONTRACT_GEOTRACE:-0xAcF357a9a8e8578b5AcC959D3c56c62F9639b09A}
+      - GAIACHAIN_CONTRACT_CERTIFICADOS=${GAIACHAIN_CONTRACT_CERTIFICADOS:-0x5f8a58f6E3e9C965C53681e15922E69E20583491}
+      - DATA_DIR=/data/gaiachain
+    networks:
+      - castuo-blockchain
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+
+  # ── IPFS Node ────────────────────────────────────────────────
+  ipfs-node:
+    image: ipfs/kubo:latest
+    container_name: castuo-ipfs-node
+    restart: unless-stopped
+    ports:
+      - "4001:4001"   # Swarm
+      - "5001:5001"   # API
+      - "8081:8080"   # Gateway
+    volumes:
+      - ipfs_data:/data/ipfs
+      - ipfs_staging:/export
+    environment:
+      - IPFS_PATH=/data/ipfs
+    networks:
+      - castuo-blockchain
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+
+  # ── IPFS Cluster ─────────────────────────────────────────────
+  ipfs-cluster:
+    image: ipfs/ipfs-cluster:latest
+    container_name: castuo-ipfs-cluster
+    restart: unless-stopped
+    ports:
+      - "9094:9094"  # REST API
+      - "9096:9096"  # Cluster
+    environment:
+      - CLUSTER_PEERNAME=castuo-cluster-eu
+      - CLUSTER_SECRET=${IPFS_CLUSTER_SECRET}
+      - CLUSTER_REPLICATION_FACTOR_MIN=3
+      - CLUSTER_REPLICATION_FACTOR_MAX=5
+      - CLUSTER_IPFS_HTTP_API_ADDR=/dns4/ipfs-node/tcp/5001
+    depends_on:
+      - ipfs-node
+    networks:
+      - castuo-blockchain
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ── QR Generator — Trazabilidad ECC-256 ─────────────────────
+  qr-generator:
+    image: castuo/qr-generator:3.0
+    container_name: castuo-qr-generator
+    restart: unless-stopped
+    ports:
+      - "8100:8000"
+    volumes:
+      - qr_cache:/app/cache
+    environment:
+      - QR_API_KEY=${QR_API_KEY}
+      - QR_ENCRYPTION=ECC-256
+      - QR_DEFAULT_FORMAT=svg
+      - QR_ERROR_CORRECTION=H
+      - IPFS_ENDPOINT=http://ipfs-node:5001
+      - GAIACHAIN_ENDPOINT=http://gaiachain-node:8545
+    networks:
+      - castuo-network
+      - castuo-blockchain
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  # ── LoRaWAN Gateway — Sensores IoT Campo ────────────────────
+  lorawan-gateway:
+    image: thethingsnetwork/lorawan-stack:latest
+    container_name: sabionda-lorawan
+    restart: unless-stopped
+    ports:
+      - "1700:1700/udp"
+      - "8887:8887"
+    environment:
+      - TTN_LW_IS_DATABASE_URI=postgresql://castuo:${POSTGRES_PASSWORD}@postgres:5432/castuo_ttn
+      - LORAWAN_API_KEY=${LORAWAN_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network
+      - castuo-iot
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ── Cursor AI Bridge ─────────────────────────────────────────
+  cursor-service:
+    image: castuo/cursor-bridge:1.0
+    container_name: castuo-cursor
+    restart: unless-stopped
+    ports:
+      - "7000:7000"
+    environment:
+      - CURSOR_API_KEY=${CURSOR_API_KEY}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+    networks:
+      - castuo-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  # ═══════════════════════════════════════════════════════════
+  # MONITORING — Prometheus + Grafana + ELK
+  # ═══════════════════════════════════════════════════════════
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: castuo-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    networks:
+      - castuo-monitoring
+      - castuo-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: castuo-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - castuo-monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: castuo-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    environment:
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL}
+    networks:
+      - castuo-monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: castuo-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    networks:
+      - castuo-monitoring
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: castuo-cadvisor
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - castuo-monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    container_name: castuo-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=castuo-elk
+    networks:
+      - castuo-monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  logstash:
+    image: logstash:8.12.0
+    container_name: castuo-logstash
+    restart: unless-stopped
+    ports:
+      - "5000:5000/tcp"
+      - "5044:5044"
+    volumes:
+      - ./monitoring/elk/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    depends_on:
+      - elasticsearch
+    networks:
+      - castuo-monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  kibana:
+    image: kibana:8.12.0
+    container_name: castuo-kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - SERVER_NAME=castuo-kibana
+      - TELEMETRY_ENABLED=false
+    depends_on:
+      - elasticsearch
+    networks:
+      - castuo-monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 1G

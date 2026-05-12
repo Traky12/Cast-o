@@ -1,0 +1,295 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# CASTÚO-SYSTEM™ v3.1 — Alertas Prometheus: Invernadero Agrovoltaico Hidropónico
+# 10 grupos de alertas: sensores, energía, actuadores, MQTT, IA, GDPR
+# ─────────────────────────────────────────────────────────────────────────────
+
+groups:
+
+  # ── 1. Clima Invernadero ────────────────────────────────────────────────────
+
+  - name: castuo_clima_invernadero
+    interval: 30s
+    rules:
+
+      - alert: InvernaderoTemperaturaAlta
+        expr: castuo_sensor_temperatura_c{job="castuo-iot"} > 30
+        for: 5m
+        labels:
+          severity: warning
+          categoria: clima
+          sistema: invernadero
+        annotations:
+          summary: "Temperatura alta en {{ $labels.zona }}"
+          description: "Temperatura {{ $value | printf \"%.1f\" }}°C > 30°C en {{ $labels.zona }} (cultivo: {{ $labels.cultivo }}). Verificar ventilación."
+          runbook: "https://docs.castuo360.eu/runbooks/temperatura-alta"
+
+      - alert: InvernaderoTemperaturaCritica
+        expr: castuo_sensor_temperatura_c{job="castuo-iot"} > 35
+        for: 2m
+        labels:
+          severity: critical
+          categoria: clima
+          sistema: invernadero
+        annotations:
+          summary: "TEMPERATURA CRÍTICA en {{ $labels.zona }}"
+          description: "Temperatura {{ $value | printf \"%.1f\" }}°C > 35°C — riesgo de golpe de calor en {{ $labels.zona }}. Acción inmediata requerida."
+
+      - alert: InvernaderoTemperaturaBaja
+        expr: castuo_sensor_temperatura_c{job="castuo-iot"} < 15
+        for: 5m
+        labels:
+          severity: warning
+          categoria: clima
+          sistema: invernadero
+        annotations:
+          summary: "Temperatura baja en {{ $labels.zona }}"
+          description: "Temperatura {{ $value | printf \"%.1f\" }}°C < 15°C en {{ $labels.zona }}. Verificar calefacción."
+
+      - alert: InvernaderoHumedadExcesiva
+        expr: castuo_sensor_humedad_pct{job="castuo-iot"} > 85
+        for: 15m
+        labels:
+          severity: warning
+          categoria: clima
+          sistema: invernadero
+        annotations:
+          summary: "HR excesiva — riesgo de Botrytis en {{ $labels.zona }}"
+          description: "Humedad relativa {{ $value | printf \"%.1f\" }}% > 85% durante >15 min. Riesgo de hongos patógenos (Botrytis, Mildiu)."
+
+      - alert: InvernaderoHumedadBaja
+        expr: castuo_sensor_humedad_pct{job="castuo-iot"} < 40
+        for: 10m
+        labels:
+          severity: warning
+          categoria: clima
+          sistema: invernadero
+        annotations:
+          summary: "HR baja — estrés hídrico en {{ $labels.zona }}"
+          description: "Humedad relativa {{ $value | printf \"%.1f\" }}% < 40%. Estrés por transpiración excesiva."
+
+      - alert: InvernaderoC02Bajo
+        expr: castuo_sensor_co2_ppm{job="castuo-iot"} < 400
+        for: 10m
+        labels:
+          severity: warning
+          categoria: clima
+          sistema: invernadero
+        annotations:
+          summary: "CO₂ insuficiente en {{ $labels.zona }}"
+          description: "CO₂ {{ $value | printf \"%.0f\" }} ppm < 400 ppm — fotosíntesis reducida. Verificar ventilación e inyección CO₂."
+
+      - alert: InvernaderoVPDFueraRango
+        expr: |
+          castuo_sensor_vpd_kpa{job="castuo-iot"} > 1.5
+          or
+          castuo_sensor_vpd_kpa{job="castuo-iot"} < 0.3
+        for: 15m
+        labels:
+          severity: warning
+          categoria: clima
+          sistema: invernadero
+        annotations:
+          summary: "VPD fuera de rango óptimo en {{ $labels.zona }}"
+          description: "VPD {{ $value | printf \"%.2f\" }} kPa fuera de rango [0.3-1.5] kPa. Ajustar temperatura y humedad."
+
+  # ── 2. Solución Nutritiva / Hidropónica ────────────────────────────────────
+
+  - name: castuo_hidroponia
+    interval: 30s
+    rules:
+
+      - alert: InvernaderoPHFueraRango
+        expr: |
+          castuo_sensor_ph{job="castuo-iot"} > 6.8
+          or
+          castuo_sensor_ph{job="castuo-iot"} < 5.0
+        for: 5m
+        labels:
+          severity: critical
+          categoria: hidroponia
+          sistema: invernadero
+        annotations:
+          summary: "pH fuera de rango seguro en {{ $labels.zona }}"
+          description: "pH {{ $value | printf \"%.2f\" }} fuera de rango [5.0-6.8] en {{ $labels.zona }}. Dosificación automática requerida."
+          runbook: "https://docs.castuo360.eu/runbooks/ph-fuera-rango"
+
+      - alert: InvernaderoECBaja
+        expr: castuo_sensor_ec_ms_cm{job="castuo-iot"} < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          categoria: hidroponia
+          sistema: invernadero
+        annotations:
+          summary: "EC muy baja — déficit de nutrientes en {{ $labels.zona }}"
+          description: "EC {{ $value | printf \"%.2f\" }} mS/cm < 0.8 — plantas sin nutrientes. Añadir concentrado A+B."
+
+      - alert: InvernaderoECAlta
+        expr: castuo_sensor_ec_ms_cm{job="castuo-iot"} > 5.0
+        for: 10m
+        labels:
+          severity: warning
+          categoria: hidroponia
+          sistema: invernadero
+        annotations:
+          summary: "EC muy alta — riesgo de fitotoxicidad en {{ $labels.zona }}"
+          description: "EC {{ $value | printf \"%.2f\" }} mS/cm > 5.0 — exceso de sales. Diluir solución nutritiva."
+
+      - alert: InvernaderoO2DisueltoC ritico
+        expr: castuo_sensor_o2_disuelto_mg_l{job="castuo-iot"} < 5.0
+        for: 5m
+        labels:
+          severity: critical
+          categoria: hidroponia
+          sistema: invernadero
+        annotations:
+          summary: "O₂ disuelto CRÍTICO en {{ $labels.zona }}"
+          description: "O₂ {{ $value | printf \"%.1f\" }} mg/L < 5.0 mg/L — riesgo INMEDIATO de hipoxia radicular y muerte de raíces."
+
+  # ── 3. Sistema Agrovoltaico / Energía ──────────────────────────────────────
+
+  - name: castuo_agrovoltaico
+    interval: 60s
+    rules:
+
+      - alert: InvernaderoPanelSobrecalentado
+        expr: castuo_sensor_temperatura_panel_c{job="castuo-iot"} > 75
+        for: 5m
+        labels:
+          severity: warning
+          categoria: energia
+          sistema: agrovoltaico
+        annotations:
+          summary: "Panel solar {{ $labels.panel_id }} sobrecalentado"
+          description: "Temperatura panel {{ $value | printf \"%.1f\" }}°C > 75°C. Eficiencia fotovoltaica reducida."
+
+      - alert: InvernaderoGeneracionSolarBaja
+        expr: |
+          (
+            castuo_energia_potencia_w{job="castuo-iot"}
+            / (castuo_energia_potencia_pico_w{job="castuo-iot"} > 0)
+          ) < 0.1
+          and hour() >= 10 and hour() <= 16
+        for: 30m
+        labels:
+          severity: warning
+          categoria: energia
+          sistema: agrovoltaico
+        annotations:
+          summary: "Generación solar baja en horario de máxima irradiancia"
+          description: "Eficiencia {{ $value | printf \"%.1f\" }}% en horario 10-16h. Verificar paneles e inversor Modbus."
+
+      - alert: InvernaderoCoberturaSOmbraExcesiva
+        expr: castuo_sensor_cobertura_sombra_pct{job="castuo-iot"} > 50
+        for: 20m
+        labels:
+          severity: warning
+          categoria: energia
+          sistema: agrovoltaico
+        annotations:
+          summary: "Cobertura de sombra excesiva — revisar DLI"
+          description: "Sombra {{ $value | printf \"%.0f\" }}% > 50% — posible reducción del DLI bajo el umbral del cultivo."
+
+  # ── 4. Actuadores e IoT ────────────────────────────────────────────────────
+
+  - name: castuo_actuadores_iot
+    interval: 60s
+    rules:
+
+      - alert: InvernaderoMQTTBridgeDown
+        expr: up{job="castuo-mqtt-bridge"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          categoria: iot
+          sistema: invernadero
+        annotations:
+          summary: "MQTT Bridge CAÍDO — sin telemetría IoT"
+          description: "El bridge MQTT → GaiaChain no responde desde hace >5 min. Sin datos de sensores ni control de actuadores."
+          runbook: "https://docs.castuo360.eu/runbooks/mqtt-bridge-down"
+
+      - alert: InvernaderoSinDatosSensor
+        expr: |
+          (time() - castuo_sensor_last_seen_timestamp{job="castuo-iot"}) > 300
+        for: 0m
+        labels:
+          severity: warning
+          categoria: iot
+          sistema: invernadero
+        annotations:
+          summary: "Sensor {{ $labels.sensor_id }} sin datos (>5 min)"
+          description: "Sensor {{ $labels.sensor_id }} en {{ $labels.zona }} sin telemetría desde hace {{ $value | humanizeDuration }}. Verificar conectividad ESP32/Arduino."
+
+      - alert: InvernaderoVentilacionForzadaLarga
+        expr: castuo_actuador_estado{actuador="ventilacion",accion="encender"} == 1
+        for: 4h
+        labels:
+          severity: warning
+          categoria: actuadores
+          sistema: invernadero
+        annotations:
+          summary: "Ventilación activa >4h continuas"
+          description: "La ventilación lleva >4h encendida en {{ $labels.zona }}. Verificar si la temperatura ha bajado."
+
+  # ── 5. Infraestructura InfluxDB / MQTT ────────────────────────────────────
+
+  - name: castuo_infraestructura_invernadero
+    interval: 60s
+    rules:
+
+      - alert: InfluxDBDown
+        expr: up{job="influxdb"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          categoria: infraestructura
+          sistema: invernadero
+        annotations:
+          summary: "InfluxDB CAÍDO — sin almacenamiento de series temporales"
+          description: "InfluxDB no responde. Los datos de sensores se perderán hasta recuperación."
+
+      - alert: MosquittoDown
+        expr: up{job="mosquitto"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          categoria: infraestructura
+          sistema: invernadero
+        annotations:
+          summary: "Broker MQTT Mosquitto CAÍDO"
+          description: "El broker MQTT no responde. Sin comunicación con sensores ni actuadores IoT."
+
+      - alert: InfluxDBPVCAlmostFull
+        expr: |
+          (
+            kubelet_volume_stats_used_bytes{namespace="castuo-system", persistentvolumeclaim="influxdb-pvc"}
+            / kubelet_volume_stats_capacity_bytes{namespace="castuo-system", persistentvolumeclaim="influxdb-pvc"}
+          ) > 0.80
+        for: 30m
+        labels:
+          severity: warning
+          categoria: infraestructura
+          sistema: invernadero
+        annotations:
+          summary: "PVC InfluxDB al {{ $value | humanizePercentage }} de capacidad"
+          description: "El volumen de InfluxDB supera el 80% de capacidad. Verificar retención GDPR y ampliar si necesario."
+
+  # ── 6. GDPR y Cumplimiento ────────────────────────────────────────────────
+
+  - name: castuo_gdpr_compliance
+    interval: 300s
+    rules:
+
+      - alert: GDPRRetentionJobFailed
+        expr: |
+          kube_job_status_failed{namespace="castuo-system", job_name=~"gdpr-data-retention.*"} > 0
+        for: 0m
+        labels:
+          severity: warning
+          categoria: compliance
+          gdpr: "true"
+        annotations:
+          summary: "GDPR: Job de retención de datos FALLIDO"
+          description: "El CronJob de eliminación de datos >90 días ha fallado. Datos podrían superar el período de retención GDPR."
+          runbook: "https://docs.castuo360.eu/runbooks/gdpr-retention"

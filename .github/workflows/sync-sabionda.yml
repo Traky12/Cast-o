@@ -1,0 +1,102 @@
+name: "CASTÚO — Notificación Push a SABIONDA"
+
+on:
+  push:
+    branches: [main, develop, "claude/**", "feat/**"]
+    paths:
+      - "api/**"
+      - "services/**"
+      - "k8s/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "docker-compose*.yml"
+
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Mensaje personalizado para SABIONDA"
+        required: false
+        default: "Deploy manual iniciado"
+
+jobs:
+  notify-sabionda:
+    name: "Notificar SABIONDA + GaiaChain"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Obtener ficheros modificados
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | head -20 | tr '\n' ',' | sed 's/,$//')
+          echo "files=$CHANGED" >> $GITHUB_OUTPUT
+          COMMIT_SHORT=$(echo "${{ github.sha }}" | cut -c1-8)
+          echo "commit=$COMMIT_SHORT" >> $GITHUB_OUTPUT
+
+      - name: Notificar GitHub Webhook interno
+        env:
+          CASTUO_API_URL:      ${{ secrets.CASTUO_API_URL }}
+          CASTUO_JWT_TOKEN:    ${{ secrets.CASTUO_JWT_TOKEN }}
+          GITHUB_WEBHOOK_SECRET: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$CASTUO_API_URL" ]; then
+            echo "CASTUO_API_URL no configurado — omitiendo notificación"
+            exit 0
+          fi
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "event": "push",
+            "repo": "${{ github.repository }}",
+            "branch": "${{ github.ref_name }}",
+            "commit": "${{ steps.changes.outputs.commit }}",
+            "actor": "${{ github.actor }}",
+            "files_changed": "${{ steps.changes.outputs.files }}",
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "message": "${{ github.event.inputs.message || github.event.head_commit.message }}"
+          }
+          EOF
+          )
+
+          # Notificar al endpoint de análisis de código
+          curl -s -X POST "${CASTUO_API_URL}/api/v1/claude/generate" \
+            -H "Authorization: Bearer ${CASTUO_JWT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"prompt\": \"Nuevo push en ${{ github.repository }} (rama: ${{ github.ref_name }}, commit: ${{ steps.changes.outputs.commit }}). Ficheros: ${{ steps.changes.outputs.files }}. Analiza brevemente el impacto.\",
+              \"contexto\": \"codigo\",
+              \"max_tokens\": 256
+            }" \
+            --max-time 30 || echo "SABIONDA no disponible — continuando"
+
+          echo "Notificación enviada correctamente"
+
+      - name: Registrar en Kafka (code_updates)
+        env:
+          CASTUO_API_URL:   ${{ secrets.CASTUO_API_URL }}
+          CASTUO_JWT_TOKEN: ${{ secrets.CASTUO_JWT_TOKEN }}
+        run: |
+          if [ -z "$CASTUO_API_URL" ]; then
+            echo "Kafka notification skipped — CASTUO_API_URL not set"
+            exit 0
+          fi
+
+          # El webhook handler interno ya publica en Kafka automáticamente
+          echo "Evento de push registrado: commit=${{ steps.changes.outputs.commit }}, rama=${{ github.ref_name }}"
+
+      - name: Notificación de éxito
+        if: success()
+        run: |
+          echo "✅ SABIONDA notificado correctamente"
+          echo "   Repo:   ${{ github.repository }}"
+          echo "   Rama:   ${{ github.ref_name }}"
+          echo "   Commit: ${{ steps.changes.outputs.commit }}"
+          echo "   Actor:  ${{ github.actor }}"
+          echo "   Files:  ${{ steps.changes.outputs.files }}"

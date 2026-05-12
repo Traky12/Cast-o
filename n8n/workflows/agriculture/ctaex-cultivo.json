@@ -1,0 +1,485 @@
+{
+  "name": "ctaex-cultivo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ctaex-sensores",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-input",
+      "name": "Webhook Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "ctaex-sensores-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst ts = raw.timestamp || new Date().toISOString();\nconst deviceId = raw.device_id || raw.deviceId || 'unknown';\nconst zone = raw.zone || raw.zona || 'A';\n\nconst data = {\n  timestamp: ts,\n  device_id: deviceId,\n  zone: zone,\n  ph: parseFloat(raw.ph ?? raw.pH ?? null),\n  ec: parseFloat(raw.ec ?? raw.EC ?? null),\n  temp_agua: parseFloat(raw.temp_agua ?? raw.water_temp ?? null),\n  temp_aire: parseFloat(raw.temp_aire ?? raw.air_temp ?? null),\n  humedad: parseFloat(raw.humedad ?? raw.humidity ?? null),\n  co2: parseFloat(raw.co2 ?? raw.CO2 ?? null),\n  luz_par: parseFloat(raw.luz_par ?? raw.par ?? null),\n  o2_disuelto: parseFloat(raw.o2_disuelto ?? raw.dissolved_o2 ?? null),\n  raw_payload: JSON.stringify(raw)\n};\n\nreturn [{ json: data }];"
+      },
+      "id": "normalizacion",
+      "name": "Normalización",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst errors = [];\n\nif (!d.device_id || d.device_id === 'unknown') errors.push('device_id requerido');\nif (isNaN(d.ph) && isNaN(d.ec) && isNaN(d.temp_agua)) errors.push('Al menos un sensor numérico requerido');\nif (d.ph !== null && !isNaN(d.ph) && (d.ph < 0 || d.ph > 14)) errors.push(`pH fuera de rango: ${d.ph}`);\nif (d.ec !== null && !isNaN(d.ec) && (d.ec < 0 || d.ec > 10)) errors.push(`EC fuera de rango: ${d.ec}`);\n\nif (errors.length > 0) {\n  throw new Error('Validación fallida: ' + errors.join(', '));\n}\n\nreturn [{ json: { ...d, validado: true } }];"
+      },
+      "id": "validacion",
+      "name": "Validación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO ctaex.registros (timestamp, device_id, zone, ph, ec, temp_agua, temp_aire, humedad, co2, luz_par, o2_disuelto, raw_payload)\nVALUES (\n  '{{$json.timestamp}}',\n  '{{$json.device_id}}',\n  '{{$json.zone}}',\n  {{$json.ph}},\n  {{$json.ec}},\n  {{$json.temp_agua}},\n  {{$json.temp_aire}},\n  {{$json.humedad}},\n  {{$json.co2}},\n  {{$json.luz_par}},\n  {{$json.o2_disuelto}},\n  '{{$json.raw_payload}}'\n) RETURNING id;",
+        "options": {}
+      },
+      "id": "guardar-db",
+      "name": "Guardar en DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 300],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst alertas = [];\n\nconst rangos = {\n  ph:         { min: 5.5, max: 6.5,  unidad: '' },\n  ec:         { min: 1.2, max: 3.5,  unidad: ' mS/cm' },\n  temp_agua:  { min: 16,  max: 24,   unidad: '°C' },\n  temp_aire:  { min: 15,  max: 32,   unidad: '°C' },\n  humedad:    { min: 40,  max: 80,   unidad: '%' },\n  co2:        { min: 400, max: 1200, unidad: ' ppm' },\n  o2_disuelto:{ min: 6,   max: 14,   unidad: ' mg/L' }\n};\n\nfor (const [param, rango] of Object.entries(rangos)) {\n  const val = d[param];\n  if (val === null || isNaN(val)) continue;\n  if (val < rango.min || val > rango.max) {\n    alertas.push({\n      parametro: param,\n      valor: val,\n      min: rango.min,\n      max: rango.max,\n      unidad: rango.unidad,\n      device_id: d.device_id,\n      zone: d.zone,\n      timestamp: d.timestamp\n    });\n  }\n}\n\nreturn [{ json: { ...d, alertas, tiene_alertas: alertas.length > 0 } }];"
+      },
+      "id": "analisis",
+      "name": "Análisis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "leftValue": "={{$json.tiene_alertas}}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "hay-alerta",
+      "name": "¿Hay alerta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst crypto = require('crypto');\nconst payload = JSON.stringify({ device: d.device_id, ts: d.timestamp, data: d });\nconst hash = crypto.createHash('sha256').update(payload).digest('hex');\nreturn [{ json: { ...d, trazabilidad_hash: hash } }];"
+      },
+      "id": "trazabilidad",
+      "name": "Trazabilidad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst crypto = require('crypto');\nconst key = Buffer.from(process.env.AES_KEY_HEX || '0'.repeat(64), 'hex');\nconst iv = crypto.randomBytes(16);\nconst cipher = crypto.createCipheriv('aes-256-gcm', key, iv);\nlet encrypted = cipher.update(JSON.stringify(d), 'utf8', 'hex');\nencrypted += cipher.final('hex');\nconst authTag = cipher.getAuthTag().toString('hex');\nreturn [{ json: {\n  cifrado: encrypted,\n  iv: iv.toString('hex'),\n  auth_tag: authTag,\n  device_id: d.device_id,\n  timestamp: d.timestamp\n}}];"
+      },
+      "id": "cifrado-cuantico",
+      "name": "Cifrado Cuántico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 180]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"ok\": true, \"hash\": \"{{$json.trazabilidad_hash}}\", \"timestamp\": \"{{$json.timestamp}}\"}",
+        "options": {}
+      },
+      "id": "respuesta",
+      "name": "Respuesta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 180]
+    },
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "* * * * *" }] }
+      },
+      "id": "cron-alertas",
+      "name": "Cron Trigger (1min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM ctaex.registros WHERE timestamp > NOW() - INTERVAL '2 minutes' ORDER BY timestamp DESC LIMIT 50;",
+        "options": {}
+      },
+      "id": "leer-datos",
+      "name": "Leer últimos datos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 600],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst alertas = [];\n\nconst rangos = {\n  ph:         { min: 5.5, max: 6.5,  critico_min: 5.0, critico_max: 7.0 },\n  ec:         { min: 1.2, max: 3.5,  critico_min: 0.8, critico_max: 4.5 },\n  temp_agua:  { min: 16,  max: 24,   critico_min: 12,  critico_max: 28 },\n  temp_aire:  { min: 15,  max: 32,   critico_min: 10,  critico_max: 38 },\n  o2_disuelto:{ min: 6,   max: 14,   critico_min: 4,   critico_max: 14 }\n};\n\nfor (const item of items) {\n  const d = item.json;\n  for (const [param, rango] of Object.entries(rangos)) {\n    const val = parseFloat(d[param]);\n    if (isNaN(val)) continue;\n    if (val < rango.critico_min || val > rango.critico_max) {\n      alertas.push({ ...d, parametro: param, valor: val, nivel: 'critica', rango });\n    } else if (val < rango.min || val > rango.max) {\n      alertas.push({ ...d, parametro: param, valor: val, nivel: 'media', rango });\n    }\n  }\n}\n\nreturn alertas.map(a => ({ json: a }));"
+      },
+      "id": "evaluar-alertas",
+      "name": "Evaluar Alertas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "leftValue": "={{$json.nivel}}", "rightValue": "baja", "operator": { "type": "string", "operation": "notEquals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filtrar-alertas",
+      "name": "Filtrar Alertas",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [900, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nlet prioridad = 0;\nif (d.nivel === 'critica') prioridad = 10;\nelse if (d.nivel === 'media') prioridad = 5;\nelse prioridad = 1;\nconst desviacion = Math.abs(d.valor - ((d.rango.min + d.rango.max) / 2));\nprioridad += desviacion;\nreturn [{ json: { ...d, prioridad: Math.round(prioridad * 100) / 100 } }];"
+      },
+      "id": "calcular-prioridad",
+      "name": "Calcular Prioridad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) as cnt FROM ctaex.alertas WHERE device_id = '{{$json.device_id}}' AND parametro = '{{$json.parametro}}' AND created_at > NOW() - INTERVAL '10 minutes' AND nivel = '{{$json.nivel}}';",
+        "options": {}
+      },
+      "id": "check-spam",
+      "name": "Check Spam",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1340, 600],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "leftValue": "={{$json.cnt}}", "rightValue": 0, "operator": { "type": "number", "operation": "equals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "enviar-alerta-if",
+      "name": "¿Enviar alerta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 600]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "🚨 *ALERTA CASTÚO-SYSTEM™*\n\n*Dispositivo:* {{$json.device_id}}\n*Zona:* {{$json.zone}}\n*Parámetro:* {{$json.parametro}}\n*Valor:* {{$json.valor}}{{$json.unidad}}\n*Nivel:* {{$json.nivel}}\n*Prioridad:* {{$json.prioridad}}\n*Timestamp:* {{$json.timestamp}}\n\n⚡ Rango óptimo: {{$json.rango.min}} – {{$json.rango.max}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "enviar-telegram",
+      "name": "Enviar Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1780, 520],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-castuo",
+          "name": "Telegram CASTÚO Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO ctaex.alertas (device_id, zone, parametro, valor, nivel, prioridad, timestamp, notificado)\nVALUES ('{{$json.device_id}}', '{{$json.zone}}', '{{$json.parametro}}', {{$json.valor}}, '{{$json.nivel}}', {{$json.prioridad}}, '{{$json.timestamp}}', true);",
+        "options": {}
+      },
+      "id": "guardar-alerta",
+      "name": "Guardar Alerta",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1780, 680],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 * * * *" }] }
+      },
+      "id": "cron-validacion",
+      "name": "Cron Validación (1h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 900]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT device_id, zone, AVG(ph) as avg_ph, AVG(ec) as avg_ec, AVG(temp_agua) as avg_temp_agua, AVG(temp_aire) as avg_temp_aire, AVG(humedad) as avg_humedad, AVG(co2) as avg_co2, COUNT(*) as num_registros, MAX(timestamp) as ultima_lectura FROM ctaex.registros WHERE timestamp > NOW() - INTERVAL '1 hour' GROUP BY device_id, zone;",
+        "options": {}
+      },
+      "id": "datos-ultima-hora",
+      "name": "Datos última hora",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 900],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst evaluaciones = items.map(item => {\n  const d = item.json;\n  const kpis = {\n    eficiencia_nutricional: (() => {\n      if (isNaN(d.avg_ec) || isNaN(d.avg_ph)) return null;\n      const ec_ok = d.avg_ec >= 1.5 && d.avg_ec <= 3.0;\n      const ph_ok = d.avg_ph >= 5.5 && d.avg_ph <= 6.5;\n      return ec_ok && ph_ok ? 'ÓPTIMO' : 'SUBÓPTIMO';\n    })(),\n    confort_termico: (() => {\n      const t = d.avg_temp_aire;\n      if (isNaN(t)) return null;\n      return t >= 18 && t <= 28 ? 'ÓPTIMO' : t >= 15 && t <= 32 ? 'ACEPTABLE' : 'CRÍTICO';\n    })(),\n    humedad_relativa: (() => {\n      const h = d.avg_humedad;\n      if (isNaN(h)) return null;\n      return h >= 50 && h <= 75 ? 'ÓPTIMO' : 'FUERA_RANGO';\n    })(),\n    co2_enriquecimiento: (() => {\n      const c = d.avg_co2;\n      if (isNaN(c)) return null;\n      return c >= 600 && c <= 1000 ? 'ÓPTIMO' : c > 1000 ? 'EXCESO' : 'DEFICIENTE';\n    })()\n  };\n  return { json: { device_id: d.device_id, zone: d.zone, kpis, datos: d, evaluado_en: new Date().toISOString() } };\n});\nreturn evaluaciones;"
+      },
+      "id": "evaluacion-agronomica",
+      "name": "Evaluación Agronómica",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 900]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst metricas = {\n  timestamp: new Date().toISOString(),\n  total_dispositivos: new Set(items.map(i => i.json.device_id)).size,\n  zonas_activas: new Set(items.map(i => i.json.zone)).size,\n  kpi_resumen: {\n    eficiencia_nutricional_optimo: items.filter(i => i.json.kpis.eficiencia_nutricional === 'ÓPTIMO').length,\n    confort_termico_optimo: items.filter(i => i.json.kpis.confort_termico === 'ÓPTIMO').length,\n    alertas_criticas_hora: 0\n  },\n  evaluaciones: items.map(i => i.json)\n};\nreturn [{ json: metricas }];"
+      },
+      "id": "metricas",
+      "name": "Métricas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 900]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO ctaex.metricas (timestamp, total_dispositivos, zonas_activas, kpi_json, evaluaciones_json)\nVALUES ('{{$json.timestamp}}', {{$json.total_dispositivos}}, {{$json.zonas_activas}}, '{{JSON.stringify($json.kpi_resumen)}}', '{{JSON.stringify($json.evaluaciones)}}');",
+        "options": {}
+      },
+      "id": "guardar-metricas",
+      "name": "Guardar Métricas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1120, 900],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst optimos = d.evaluaciones.filter(e => Object.values(e.kpis).every(v => v === 'ÓPTIMO' || v === null)).length;\nconst total = d.evaluaciones.length;\nconst pct = total > 0 ? Math.round(optimos / total * 100) : 0;\nconst msg = `📊 *Resumen CTAEX* — ${new Date().toLocaleString('es-ES')}\n\n✅ Dispositivos en rango óptimo: ${optimos}/${total} (${pct}%)\n🌡️ Zonas activas: ${d.zonas_activas}\n📡 Total dispositivos: ${d.total_dispositivos}\n\n${pct >= 80 ? '🟢 Estado general: ÓPTIMO' : pct >= 50 ? '🟡 Estado general: ACEPTABLE' : '🔴 Estado general: REQUIERE ATENCIÓN'}`;\nreturn [{ json: { mensaje: msg, pct_optimo: pct, datos: d } }];"
+      },
+      "id": "resumen-ctaex",
+      "name": "Resumen CTAEX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 900]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "ctaex-dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-dashboard",
+      "name": "Webhook ctaex-dashboard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 1100],
+      "webhookId": "ctaex-dashboard-001"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM ctaex.metricas ORDER BY timestamp DESC LIMIT 24;",
+        "options": {}
+      },
+      "id": "get-metrics",
+      "name": "Get Metrics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 1020],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT device_id, zone, ph, ec, temp_agua, temp_aire, humedad, co2, timestamp FROM ctaex.registros WHERE timestamp > NOW() - INTERVAL '1 hour' ORDER BY timestamp DESC;",
+        "options": {}
+      },
+      "id": "get-sensor-data",
+      "name": "Get Sensor Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 1160],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM ctaex.alertas WHERE created_at > NOW() - INTERVAL '24 hours' ORDER BY created_at DESC LIMIT 100;",
+        "options": {}
+      },
+      "id": "get-alerts",
+      "name": "Get Alerts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 1300],
+      "credentials": {
+        "postgres": {
+          "id": "056HaSECruJAit97",
+          "name": "CTAEX PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const metricas = $('Get Metrics').all().map(i => i.json);\nconst sensores = $('Get Sensor Data').all().map(i => i.json);\nconst alertas = $('Get Alerts').all().map(i => i.json);\nreturn [{ json: { metricas, sensores, alertas } }];"
+      },
+      "id": "combine",
+      "name": "Combine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 1160]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst ultima = d.sensores.length > 0 ? d.sensores[0] : {};\nconst alertas_criticas = d.alertas.filter(a => a.nivel === 'critica').length;\nconst alertas_medias = d.alertas.filter(a => a.nivel === 'media').length;\nconst estado = alertas_criticas > 0 ? 'CRÍTICO' : alertas_medias > 5 ? 'ALERTA' : 'NORMAL';\nreturn [{ json: {\n  estado,\n  ultima_lectura: ultima,\n  alertas_criticas,\n  alertas_medias,\n  metricas_24h: d.metricas,\n  total_registros_hora: d.sensores.length,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "format",
+      "name": "Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 1160]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}",
+        "options": { "responseHeaders": { "entries": [{ "name": "Content-Type", "value": "application/json" }] } }
+      },
+      "id": "return-dashboard",
+      "name": "Return Dashboard",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1140, 1160]
+    }
+  ],
+  "connections": {
+    "Webhook Input": { "main": [[{ "node": "Normalización", "type": "main", "index": 0 }]] },
+    "Normalización": { "main": [[{ "node": "Validación", "type": "main", "index": 0 }]] },
+    "Validación": { "main": [[{ "node": "Guardar en DB", "type": "main", "index": 0 }]] },
+    "Guardar en DB": { "main": [[{ "node": "Análisis", "type": "main", "index": 0 }]] },
+    "Análisis": { "main": [[{ "node": "¿Hay alerta?", "type": "main", "index": 0 }]] },
+    "¿Hay alerta?": {
+      "main": [
+        [{ "node": "Trazabilidad", "type": "main", "index": 0 }],
+        [{ "node": "Trazabilidad", "type": "main", "index": 0 }]
+      ]
+    },
+    "Trazabilidad": { "main": [[{ "node": "Cifrado Cuántico", "type": "main", "index": 0 }]] },
+    "Cifrado Cuántico": { "main": [[{ "node": "Respuesta", "type": "main", "index": 0 }]] },
+    "Cron Trigger (1min)": { "main": [[{ "node": "Leer últimos datos", "type": "main", "index": 0 }]] },
+    "Leer últimos datos": { "main": [[{ "node": "Evaluar Alertas", "type": "main", "index": 0 }]] },
+    "Evaluar Alertas": { "main": [[{ "node": "Filtrar Alertas", "type": "main", "index": 0 }]] },
+    "Filtrar Alertas": { "main": [[{ "node": "Calcular Prioridad", "type": "main", "index": 0 }]] },
+    "Calcular Prioridad": { "main": [[{ "node": "Check Spam", "type": "main", "index": 0 }]] },
+    "Check Spam": { "main": [[{ "node": "¿Enviar alerta?", "type": "main", "index": 0 }]] },
+    "¿Enviar alerta?": {
+      "main": [
+        [
+          { "node": "Enviar Telegram", "type": "main", "index": 0 },
+          { "node": "Guardar Alerta", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Cron Validación (1h)": { "main": [[{ "node": "Datos última hora", "type": "main", "index": 0 }]] },
+    "Datos última hora": { "main": [[{ "node": "Evaluación Agronómica", "type": "main", "index": 0 }]] },
+    "Evaluación Agronómica": { "main": [[{ "node": "Métricas", "type": "main", "index": 0 }]] },
+    "Métricas": { "main": [[{ "node": "Guardar Métricas", "type": "main", "index": 0 }]] },
+    "Guardar Métricas": { "main": [[{ "node": "Resumen CTAEX", "type": "main", "index": 0 }]] },
+    "Webhook ctaex-dashboard": {
+      "main": [[
+        { "node": "Get Metrics", "type": "main", "index": 0 },
+        { "node": "Get Sensor Data", "type": "main", "index": 0 },
+        { "node": "Get Alerts", "type": "main", "index": 0 }
+      ]]
+    },
+    "Get Metrics": { "main": [[{ "node": "Combine", "type": "main", "index": 0 }]] },
+    "Get Sensor Data": { "main": [[{ "node": "Combine", "type": "main", "index": 0 }]] },
+    "Get Alerts": { "main": [[{ "node": "Combine", "type": "main", "index": 0 }]] },
+    "Combine": { "main": [[{ "node": "Format", "type": "main", "index": 0 }]] },
+    "Format": { "main": [[{ "node": "Return Dashboard", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "ctaex-v3.1.0",
+  "meta": {
+    "instanceId": "castuo-system-n8n",
+    "templateCredsSetupCompleted": true
+  },
+  "id": "ctaex-cultivo-001",
+  "tags": ["agricultura", "iot", "ctaex", "castuo-system"]
+}

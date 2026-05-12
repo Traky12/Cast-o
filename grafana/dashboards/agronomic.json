@@ -1,0 +1,290 @@
+{
+  "title": "CTAEX - Monitorización Agronómica en Tiempo Real",
+  "uid": "ctaex-agronomic-dashboard",
+  "tags": ["agricultura", "iot", "ctaex"],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 0,
+  "schemaVersion": 38,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Temperatura y Humedad",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  timestamp AS time,\n  temp_aire AS \"Temperatura (°C)\",\n  humedad  AS \"Humedad (%)\"\nFROM ctaex.registros\nWHERE $__timeFilter(timestamp)\nORDER BY timestamp ASC",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Temperatura (°C)" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#fa6400" } },
+              { "id": "custom.axisPlacement", "value": "left" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Humedad (%)" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#1f78c1" } },
+              { "id": "custom.axisPlacement", "value": "right" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      }
+    },
+    {
+      "id": 2,
+      "title": "pH y Humedad del Suelo",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  timestamp AS time,\n  ph             AS \"pH\",\n  o2_disuelto    AS \"O₂ disuelto (mg/L)\"\nFROM ctaex.registros\nWHERE $__timeFilter(timestamp)\nORDER BY timestamp ASC",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 8 } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "pH" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#56a64b" } },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red",    "value": null },
+                    { "color": "yellow", "value": 5.5 },
+                    { "color": "green",  "value": 5.8 },
+                    { "color": "yellow", "value": 6.5 },
+                    { "color": "red",    "value": 7.0 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "EC (Conductividad Eléctrica)",
+      "type": "gauge",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 6 },
+      "targets": [
+        {
+          "rawSql": "SELECT AVG(ec) AS \"EC (mS/cm)\"\nFROM ctaex.registros\nWHERE timestamp > NOW() - INTERVAL '5 minutes'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 5,
+          "unit": "mS/cm",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 1.2 },
+              { "color": "green",  "value": 1.5 },
+              { "color": "yellow", "value": 3.0 },
+              { "color": "red",    "value": 4.0 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Temperatura Agua",
+      "type": "gauge",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 6 },
+      "targets": [
+        {
+          "rawSql": "SELECT AVG(temp_agua) AS \"Tª Agua (°C)\"\nFROM ctaex.registros\nWHERE timestamp > NOW() - INTERVAL '5 minutes'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 10, "max": 35, "unit": "celsius",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue",   "value": null },
+              { "color": "green",  "value": 16 },
+              { "color": "yellow", "value": 24 },
+              { "color": "red",    "value": 28 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Alertas Activas (última hora)",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 6 },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS alertas_activas\nFROM ctaex.alertas\nWHERE created_at > NOW() - INTERVAL '1 hour'\n  AND nivel IN ('critica','media')",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red",    "value": 5 }
+            ]
+          }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center" }
+    },
+    {
+      "id": 6,
+      "title": "CO₂ (ppm)",
+      "type": "gauge",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 6 },
+      "targets": [
+        {
+          "rawSql": "SELECT AVG(co2) AS \"CO₂ (ppm)\"\nFROM ctaex.registros\nWHERE timestamp > NOW() - INTERVAL '5 minutes'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 300, "max": 2000, "unit": "ppm",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "yellow", "value": null },
+              { "color": "green",  "value": 600 },
+              { "color": "yellow", "value": 1200 },
+              { "color": "red",    "value": 1500 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Últimas Alertas (24h)",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  created_at  AS \"Timestamp\",\n  device_id   AS \"Dispositivo\",\n  zone        AS \"Zona\",\n  parametro   AS \"Parámetro\",\n  valor       AS \"Valor\",\n  nivel       AS \"Nivel\",\n  prioridad   AS \"Prioridad\",\n  notificado  AS \"Notificado\"\nFROM ctaex.alertas\nWHERE created_at > NOW() - INTERVAL '24 hours'\nORDER BY created_at DESC\nLIMIT 20",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Nivel" },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "critica": { "color": "red",    "text": "🔴 CRÍTICA" } } },
+                  { "type": "value", "options": { "media":   { "color": "yellow", "text": "🟡 MEDIA"   } } },
+                  { "type": "value", "options": { "baja":    { "color": "green",  "text": "🟢 BAJA"    } } }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "Timestamp", "desc": true }] }
+    },
+    {
+      "id": 8,
+      "title": "Resumen por Zona",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "rawSql": "SELECT * FROM ctaex.v_resumen_zonas",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "zone",
+        "label": "Zona",
+        "type": "query",
+        "query": "SELECT DISTINCT zone FROM ctaex.registros ORDER BY zone",
+        "datasource": { "type": "postgres", "uid": "castuo-pg" },
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "device",
+        "label": "Dispositivo",
+        "type": "query",
+        "query": "SELECT DISTINCT device_id FROM ctaex.registros WHERE zone =~ /^$zone$/ ORDER BY device_id",
+        "datasource": { "type": "postgres", "uid": "castuo-pg" },
+        "refresh": 2,
+        "includeAll": true
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Alertas Críticas",
+        "datasource": { "type": "postgres", "uid": "castuo-pg" },
+        "enable": true,
+        "hide": false,
+        "iconColor": "red",
+        "rawQuery": "SELECT created_at AS time, '🚨 ' || parametro || '=' || valor AS text, device_id AS tags FROM ctaex.alertas WHERE nivel = 'critica' AND $__timeFilter(created_at)"
+      }
+    ]
+  }
+}

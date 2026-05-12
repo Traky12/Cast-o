@@ -1,0 +1,50 @@
+## CASTÚO-SYSTEM™ v3.1 — LangGraph Extension (ADDITIVE)
+## Uso: docker compose -f docker-compose.yml -f docker-compose.langgraph.yml up
+##
+## Rollback de este compose: docker compose -f docker-compose.langgraph.yml down
+## No afecta a los servicios del docker-compose.yml base.
+
+
+networks:
+  castuo-network:
+    external: true   # Reutiliza la red ya creada por docker-compose.yml
+
+services:
+
+  # ── LangGraph — Orquestador Agro 4.0 ────────────────────────
+  langgraph:
+    build:
+      context: ./castuo_graph
+      dockerfile: Dockerfile.langgraph
+    container_name: castuo-langgraph
+    restart: unless-stopped
+    ports:
+      - "8200:8200"
+    environment:
+      - SABIONDA_API_URL=http://fastapi:8000
+      - GAIACHAIN_API_URL=http://gaiachain-node:8545
+      - GAIACHAIN_API_KEY=${GAIACHAIN_API_KEY}
+      - GAIACHAIN_CONTRACT_TRAZABILIDAD=${GAIACHAIN_CONTRACT_TRAZABILIDAD:-0x7aCeE349bD40ED460d8575A3F245790E81Ce3AdB}
+      - IPFS_API_URL=http://ipfs-node:5001
+      - IPFS_API_KEY=${IPFS_API_KEY}
+      - ELK_URL=http://elasticsearch:9200
+      - WOOCOMMERCE_URL=${WOOCOMMERCE_URL}
+      - WOOCOMMERCE_CONSUMER_KEY=${WOOCOMMERCE_CONSUMER_KEY}
+      - WOOCOMMERCE_CONSUMER_SECRET=${WOOCOMMERCE_CONSUMER_SECRET}
+      - SIGPAC_API_URL=${SIGPAC_API_URL:-https://sigpac.mapa.gob.es/api}
+      - TRACES_API_URL=${TRACES_API_URL:-https://webgate.ec.europa.eu/tracesnt/api}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/langgraph/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      - fastapi
+    networks:
+      - castuo-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"

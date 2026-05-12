@@ -1,0 +1,247 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# CASTÚO-SYSTEM™ v3.1 — Kubernetes RBAC
+# Control de acceso basado en roles para el namespace castuo-system
+#
+# Roles definidos:
+#   invernadero-admin    — acceso completo a todos los recursos del namespace
+#   invernadero-operator — lectura + restart de pods (operadores de campo)
+#   monitoring-reader    — solo lectura (Grafana, alertas)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─── ServiceAccounts ──────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: castuo-api
+  namespace: castuo-system
+  labels:
+    app: castuo-api
+    component: backend
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: castuo-monitoring
+  namespace: castuo-system
+  labels:
+    component: monitoring
+
+---
+# ─── Role: invernadero-admin ──────────────────────────────────────────────────
+# Administradores del sistema: acceso completo al namespace
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: castuo-system
+  name: invernadero-admin
+  labels:
+    role-type: admin
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims", "endpoints"]
+    verbs:     ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs:     ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs:     ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs:     ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs:     ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: invernadero-admin-binding
+  namespace: castuo-system
+subjects:
+  - kind: User
+    name: castuo-admin
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: invernadero-admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ─── Role: invernadero-operator ───────────────────────────────────────────────
+# Operadores de campo: leen estado y pueden reiniciar pods
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: castuo-system
+  name: invernadero-operator
+  labels:
+    role-type: operator
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "endpoints"]
+    verbs:     ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs:     ["delete"]   # Para restart por nombre
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs:     ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs:     ["patch"]    # Para rollout restart
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs:     ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs:     ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: invernadero-operator-binding
+  namespace: castuo-system
+subjects:
+  - kind: Group
+    name: castuo-operators
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: invernadero-operator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ─── Role: monitoring-reader ──────────────────────────────────────────────────
+# Prometheus / Grafana: solo lectura de métricas y estado
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: castuo-system
+  name: monitoring-reader
+  labels:
+    role-type: monitoring
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "configmaps"]
+    verbs:     ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs:     ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs:     ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs:     ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs:     ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: monitoring-reader-binding
+  namespace: castuo-system
+subjects:
+  - kind: ServiceAccount
+    name: castuo-monitoring
+    namespace: castuo-system
+roleRef:
+  kind: Role
+  name: monitoring-reader
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ─── Role para la API backend (acceso a ConfigMaps y Secrets propios) ─────────
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: castuo-system
+  name: castuo-api-role
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs:     ["get", "list"]
+    resourceNames: ["castuo-config", "influxdb-config", "castuo-satellite-config"]
+  # Permite leer health de pods propios
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs:     ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: castuo-api-role-binding
+  namespace: castuo-system
+subjects:
+  - kind: ServiceAccount
+    name: castuo-api
+    namespace: castuo-system
+roleRef:
+  kind: Role
+  name: castuo-api-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ─── NetworkPolicy — aislamiento por defecto ──────────────────────────────────
+# Bloquea todo el tráfico entrante excepto lo explícitamente permitido
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: castuo-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+
+---
+# Permitir tráfico interno al namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace
+  namespace: castuo-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: castuo-system
+
+---
+# Permitir tráfico desde el Ingress controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: castuo-system
+spec:
+  podSelector:
+    matchLabels:
+      app: castuo-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 8000

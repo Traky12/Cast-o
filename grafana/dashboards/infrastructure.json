@@ -1,0 +1,189 @@
+{
+  "title": "CTAEX - Monitorización de Infraestructura IT",
+  "uid": "ctaex-it-dashboard",
+  "tags": ["infraestructura", "servidores", "it"],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 38,
+  "time": { "from": "now-3h", "to": "now" },
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "CPU / Memoria / Disco",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 0, "y": 0, "w": 16, "h": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  timestamp AS time,\n  cpu_usage    AS \"CPU (%)\",\n  memory_usage AS \"Memoria (%)\",\n  disk_usage   AS \"Disco (%)\"\nFROM infra.metrics\nWHERE $__timeFilter(timestamp)\n  AND servicio = '$server'\nORDER BY timestamp ASC",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "custom": { "lineWidth": 2, "fillOpacity": 8 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red",    "value": 90 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Alertas IT Pendientes",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS alertas_pendientes\nFROM infra.events\nWHERE procesado = false",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red",    "value": 10 }
+            ]
+          }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 3,
+      "title": "Eventos sin procesar",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS eventos_24h\nFROM infra.events\nWHERE timestamp > NOW() - INTERVAL '24 hours'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red",   "value": 500 }
+            ]
+          }
+        }
+      },
+      "options": { "colorMode": "value" }
+    },
+    {
+      "id": 4,
+      "title": "Logs por Nivel (última hora)",
+      "type": "piechart",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT nivel AS metric, COUNT(*) AS value\nFROM infra.logs\nWHERE timestamp > NOW() - INTERVAL '1 hour'\nGROUP BY nivel\nORDER BY value DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "ERROR"    }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red"    } }] },
+          { "matcher": { "id": "byName", "options": "WARNING"  }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }] },
+          { "matcher": { "id": "byName", "options": "INFO"     }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green"  } }] },
+          { "matcher": { "id": "byName", "options": "DEBUG"    }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue"   } }] }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Logs Críticos / Error Recientes",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 8, "y": 8, "w": 16, "h": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  timestamp  AS \"Timestamp\",\n  servicio   AS \"Servicio\",\n  nivel      AS \"Nivel\",\n  mensaje    AS \"Mensaje\"\nFROM infra.logs\nWHERE nivel IN ('ERROR','CRITICAL')\n  AND $__timeFilter(timestamp)\nORDER BY timestamp DESC\nLIMIT 30",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Nivel" },
+            "properties": [
+              { "id": "custom.displayMode", "value": "color-background" },
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "CRITICAL": { "color": "dark-red",    "text": "🔴 CRITICAL" } } },
+                  { "type": "value", "options": { "ERROR":    { "color": "red",         "text": "❌ ERROR"    } } }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "Timestamp", "desc": true }] }
+    },
+    {
+      "id": 6,
+      "title": "Eventos recientes",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "castuo-pg" },
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  timestamp  AS \"Timestamp\",\n  tipo       AS \"Tipo\",\n  origen     AS \"Origen\",\n  procesado  AS \"Procesado\",\n  payload    AS \"Payload\"\nFROM infra.events\nWHERE $__timeFilter(timestamp)\nORDER BY timestamp DESC\nLIMIT 25",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "server",
+        "label": "Servidor",
+        "type": "query",
+        "query": "SELECT DISTINCT servicio FROM infra.logs ORDER BY servicio",
+        "datasource": { "type": "postgres", "uid": "castuo-pg" },
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Errores Críticos",
+        "datasource": { "type": "postgres", "uid": "castuo-pg" },
+        "enable": true,
+        "iconColor": "dark-red",
+        "rawQuery": "SELECT timestamp AS time, '🔴 ' || mensaje AS text, servicio AS tags FROM infra.logs WHERE nivel = 'CRITICAL' AND $__timeFilter(timestamp)"
+      }
+    ]
+  }
+}

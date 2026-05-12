@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-api
+  namespace: castuo-system
+  labels:
+    app: castuo-api
+    version: "3.1.1"
+    component: backend
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: castuo-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: castuo-api
+        version: "3.1.1"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: castuo-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: castuo-api
+          image: ghcr.io/traky12/castuo-system/castuo-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          # ── Configuración no-secreta desde ConfigMap ──────────────
+          envFrom:
+            - configMapRef:
+                name: castuo-config
+          # ── Secretos inyectados como variables de entorno ─────────
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: JWT_SECRET
+            - name: GAIACHAIN_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: GAIACHAIN_PRIVATE_KEY
+            - name: MISTRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: MISTRAL_API_KEY
+                  optional: true
+            - name: CASTUO_IOT_BEARER
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: CASTUO_IOT_BEARER
+                  optional: true
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data
+            - name: schemas
+              mountPath: /app/schemas
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: castuo-data-pvc
+        - name: schemas
+          configMap:
+            name: castuo-schemas
+            optional: true
+      imagePullSecrets:
+        - name: ghcr-credentials
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: [castuo-api]
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: castuo-api
+  namespace: castuo-system
+  labels:
+    app: castuo-api

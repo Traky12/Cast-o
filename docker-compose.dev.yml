@@ -1,0 +1,162 @@
+## CASTÚO-SYSTEM™ v3.1 — Entorno de desarrollo local
+## Objetivo: usabilidad frontend + backend sin servicios pesados.
+##
+## Uso:
+##   docker compose -f docker-compose.dev.yml up --build
+##   → Frontend:  http://localhost:3000
+##   → API:       http://localhost:8000
+##   → Swagger:   http://localhost:8000/docs
+##   → MQTT:      localhost:1883
+##
+## make dev        → levanta todo
+## make test-smoke → smoke tests locales
+
+networks:
+  dev-net:
+    driver: bridge
+
+volumes:
+  influxdb_dev_data:
+  mosquitto_dev_data:
+
+services:
+
+  # ── FastAPI backend con hot-reload ──────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: dev
+    image: castuo-api:dev
+    container_name: castuo-api-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app:delegated
+      - ./services:/services:ro
+      - ./backend:/backend:ro
+    environment:
+      - ENVIRONMENT=development
+      - JWT_SECRET_KEY=dev-secret-key-for-local-testing-only
+      - MFA_ENABLED=false
+      - RATE_LIMIT_ENABLED=false
+      - ALLOWED_TENANTS=castuo,demo,staging,dev
+      - DEFAULT_TENANT=dev
+      - INFLUXDB_URL=http://influxdb-dev:8086
+      - INFLUXDB_TOKEN=dev-token
+      - INFLUXDB_ORG=castuo
+      - INFLUXDB_BUCKET_SENSORS=invernadero_sensores
+      - INFLUXDB_BUCKET_ENERGY=invernadero_energia
+      - INFLUXDB_BUCKET_ACTUATORS=invernadero_actuadores
+      - MQTT_BROKER_HOST=mosquitto-dev
+      - MQTT_BROKER_PORT=1883
+      - CASTUO_CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+      - LOG_LEVEL=DEBUG
+    command: uvicorn main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      - mosquitto-dev
+    networks:
+      - dev-net
+
+  # ── Frontend (nginx: SPA + proxy a API) ──────────────────────────────────────
+  frontend:
+    image: nginx:1.25-alpine
+    container_name: castuo-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro        # monta TODA la carpeta (CSS + HTML + assets)
+      - ./frontend/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/nginx-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - dev-net
+
+  # ── Mosquitto MQTT broker ────────────────────────────────────────────────────
+  mosquitto-dev:
+    image: eclipse-mosquitto:2.0
+    container_name: castuo-mosquitto-dev
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"      # WebSocket MQTT para el frontend
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_dev_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - dev-net
+
+  # ── CASTÚO MQTT Bridge (IoT → API) ──────────────────────────────────────────
+  castuo-mqtt-bridge:
+    build:
+      context: ./services/mqtt_bridge
+      dockerfile: Dockerfile
+    image: castuo-mqtt-bridge:dev
+    container_name: castuo-mqtt-bridge-dev
+    restart: unless-stopped
+    environment:
+      - MQTT_HOST=mosquitto-dev
+      - MQTT_PORT=1883
+      - API_URL=http://api:8000
+      - INFLUXDB_URL=http://influxdb-dev:8086
+      - INFLUXDB_TOKEN=dev-token
+      - INFLUXDB_ORG=castuo
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      mosquitto-dev:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - dev-net
+
+  # ── InfluxDB 2.x (series temporales) ────────────────────────────────────────
+  influxdb-dev:
+    image: influxdb:2.7-alpine
+    container_name: castuo-influxdb-dev
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminpassword
+      - DOCKER_INFLUXDB_INIT_ORG=castuo
+      - DOCKER_INFLUXDB_INIT_BUCKET=invernadero_sensores
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=dev-token
+    volumes:
+      - influxdb_dev_data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - dev-net

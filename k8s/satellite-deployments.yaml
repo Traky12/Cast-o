@@ -1,0 +1,177 @@
+# ── STAC Ingestion Worker ─────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stac-ingestion
+  namespace: castuo-system
+  labels:
+    app: stac-ingestion
+    component: satellite
+spec:
+  replicas: 1   # Worker singleton — usa lease para evitar duplicados
+  selector:
+    matchLabels:
+      app: stac-ingestion
+  template:
+    metadata:
+      labels:
+        app: stac-ingestion
+        component: satellite
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: stac-ingestion
+          image: ghcr.io/traky12/castuo-system/castuo-api:latest
+          command: ["python", "-m", "services.satellite.stac_worker"]
+          env:
+            - name: COPERNICUS_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: COPERNICUS_CLIENT_ID
+                  optional: true
+            - name: COPERNICUS_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: COPERNICUS_CLIENT_SECRET
+                  optional: true
+            - name: OBJECT_STORAGE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: OBJECT_STORAGE_KEY
+                  optional: true
+            - name: OBJECT_STORAGE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: OBJECT_STORAGE_SECRET
+                  optional: true
+          envFrom:
+            - configMapRef:
+                name: castuo-satellite-config
+          volumeMounts:
+            - name: satellite-data
+              mountPath: /data/satellite
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false   # necesita escribir resultados
+      volumes:
+        - name: satellite-data
+          persistentVolumeClaim:
+            claimName: castuo-satellite-pvc
+---
+# ── NDVI Worker (procesamiento intensivo) ─────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ndvi-worker
+  namespace: castuo-system
+  labels:
+    app: ndvi-worker
+    component: satellite
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ndvi-worker
+  template:
+    metadata:
+      labels:
+        app: ndvi-worker
+        component: satellite
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: ndvi-worker
+          image: ghcr.io/traky12/castuo-system/castuo-api:latest
+          command: ["python", "-m", "services.satellite.ndvi_worker"]
+          envFrom:
+            - configMapRef:
+                name: castuo-satellite-config
+          volumeMounts:
+            - name: satellite-data
+              mountPath: /data/satellite
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+      volumes:
+        - name: satellite-data
+          persistentVolumeClaim:
+            claimName: castuo-satellite-pvc
+---
+# ── NDVI API Service ──────────────────────────────────────────────────────────
+# Los endpoints /api/v1/satellite/* se sirven desde castuo-api (deployment.yaml)
+# Este Service expone el namespace internamente para balanceo.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ndvi-api-service
+  namespace: castuo-system
+  labels:
+    app: castuo-api
+    component: satellite
+spec:
+  type: ClusterIP
+  selector:
+    app: castuo-api
+  ports:
+    - name: http-satellite
+      port: 8001
+      targetPort: 8000
+      protocol: TCP
+---
+# ── PVC satelital (imágenes, resultados NDVI) ─────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: castuo-satellite-pvc
+  namespace: castuo-system
+  labels:
+    component: satellite
+spec:
+  accessModes: [ReadWriteMany]   # RWX: múltiples pods leen/escriben resultados
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      storage: 50Gi
+---
+# ── ConfigMap satelital ───────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: castuo-satellite-config
+  namespace: castuo-system
+data:
+  COPERNICUS_STAC_URL:      "https://catalogue.dataspace.copernicus.eu/stac"
+  COPERNICUS_ODATA_URL:     "https://catalogue.dataspace.copernicus.eu/odata/v1"
+  STAC_POLL_INTERVAL_S:     "3600"
+  STAC_MAX_CLOUD_COVER:     "20.0"
+  STAC_LOOKBACK_DAYS:       "30"
+  STAC_BBOX_PADDING_DEG:    "0.01"
+  NDVI_DATA_PATH:           "/data/satellite/ndvi"
+  SATELLITE_RESULTS_PATH:   "/data/satellite/results"
+  STAC_PARCELAS_FILE:       "/data/satellite/parcelas.json"
+  OBJECT_STORAGE_BUCKET:    "castuo-satellite"
+  OBJECT_STORAGE_ENDPOINT:  "https://fsn1.your-objectstorage.com"

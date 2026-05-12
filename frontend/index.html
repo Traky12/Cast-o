@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CASTÚO-SYSTEM™ v3.1 — Panel de Control</title>
+  <style>
+    :root {
+      --bg:      #0d1117;
+      --surface: #161b22;
+      --border:  #30363d;
+      --accent:  #238636;
+      --accent2: #1f6feb;
+      --text:    #c9d1d9;
+      --muted:   #8b949e;
+      --ok:      #3fb950;
+      --warn:    #d29922;
+      --err:     #f85149;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    header h1 span { color: var(--accent); }
+    .badge {
+      font-size: .7rem;
+      padding: .2rem .5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    #overall-status {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .85rem;
+    }
+    #status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background .3s;
+    }
+
+    /* ── Layout ── */
+    main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+    /* ── Section title ── */
+    h2 { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em;
+         color: var(--muted); margin-bottom: 1rem; padding-bottom: .5rem;
+         border-bottom: 1px solid var(--border); }
+
+    /* ── Cards grid ── */
+    .grid { display: grid; gap: 1rem; margin-bottom: 2.5rem; }
+    .grid-3 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: var(--accent2); }
+    .card-title {
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--muted);
+      margin-bottom: .75rem;
+    }
+    .card-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .card-sub { font-size: .8rem; color: var(--muted); margin-top: .25rem; }
+
+    /* ── Service row ── */
+    .svc-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 2.5rem; }
+    .svc-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .75rem 1.25rem;
+    }
+    .svc-row:hover { border-color: var(--accent2); }
+    .svc-icon { font-size: 1.25rem; width: 2rem; text-align: center; flex-shrink: 0; }
+    .svc-info { flex: 1; }
+    .svc-name { font-weight: 600; font-size: .95rem; }
+    .svc-desc { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
+    .svc-status {
+      font-size: .75rem;
+      padding: .2rem .65rem;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .status-ok   { background: rgba(63,185,80,.15); color: var(--ok); }
+    .status-warn { background: rgba(210,153,34,.15); color: var(--warn); }
+    .status-err  { background: rgba(248,81,73,.15);  color: var(--err); }
+    .status-loading { background: rgba(139,148,158,.15); color: var(--muted); }
+
+    .svc-link {
+      font-size: .8rem;
+      color: var(--accent2);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .svc-link:hover { text-decoration: underline; }
+
+    /* ── Endpoint test panel ── */
+    .endpoint-tester {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+    .ep-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: .5rem;
+      flex-wrap: wrap;
+    }
+    .ep-method {
+      font-size: .7rem;
+      font-weight: 700;
+      padding: .2rem .5rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .ep-get  { background: rgba(31,111,235,.2); color: #58a6ff; }
+    .ep-post { background: rgba(35,134,54,.2);  color: #3fb950; }
+    .ep-url  { font-family: monospace; font-size: .85rem; flex: 1; color: var(--text); }
+    .ep-desc { font-size: .75rem; color: var(--muted); width: 100%; padding-left: 4.5rem; }
+    .ep-btn {
+      font-size: .75rem;
+      padding: .3rem .75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: all .2s;
+      flex-shrink: 0;
+    }
+    .ep-btn:hover { background: var(--accent2); border-color: var(--accent2); color: white; }
+
+    /* ── Response box ── */
+    #response-box {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: monospace;
+      font-size: .8rem;
+      color: var(--ok);
+      min-height: 80px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      header { flex-direction: column; align-items: flex-start; gap: .5rem; }
+      .ep-url { font-size: .75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CASTÚO-SYSTEM™ <span>v3.1</span></h1>
+  <div style="display:flex;gap:1rem;align-items:center">
+    <div id="overall-status">
+      <div id="status-dot"></div>
+      <span id="status-label">Comprobando...</span>
+    </div>
+    <span class="badge">Soberanía UE · RGPD · AI Act</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Métricas rápidas ── -->
+  <h2>Resumen del sistema</h2>
+  <div class="grid grid-4">
+    <div class="card">
+      <div class="card-title">API Backend</div>
+      <div class="card-value" id="api-status-text">—</div>
+      <div class="card-sub">FastAPI · Puerto 8000</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Versión</div>
+      <div class="card-value" id="api-version">—</div>
+      <div class="card-sub">SABIONDA API</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Entorno</div>
+      <div class="card-value" id="api-env">—</div>
+      <div class="card-sub">Runtime mode</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Última comprobación</div>
+      <div class="card-value" id="last-check">—</div>
+      <div class="card-sub">Hora local</div>
+    </div>
+  </div>
+
+  <!-- ── Servicios ── -->
+  <h2>Servicios</h2>
+  <div class="svc-list">
+    <div class="svc-row">
+      <div class="svc-icon">⚡</div>
+      <div class="svc-info">
+        <div class="svc-name">SABIONDA API</div>
+        <div class="svc-desc">FastAPI · /health · /docs · /api/v1/*</div>
+      </div>
+      <span class="svc-status status-loading" id="svc-api">Cargando</span>
+      <a href="/docs" target="_blank" class="svc-link">Swagger →</a>
+    </div>
+    <div class="svc-row">
+      <div class="svc-icon">🌿</div>
+      <div class="svc-info">
+        <div class="svc-name">Invernadero Agrovoltaico</div>
+        <div class="svc-desc">Sensores · Actuadores · InfluxDB · MQTT</div>
+      </div>
+      <span class="svc-status status-loading" id="svc-inv">Cargando</span>
+      <a href="/api/v1/actuadores/estado" target="_blank" class="svc-link">Estado →</a>
+    </div>
+    <div class="svc-row">
+      <div class="svc-icon">🔗</div>
+      <div class="svc-info">
+        <div class="svc-name">Auditoría Inmutable</div>
+        <div class="svc-desc">SHA-256 chain-of-custody · RGPD compliant</div>
+      </div>
+      <span class="svc-status status-loading" id="svc-audit">Cargando</span>
+      <a href="/api/v1/audit/actions" target="_blank" class="svc-link">Acciones →</a>
+    </div>
+    <div class="svc-row">
+      <div class="svc-icon">🤖</div>
+      <div class="svc-info">
+        <div class="svc-name">SABIONDA IA (Claude)</div>
+        <div class="svc-desc">Circuit breaker · Kafka · Fallback local</div>
+      </div>
+      <span class="svc-status status-loading" id="svc-claude">Cargando</span>
+      <a href="/api/v1/claude/status" target="_blank" class="svc-link">Estado →</a>
+    </div>
+    <div class="svc-row">
+      <div class="svc-icon">⚙️</div>
+      <div class="svc-info">
+        <div class="svc-name">GitHub Webhook</div>
+        <div class="svc-desc">HMAC-SHA256 · push/PR/comment handlers</div>
+      </div>
+      <span class="svc-status status-loading" id="svc-gh">Cargando</span>
+      <a href="/api/v1/github/status" target="_blank" class="svc-link">Estado →</a>
+    </div>
+    <div class="svc-row">
+      <div class="svc-icon">🔐</div>
+      <div class="svc-info">
+        <div class="svc-name">Seguridad · Multi-tenancy</div>
+        <div class="svc-desc">MFA TOTP · Rate limit · X-Tenant-ID</div>
+      </div>
+      <span class="svc-status status-loading" id="svc-tenant">Cargando</span>
+      <a href="/api/v1/tenants/current" target="_blank" class="svc-link">Tenant →</a>
+    </div>
+  </div>
+
+  <!-- ── Probador de endpoints ── -->
+  <h2>Probador de endpoints</h2>
+  <div class="endpoint-tester">
+    <div class="ep-row">
+      <span class="ep-method ep-get">GET</span>
+      <span class="ep-url">/health</span>
+      <button class="ep-btn" onclick="testEndpoint('/health')">Probar</button>
+    </div>
+    <div class="ep-row">
+      <span class="ep-method ep-get">GET</span>
+      <span class="ep-url">/api/v1/actuadores/estado</span>
+      <button class="ep-btn" onclick="testEndpoint('/api/v1/actuadores/estado')">Probar</button>
+      <div class="ep-desc">Estado actual de todos los actuadores del invernadero</div>
+    </div>
+    <div class="ep-row">
+      <span class="ep-method ep-get">GET</span>
+      <span class="ep-url">/api/v1/audit/actions</span>
+      <button class="ep-btn" onclick="testEndpoint('/api/v1/audit/actions')">Probar</button>
+      <div class="ep-desc">Lista de acciones auditables disponibles</div>
+    </div>
+    <div class="ep-row">
+      <span class="ep-method ep-get">GET</span>
+      <span class="ep-url">/api/v1/claude/status</span>
+      <button class="ep-btn" onclick="testEndpoint('/api/v1/claude/status')">Probar</button>
+      <div class="ep-desc">Estado del circuit breaker de Claude / SABIONDA IA</div>
+    </div>
+    <div class="ep-row">
+      <span class="ep-method ep-get">GET</span>
+      <span class="ep-url">/api/v1/github/status</span>
+      <button class="ep-btn" onclick="testEndpoint('/api/v1/github/status')">Probar</button>
+      <div class="ep-desc">Estado de integración GitHub Webhook</div>
+    </div>
+    <div class="ep-row">
+      <span class="ep-method ep-get">GET</span>
+      <span class="ep-url">/api/v1/tenants/current</span>
+      <button class="ep-btn" onclick="testEndpoint('/api/v1/tenants/current')">Probar</button>
+      <div class="ep-desc">Tenant activo y configuración de seguridad</div>
+    </div>
+    <div class="ep-row">
+      <span class="ep-method ep-post">POST</span>
+      <span class="ep-url">/api/v1/claude/generate</span>
+      <button class="ep-btn" onclick="testClaudeGenerate()">Probar</button>
+      <div class="ep-desc">Genera respuesta IA sobre cultivo de tomate cherry</div>
+    </div>
+
+    <div id="response-box"></div>
+  </div>
+
+  <!-- ── Links externos ── -->
+  <h2>Herramientas externas</h2>
+  <div class="grid grid-3">
+    <a href="/docs" target="_blank" class="card" style="text-decoration:none;color:inherit;cursor:pointer">
+      <div class="card-title">📖 Swagger UI</div>
+      <div class="card-sub">Documentación interactiva de todos los endpoints de la API</div>
+    </a>
+    <a href="/redoc" target="_blank" class="card" style="text-decoration:none;color:inherit;cursor:pointer">
+      <div class="card-title">📄 ReDoc</div>
+      <div class="card-sub">Documentación OpenAPI 3.1 en formato limpio para compartir</div>
+    </a>
+    <a href="https://n8n.castuo-system.cloud" target="_blank" class="card" style="text-decoration:none;color:inherit;cursor:pointer">
+      <div class="card-title">⚙️ n8n Workflows</div>
+      <div class="card-sub">Orquestación de automatizaciones: temperatura, pH, EC, solar</div>
+    </a>
+  </div>
+
+</main>
+
+<script>
+  const API = window.location.origin; // mismo origen en prod; en dev apunta al backend
+
+  // ── Fetch con timeout ────────────────────────────────────────────────────────
+  async function safeFetch(url, opts = {}) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      const r = await fetch(url, { ...opts, signal: ctrl.signal });
+      clearTimeout(tid);
+      return r;
+    } catch (e) {
+      clearTimeout(tid);
+      throw e;
+    }
+  }
+
+  // ── Actualizar estado de un servicio ─────────────────────────────────────────
+  function setStatus(id, ok, label) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = label;
+    el.className = 'svc-status ' + (ok === true ? 'status-ok' : ok === false ? 'status-err' : 'status-warn');
+  }
+
+  // ── Health check principal ───────────────────────────────────────────────────
+  async function checkHealth() {
+    try {
+      const r = await safeFetch(API + '/health');
+      const d = await r.json();
+      const ok = r.ok;
+
+      document.getElementById('api-status-text').textContent = ok ? '✓ Online' : '✗ Error';
+      document.getElementById('api-version').textContent     = d.version || d.app_version || '3.1';
+      document.getElementById('api-env').textContent         = d.environment || d.env || 'production';
+      document.getElementById('last-check').textContent      = new Date().toLocaleTimeString('es-ES');
+
+      setStatus('svc-api', ok, ok ? 'Online' : 'Error');
+
+      const dot = document.getElementById('status-dot');
+      dot.style.background = ok ? 'var(--ok)' : 'var(--err)';
+      document.getElementById('status-label').textContent = ok ? 'Sistema operativo' : 'Problemas detectados';
+    } catch {
+      document.getElementById('api-status-text').textContent = '✗ Sin conexión';
+      setStatus('svc-api', false, 'Sin conexión');
+      document.getElementById('status-dot').style.background = 'var(--err)';
+      document.getElementById('status-label').textContent = 'API no disponible';
+    }
+  }
+
+  // ── Checks individuales ──────────────────────────────────────────────────────
+  async function checkEndpoint(svcId, url) {
+    try {
+      const r = await safeFetch(API + url);
+      setStatus(svcId, r.ok, r.ok ? 'Online' : `HTTP ${r.status}`);
+    } catch {
+      setStatus(svcId, false, 'Sin conexión');
+    }
+  }
+
+  // ── Probador de endpoints ────────────────────────────────────────────────────
+  async function testEndpoint(path) {
+    const box = document.getElementById('response-box');
+    box.style.display = 'block';
+    box.textContent = `GET ${API}${path}\n\nCargando...`;
+    try {
+      const r = await safeFetch(API + path);
+      const text = await r.text();
+      let pretty = text;
+      try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+      box.textContent = `HTTP ${r.status} ${r.statusText}\n\n${pretty}`;
+      box.style.color = r.ok ? 'var(--ok)' : 'var(--err)';
+    } catch (e) {
+      box.textContent = `Error: ${e.message}`;
+      box.style.color = 'var(--err)';
+    }
+  }
+
+  async function testClaudeGenerate() {
+    const box = document.getElementById('response-box');
+    box.style.display = 'block';
+    box.style.color = 'var(--ok)';
+    box.textContent = `POST ${API}/api/v1/claude/generate\n\nCargando...`;
+    try {
+      const r = await safeFetch(API + '/api/v1/claude/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: 'Parámetros óptimos de pH y EC para cultivo de tomate cherry en hidroponía NFT',
+          contexto: 'agricultura'
+        })
+      });
+      const d = await r.json();
+      box.textContent = `HTTP ${r.status}\nsimulado: ${d.simulado}\nmodelo: ${d.modelo}\n\n${d.respuesta}`;
+      box.style.color = r.ok ? 'var(--ok)' : 'var(--err)';
+    } catch (e) {
+      box.textContent = `Error: ${e.message}`;
+      box.style.color = 'var(--err)';
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  async function init() {
+    await checkHealth();
+    checkEndpoint('svc-inv',    '/api/v1/actuadores/estado');
+    checkEndpoint('svc-audit',  '/api/v1/audit/actions');
+    checkEndpoint('svc-claude', '/api/v1/claude/status');
+    checkEndpoint('svc-gh',     '/api/v1/github/status');
+    checkEndpoint('svc-tenant', '/api/v1/tenants/current');
+  }
+
+  init();
+  setInterval(init, 30000); // refresco cada 30 segundos
+</script>
+</body>
+</html>

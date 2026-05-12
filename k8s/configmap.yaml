@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: castuo-config
+  namespace: castuo-system
+  labels:
+    app: castuo-api
+data:
+  # ── Blockchain ────────────────────────────────────────────────
+  gaiachain-rpc-url:       "https://gaiachain.castuo-system.cloud/rpc"
+  gaiachain-network-id:    "31337"
+
+  # ── API ───────────────────────────────────────────────────────
+  castuo-cors-origins:     "https://castuo360.eu,https://www.castuo360.eu,https://app.castuo-system.cloud"
+  log-level:               "INFO"
+  environment:             "production"
+  uvicorn-workers:         "2"
+
+  # ── Feature flags ─────────────────────────────────────────────
+  # "1" activa el endpoint de cadena en /langgraph/health
+  castuo-robotics-lab-chain-register: "1"
+  # "0" deshabilita el lab neuromorfico hasta certificación HW
+  castuo-neuromorphic-lab: "0"
+
+  # ── QR / PDF ──────────────────────────────────────────────────
+  qr-registry-path:  "/data/castuo_qr_registry.json"
+  schemas-dir:       "/app/schemas"
+  verify-base-url:   "https://verify.castuo360.eu/lote"

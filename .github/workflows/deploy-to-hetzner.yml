@@ -1,0 +1,212 @@
+name: Deploy to Hetzner Kubernetes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "k8s/**"
+      - ".github/workflows/deploy-to-hetzner.yml"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker image tag to deploy (default: sha-<commit>)"
+        required: false
+        default: ""
+
+concurrency:
+  group: deploy-hetzner-k8s
+  cancel-in-progress: false   # no cancelar deploys en curso
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/castuo-api
+  NAMESPACE: castuo-system
+
+jobs:
+  # ── 1. Tests ──────────────────────────────────────────────────────────────
+  test:
+    name: API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install deps
+        run: |
+          sudo apt-get install -y python3-cffi libffi-dev -q
+          pip install --upgrade pip -q
+          pip install -r api/requirements.txt pytest pytest-asyncio -q
+
+      - name: Run tests
+        run: pytest tests/ -q --tb=short
+        env:
+          CASTUO_ROBOTICS_LAB_CHAIN_REGISTER: "0"
+          QR_REGISTRY_PATH: /tmp/qr_ci.json
+
+  # ── 2. Build & Push imagen ────────────────────────────────────────────────
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      sha-tag:   sha-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 3. Deploy Kubernetes ──────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Hetzner K8s
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.HETZNER_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+          kubectl cluster-info
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          if [[ -z "$TAG" ]]; then
+            TAG="sha-${{ github.sha }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Deploying image tag: $TAG"
+
+      - name: Update image in deployment manifest
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}"
+          sed -i "s|image: ghcr.io/.*castuo-api:.*|image: $IMAGE|g" k8s/deployment.yaml
+          grep "image:" k8s/deployment.yaml
+
+      - name: Apply namespace
+        run: kubectl apply -f k8s/namespace.yaml
+
+      - name: Apply ConfigMap
+        run: kubectl apply -f k8s/configmap.yaml -n ${{ env.NAMESPACE }}
+
+      - name: Apply Secrets (from GitHub secret)
+        run: |
+          # Crear el Secret directamente desde las variables de GitHub
+          # (k8s/secrets.yaml nunca se sube al repo)
+          kubectl create secret generic castuo-secrets \
+            --namespace=${{ env.NAMESPACE }} \
+            --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET_KEY }}" \
+            --from-literal=GAIACHAIN_PRIVATE_KEY="${{ secrets.GAIACHAIN_PRIVATE_KEY }}" \
+            --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --from-literal=MISTRAL_API_KEY="${{ secrets.MISTRAL_API_KEY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply PVC
+        run: kubectl apply -f k8s/pvc.yaml -n ${{ env.NAMESPACE }}
+
+      - name: Apply Deployment
+        run: kubectl apply -f k8s/deployment.yaml -n ${{ env.NAMESPACE }}
+
+      - name: Apply Service
+        run: kubectl apply -f k8s/service.yaml -n ${{ env.NAMESPACE }}
+
+      - name: Apply Ingress
+        run: kubectl apply -f k8s/ingress.yaml -n ${{ env.NAMESPACE }}
+
+      - name: Apply HPA
+        run: kubectl apply -f k8s/hpa.yaml -n ${{ env.NAMESPACE }}
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/castuo-api \
+            -n ${{ env.NAMESPACE }} \
+            --timeout=180s
+
+      - name: Verify pods
+        run: |
+          echo "── Pods ──────────────────────────────────────────"
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=castuo-api
+          echo ""
+          echo "── Services ──────────────────────────────────────"
+          kubectl get services -n ${{ env.NAMESPACE }}
+          echo ""
+          echo "── Ingress ───────────────────────────────────────"
+          kubectl get ingress -n ${{ env.NAMESPACE }}
+          echo ""
+          echo "── HPA ───────────────────────────────────────────"
+          kubectl get hpa -n ${{ env.NAMESPACE }}
+          echo ""
+          echo "── PVC ───────────────────────────────────────────"
+          kubectl get pvc -n ${{ env.NAMESPACE }}
+
+      - name: Production healthcheck
+        run: |
+          sleep 15
+          HTTP=$(curl -sf -o /dev/null -w "%{http_code}" \
+            https://api.castuo-system.cloud/health 2>/dev/null || echo "000")
+          if [[ "$HTTP" == "200" ]]; then
+            echo "✅ Healthcheck OK (HTTP 200)"
+          else
+            echo "⚠️  Healthcheck returned HTTP $HTTP (DNS may still be propagating)"
+          fi
+
+  # ── 4. Notificación de despliegue ─────────────────────────────────────────
+  notify:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## 🚀 CASTÚO Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Namespace | \`castuo-system\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Imagen | \`ghcr.io/${{ github.repository }}/castuo-api:sha-${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rama | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Health | https://api.castuo-system.cloud/health |" >> $GITHUB_STEP_SUMMARY
+          echo "| Estado | ${{ needs.deploy.result == 'success' && '✅ OK' || '❌ FAILED' }} |" >> $GITHUB_STEP_SUMMARY

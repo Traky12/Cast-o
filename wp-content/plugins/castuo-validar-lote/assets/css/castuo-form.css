@@ -1,0 +1,141 @@
+/* CASTÚO-SYSTEM™ — Form styles */
+:root {
+    --castuo-green:      #2e7d32;
+    --castuo-green-lt:   #e8f5e9;
+    --castuo-green-dk:   #1b5e20;
+    --castuo-orange:     #f57f17;
+    --castuo-red:        #c62828;
+    --castuo-grey:       #f5f5f5;
+    --castuo-border:     #c8e6c9;
+    --castuo-radius:     6px;
+    --castuo-shadow:     0 2px 8px rgba(0,0,0,.08);
+}
+
+.castuo-form-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.castuo-form-header h2 { color: var(--castuo-green-dk); margin-bottom: .25rem; }
+.castuo-subtitle        { color: #555; font-size: .9rem; margin-bottom: 1.5rem; }
+
+#castuo-form {
+    background: #fff;
+    border: 1px solid var(--castuo-border);
+    border-radius: var(--castuo-radius);
+    padding: 1.5rem;
+    box-shadow: var(--castuo-shadow);
+}
+
+.castuo-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: .75rem;
+}
+.castuo-field { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+.castuo-field--required label::after { content: " *"; color: var(--castuo-red); }
+
+.castuo-field label {
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--castuo-green-dk);
+    margin-bottom: .3rem;
+}
+.castuo-field input,
+.castuo-field select {
+    border: 1px solid #ccc;
+    border-radius: var(--castuo-radius);
+    padding: .45rem .6rem;
+    font-size: .9rem;
+    transition: border-color .2s;
+}
+.castuo-field input:focus,
+.castuo-field select:focus {
+    outline: none;
+    border-color: var(--castuo-green);
+    box-shadow: 0 0 0 3px rgba(46,125,50,.15);
+}
+.castuo-hint { font-size: .75rem; color: #777; margin-top: .2rem; }
+
+.castuo-field--checkbox {
+    justify-content: flex-end;
+    padding-bottom: .3rem;
+}
+.castuo-field--checkbox label {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.castuo-actions { margin-top: 1.25rem; text-align: right; }
+
+.castuo-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .55rem 1.2rem;
+    border-radius: var(--castuo-radius);
+    font-size: .92rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: background .2s, opacity .2s;
+}
+.castuo-btn:disabled          { opacity: .6; cursor: not-allowed; }
+.castuo-btn--primary          { background: var(--castuo-green); color: #fff; }
+.castuo-btn--primary:hover    { background: var(--castuo-green-dk); }
+.castuo-btn--secondary        { background: var(--castuo-grey); color: var(--castuo-green-dk); border: 1px solid var(--castuo-border); }
+.castuo-btn--secondary:hover  { background: var(--castuo-green-lt); }
+
+/* Resultado */
+.castuo-result {
+    margin-top: 1.5rem;
+    border: 1px solid var(--castuo-border);
+    border-radius: var(--castuo-radius);
+    padding: 1.25rem;
+    background: var(--castuo-green-lt);
+}
+.castuo-result__status--ok h3   { color: var(--castuo-green-dk); }
+.castuo-result__status--fallback h3 { color: var(--castuo-orange); }
+.castuo-result__table { width: 100%; border-collapse: collapse; margin: .75rem 0; }
+.castuo-result__table th,
+.castuo-result__table td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid #ddd; }
+.castuo-result__table th { width: 140px; color: #555; font-weight: 600; }
+.castuo-result__table code { font-size: .8rem; word-break: break-all; }
+.castuo-result__actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: .75rem; }
+
+/* Error */
+.castuo-error {
+    margin-top: 1rem;
+    background: #ffebee;
+    border: 1px solid #ef9a9a;
+    border-radius: var(--castuo-radius);
+    padding: .75rem 1rem;
+    color: var(--castuo-red);
+    font-size: .9rem;
+}
+
+/* Historial */
+.castuo-history { margin-top: 2rem; }
+.castuo-history h3 { color: var(--castuo-green-dk); margin-bottom: .75rem; }
+.castuo-history__table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.castuo-history__table th,
+.castuo-history__table td { padding: .45rem .6rem; border-bottom: 1px solid #eee; text-align: left; }
+.castuo-history__table th { background: var(--castuo-green-lt); font-weight: 600; color: var(--castuo-green-dk); }
+
+.castuo-badge { display: inline-block; border-radius: 3px; padding: .15rem .45rem; font-size: .78rem; font-weight: 600; }
+.castuo-badge--ok  { background: #c8e6c9; color: #1b5e20; }
+.castuo-badge--sim { background: #fff3e0; color: #e65100; }
+
+/* Notice */
+.castuo-notice { padding: .75rem 1rem; background: var(--castuo-grey); border-radius: var(--castuo-radius); }
+
+@media (max-width: 540px) {
+    .castuo-row { flex-direction: column; }
+    .castuo-field { min-width: 100%; }
+}
