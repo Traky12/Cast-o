@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: castuo-api-default-deny-ingress
+  namespace: castuo-system
+spec:
+  podSelector:
+    matchLabels:
+      app: castuo-api
+  policyTypes:
+    - Ingress
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: castuo-api-allow-ingress
+  namespace: castuo-system
+spec:
+  podSelector:
+    matchLabels:
+      app: castuo-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: castuo-system
+      ports:
+        - protocol: TCP
+          port: 8000

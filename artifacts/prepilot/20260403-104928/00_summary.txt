@@ -1,0 +1,10 @@
+Resumen de Verificaciones (2026-04-03 10:49:40 UTC)
+=================================================
+PASS: 12
+WARN: 7
+FAIL: 1
+
+GO_NO_GO: NO-GO
+Motivo: existen bloqueantes criticos
+
+OUTPUT_DIR: /workspaces/Castuo-system/artifacts/prepilot/20260403-104928

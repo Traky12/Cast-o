@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gdpr-cleanup
+  namespace: castuo-system
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: gdpr-cleanup
+            image: registry.castuo-system.cloud/castuo-api:3.1.1
+            command: ["python", "scripts/gdpr_cleanup.py"]
+            envFrom:
+            - secretRef:
+                name: castuo-secrets

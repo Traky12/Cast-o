@@ -1,0 +1,7 @@
+{
+  "cursor.model": "mistral-large-latest",
+  "cursor.models.fallback": [
+    "claude-3-5-sonnet",
+    "gpt-4o-mini"
+  ]
+}

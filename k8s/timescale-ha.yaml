@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescale-ha
+  namespace: castuo-system
+spec:
+  serviceName: timescale-ha
+  replicas: 3
+  selector:
+    matchLabels:
+      app: timescale-ha
+  template:
+    metadata:
+      labels:
+        app: timescale-ha
+    spec:
+      containers:
+      - name: timescale
+        image: timescale/timescaledb:latest-pg16
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: castuo_telemetry
+        - name: POSTGRES_USER
+          value: castuo_iot
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: castuo-secrets
+              key: TIMESCALE_DB_PASSWORD
+        volumeMounts:
+        - name: timescale-data
+          mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "castuo_iot", "-d", "castuo_telemetry"]
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "castuo_iot", "-d", "castuo_telemetry"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+  volumeClaimTemplates:
+  - metadata:
+      name: timescale-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 50Gi
+      storageClassName: hcloud-volumes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescale-ha
+  namespace: castuo-system
+spec:
+  clusterIP: None
+  selector:
+    app: timescale-ha
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432

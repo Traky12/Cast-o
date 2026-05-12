@@ -1,0 +1,4 @@
+# Upsert usuario piloto
+# CMD: docker exec castuo-mariadb mariadb -uroot -p'castuo_root' -e "USE castuo_system; INSERT INTO users (user_uid, email, role, full_name) VALUES ('pilot-user-001', 'piloto@castuo-system.cloud', 'admin', 'Usuario Piloto') ON DUPLICATE KEY UPDATE email='piloto@castuo-system.cloud', role='admin', full_name='Usuario Piloto';"
+# UTC: 2026-04-03T10:45:19Z
+

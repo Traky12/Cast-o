@@ -1,0 +1,10 @@
+name: Security Scan (deprecated)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deprecated. Use validate-all.yml"
