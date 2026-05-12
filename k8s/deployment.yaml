@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-api
+  labels:
+    app: castuo-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: castuo-api
+  template:
+    metadata:
+      labels:
+        app: castuo-api
+    spec:
+      containers:
+      - name: castuo-api
+        image: registry.castuo-system.cloud/castuo-api:3.1.0
+        ports:
+        - containerPort: 8000
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: castuo-secrets
+              key: jwt-secret
+        - name: GAIACHAIN_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: castuo-config
+              key: gaiachain-rpc-url
+        - name: GAIACHAIN_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: castuo-secrets
+              key: gaiachain-private-key
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5

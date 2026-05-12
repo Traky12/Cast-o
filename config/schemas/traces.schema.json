@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TRACES Certificado Sanitario",
+  "description": "Schema para generación de certificados sanitarios TRACES (Trade Control and Expert System) - Exportación UE",
+  "type": "object",
+  "required": ["certificado", "explotacion_origen", "animales", "destino"],
+  "properties": {
+    "certificado": {
+      "type": "object",
+      "required": ["tipo", "numero", "fecha_emision"],
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["INTRA", "EXPORT", "IMPORT", "TRANSIT"]
+        },
+        "numero": {
+          "type": "string",
+          "description": "Número de certificado TRACES"
+        },
+        "fecha_emision": {
+          "type": "string",
+          "format": "date"
+        },
+        "fecha_validez": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "explotacion_origen": {
+      "type": "object",
+      "required": ["rega", "nombre", "direccion", "pais"],
+      "properties": {
+        "rega": {
+          "type": "string",
+          "description": "Código REGA de la explotación de origen"
+        },
+        "nombre": {
+          "type": "string"
+        },
+        "direccion": {
+          "type": "string"
+        },
+        "pais": {
+          "type": "string",
+          "default": "ES"
+        },
+        "comunidad_autonoma": {
+          "type": "string"
+        }
+      }
+    },
+    "animales": {
+      "type": "object",
+      "required": ["especie", "cantidad"],
+      "properties": {
+        "especie": {
+          "type": "string",
+          "enum": ["vacuno", "porcino", "ovino", "caprino", "equino", "aves"]
+        },
+        "raza": {
+          "type": "string"
+        },
+        "cantidad": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "identificacion": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "crotal": {
+                "type": "string"
+              },
+              "microchip": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "estado_sanitario": {
+          "type": "object",
+          "properties": {
+            "tuberculosis": {
+              "type": "string",
+              "enum": ["negativo", "pendiente"]
+            },
+            "brucelosis": {
+              "type": "string",
+              "enum": ["negativo", "pendiente"]
+            },
+            "leucosis": {
+              "type": "string",
+              "enum": ["negativo", "pendiente"]
+            }
+          }
+        }
+      }
+    },
+    "destino": {
+      "type": "object",
+      "required": ["pais", "explotacion"],
+      "properties": {
+        "pais": {
+          "type": "string"
+        },
+        "explotacion": {
+          "type": "string"
+        },
+        "direccion": {
+          "type": "string"
+        }
+      }
+    },
+    "transporte": {
+      "type": "object",
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["carretera", "ferrocarril", "aereo", "maritimo"]
+        },
+        "matricula": {
+          "type": "string"
+        },
+        "autorizacion_transportista": {
+          "type": "string"
+        }
+      }
+    },
+    "firma": {
+      "type": "object",
+      "properties": {
+        "pendiente_firma": {
+          "type": "boolean",
+          "default": true
+        },
+        "aviso": {
+          "type": "string",
+          "default": "Documento generado para REVISIÓN y FIRMA del productor"
+        }
+      }
+    }
+  }
+}

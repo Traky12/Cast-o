@@ -1,0 +1,127 @@
+name: E2E Smoke — TRACES API
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  e2e-smoke-traces:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r api/requirements.txt httpx jsonschema pytest -q
+
+      - name: Create test fixture
+        run: |
+          mkdir -p tests/fixtures
+          cat > tests/fixtures/traces-sample.json << 'EOF'
+          {
+            "explotacion_rega": "ES100600000001",
+            "nombre_explotacion": "Finca Dehesa Test",
+            "direccion_explotacion": "Calle Test 1, Badajoz",
+            "animales": {
+              "especie": "porcino",
+              "raza": "Ibérico",
+              "cantidad": 200
+            },
+            "tipo_movimiento": "EXPORT",
+            "destino_pais": "PT",
+            "destino_explotacion": "PT-DEST-001"
+          }
+          EOF
+
+      - name: Start API server
+        run: |
+          cd api && SCHEMAS_DIR=$GITHUB_WORKSPACE/config/schemas \
+            uvicorn main:app --host 127.0.0.1 --port 8000 &
+          echo $! > /tmp/uvicorn.pid
+          
+          # Wait for server ready (max 30s)
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/health > /dev/null 2>&1; then
+              echo "✅ API server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done || { echo "❌ API server failed to start"; exit 1; }
+
+      - name: Smoke test — /health
+        run: |
+          RESPONSE=$(curl -sf http://127.0.0.1:8000/health)
+          echo "Health: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d.get('status') == 'ok', f'status != ok: {d}'
+          assert d.get('agent') == 'SABIONDA', f'agent != SABIONDA: {d}'
+          print('✅ /health OK')
+          "
+
+      - name: Smoke test — TRACES endpoint
+        run: |
+          RESPONSE=$(curl -sf -X POST http://127.0.0.1:8000/api/v1/traces/certificado \
+            -H "Content-Type: application/json" \
+            -d @tests/fixtures/traces-sample.json)
+          
+          echo "TRACES response size: ${#RESPONSE}"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.loads('''$RESPONSE''')
+          
+          # Validar estructura crítica
+          assert 'Compliant' in d.get('estado', ''), f'.estado missing Compliant: {d.get('estado')!r}'
+          assert d['payload']['firma']['pendiente_firma'] is True, 'pendiente_firma must be True'
+          assert d['payload']['explotacion_origen']['rega'] == 'ES100600000001', 'REGA mismatch'
+          assert d.get('aviso'), 'missing legal notice'
+          
+          print(f'✅ TRACES .estado: {d.get(\"estado\")}')
+          print(f'✅ REGA validated: {d[\"payload\"][\"explotacion_origen\"][\"rega\"]}')
+          "
+
+      - name: Validate TRACES JSON schema
+        run: |
+          if [ -f "config/schemas/traces.schema.json" ]; then
+            python3 - <<'EOF'
+            import json, sys
+            from pathlib import Path
+            import jsonschema
+            
+            schema_path = Path("config/schemas/traces.schema.json")
+            with open(schema_path) as f:
+                schema = json.load(f)
+            
+            # Leer respuesta anterior
+            with open("/tmp/traces_response.json", "w") as f:
+                f.write('''$(curl -s http://127.0.0.1:8000/api/v1/traces/certificado -d @tests/fixtures/traces-sample.json)''')
+            
+            with open("/tmp/traces_response.json") as f:
+                response = json.load(f)
+            
+            jsonschema.validate(instance=response.get("payload", {}), schema=schema)
+            print("✅ TRACES schema compliant")
+            EOF
+          else
+            echo "⚠️ Schema file missing, skipping validation"
+          fi
+
+      - name: Stop API server
+        if: always()
+        run: |
+          if [ -f /tmp/uvicorn.pid ]; then
+            kill "$(cat /tmp/uvicorn.pid)" 2>/dev/null || true
+          fi
+          echo "🧹 Server cleanup complete"

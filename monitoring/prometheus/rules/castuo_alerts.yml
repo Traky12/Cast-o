@@ -1,0 +1,176 @@
+## CASTÚO-SYSTEM™ v3.0 — Alerting Rules
+## Alertas para: API, IoT, Blockchain, Infraestructura, Compliance
+
+groups:
+
+  # ───────────────────────────────────────────
+  # API & Backend
+  # ───────────────────────────────────────────
+  - name: api_alerts
+    rules:
+      - alert: SabiondaAPIDown
+        expr: up{job="sabionda-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: sabionda-api
+        annotations:
+          summary: "SABIONDA API no responde"
+          description: "El backend SABIONDA lleva más de 1 minuto sin responder."
+
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="sabionda-api"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: sabionda-api
+        annotations:
+          summary: "Latencia alta en SABIONDA API"
+          description: "P95 latencia > 2s durante 5 minutos."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="sabionda-api",status=~"5.."}[5m]) / rate(http_requests_total{job="sabionda-api"}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+          service: sabionda-api
+        annotations:
+          summary: "Tasa de error > 5% en SABIONDA API"
+          description: "Más del 5% de las peticiones están fallando."
+
+  # ───────────────────────────────────────────
+  # Infraestructura
+  # ───────────────────────────────────────────
+  - name: infrastructure_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 3m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "CPU > 80% en {{ $labels.instance }}"
+          description: "Auto-scaler Hetzner debería activarse pronto."
+
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "CPU crítico > 95% en {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Memoria > 85% en {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Disco < 15% libre en {{ $labels.instance }}"
+
+  # ───────────────────────────────────────────
+  # Base de Datos (Arsys PostgreSQL)
+  # ───────────────────────────────────────────
+  - name: database_alerts
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL Arsys no disponible"
+
+      - alert: TooManyConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "PostgreSQL: demasiadas conexiones activas ({{ $value }})"
+
+  # ───────────────────────────────────────────
+  # Blockchain GaiaChain
+  # ───────────────────────────────────────────
+  - name: blockchain_alerts
+    rules:
+      - alert: GaiaChainNodeDown
+        expr: up{job="gaiachain"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: gaiachain
+        annotations:
+          summary: "Nodo GaiaChain 3.0 no disponible"
+          description: "La trazabilidad blockchain está comprometida."
+
+      - alert: BlockProductionSlow
+        expr: gaiachain_block_time_seconds > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: gaiachain
+        annotations:
+          summary: "Producción de bloques lenta (> 30s)"
+
+  # ───────────────────────────────────────────
+  # IoT LoRaWAN
+  # ───────────────────────────────────────────
+  - name: iot_alerts
+    rules:
+      - alert: LoRaWANGatewayDown
+        expr: up{job="lorawan"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: lorawan
+        annotations:
+          summary: "Gateway LoRaWAN no responde"
+          description: "Sensores de campo sin conexión."
+
+      - alert: SensorDataStale
+        expr: time() - lorawan_last_message_timestamp > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: lorawan
+        annotations:
+          summary: "Sensor {{ $labels.device_id }} sin datos > 5 min"
+
+  # ───────────────────────────────────────────
+  # Compliance RGPD / Soberanía
+  # ───────────────────────────────────────────
+  - name: compliance_alerts
+    rules:
+      - alert: DataLeakRisk
+        expr: castuo_external_requests_non_eu_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: compliance
+        annotations:
+          summary: "Posible fuga de datos fuera de la UE detectada"
+          description: "Se han detectado peticiones a endpoints fuera de la UE. Revisar inmediatamente."
+
+      - alert: CertificateExpiringSoon
+        expr: (castuo_tls_cert_expiry_seconds - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          service: compliance
+        annotations:
+          summary: "Certificado TLS expira en < 30 días"
