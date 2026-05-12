@@ -1,7 +1,7 @@
 # Resumen Visual - CASTUO-SYSTEM 2040
 
-Actualizado: 2026-05-11 19:49 UTC
-Ultimo cambio: f7877ad - [WIP] Fix healthcheck timestamp and chain status failures (#26)
+Actualizado: 2026-05-12 18:20 UTC
+Ultimo cambio: 67cc765 - Initial commit
 
 ## Estado General
 
@@ -47,7 +47,7 @@ action: Validacion ISO 27001 y despliegue operativo ampliado - 90 dias
 
 ## Enlaces Operativos
 
-- Pull Requests: https://github.com/Traky12/Castuo-system/pulls
-- Issues: https://github.com/Traky12/Castuo-system/issues
+- Pull Requests: https://github.com/Traky12/Cast-o/pulls
+- Issues: https://github.com/Traky12/Cast-o/issues
 - Documentacion tecnica: docs/CASTUO-SYSTEM-ANALISIS-COMPLETO.md
 - Resumen ejecutivo: docs/RESUMEN-EJECUTIVO-1PAGE.md
