@@ -1,0 +1,9 @@
+# cert-manager emitiendo certificados
+# CMD: kubectl logs -n cert-manager deploy/cert-manager --tail 200 | grep -i 'Successfully issued certificate'
+# UTC: 2026-04-03T11:10:29Z
+
+E0403 11:10:29.614214   87743 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=32s\": dial tcp [::1]:8080: connect: connection refused"
+E0403 11:10:29.614981   87743 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=32s\": dial tcp [::1]:8080: connect: connection refused"
+E0403 11:10:29.616605   87743 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=32s\": dial tcp [::1]:8080: connect: connection refused"
+E0403 11:10:29.617552   87743 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=32s\": dial tcp [::1]:8080: connect: connection refused"
+The connection to the server localhost:8080 was refused - did you specify the right host or port?

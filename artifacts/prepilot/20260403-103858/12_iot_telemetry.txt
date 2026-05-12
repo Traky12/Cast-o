@@ -1,0 +1,5 @@
+# Telemetria IoT en topic castuo/#
+# CMD: if [ -n '' ]; then docker exec '' sh -lc "mosquitto_sub -h localhost -t 'castuo/#' -C 1 -W 3"; else echo 'MQTT container no disponible'; exit 1; fi
+# UTC: 2026-04-03T10:39:02Z
+
+MQTT container no disponible

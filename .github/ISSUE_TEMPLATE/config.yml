@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentación
+    url: https://github.com/Traky12/Castuo-system/wiki
+    about: Consulta la documentación del proyecto antes de abrir un issue.
+  - name: 💬 Discusiones
+    url: https://github.com/Traky12/Castuo-system/discussions
+    about: Para preguntas generales y debates, usa las discusiones del repositorio.

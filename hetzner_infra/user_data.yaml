@@ -1,0 +1,100 @@
+#cloud-config
+# Hetzner Cloud automated setup for CASTUO-SYSTEM
+
+# Update system packages
+package_update: true
+package_upgrade: true
+
+# Install required packages
+packages:
+  - curl
+  - wget
+  - git
+  - docker.io
+  - python3-pip
+  - jq
+  - htop
+  - tmux
+  - openssh-server
+  - rsync
+  
+# Configure Docker
+runcmd:
+  # Start Docker
+  - systemctl enable --now docker
+  - usermod -aG docker root
+  
+  # Install Docker Compose
+  - curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  - chmod +x /usr/local/bin/docker-compose
+  
+  # Install k3s lightweight Kubernetes
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.28.0 sh -
+  - systemctl enable --now k3s
+  
+  # Wait for k3s to be ready
+  - sleep 30
+  
+  # Create kubeconfig for external access (replace loopback with real public IP)
+  - mkdir -p /root/.kube
+  - cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
+  - PUBLIC_IP=$(curl -sf https://api64.ipify.org || hostname -I | awk '{print $1}')
+  - sed -i "s/127.0.0.1/$PUBLIC_IP/g" /root/.kube/config
+  - chmod 600 /root/.kube/config
+  
+  # Mount data volume if available
+  - |
+    if [ -b /dev/sdb ]; then
+      mkfs.ext4 /dev/sdb -F
+      mkdir -p /mnt/castuo-data
+      mount /dev/sdb /mnt/castuo-data
+      echo "/dev/sdb /mnt/castuo-data ext4 defaults 0 0" >> /etc/fstab
+      chmod 755 /mnt/castuo-data
+    fi
+  
+  # Create CASTUO base directories
+  - mkdir -p /mnt/castuo-data/{postgres,mongodb,prometheus,grafana,vault}
+  - chmod 755 /mnt/castuo-data/*
+  
+  # Setup container registry mirror (optional)
+  - mkdir -p /etc/docker
+  - echo '{"registry-mirrors": ["https://mirror.gcr.io"]}' > /etc/docker/daemon.json
+  - systemctl restart docker
+  
+  # Clone CASTUO-SYSTEM repo
+  - cd /tmp && git clone https://github.com/Traky12/Castuo-system.git
+  - cp -r /tmp/Castuo-system/k8s /root/castuo-k8s
+  
+  # Deploy base Kubernetes manifests
+  - /usr/local/bin/k3s kubectl create namespace castuo || true
+  - /usr/local/bin/k3s kubectl apply -f /root/castuo-k8s/namespace.yaml || true
+  - /usr/local/bin/k3s kubectl apply -f /root/castuo-k8s/configmap.yaml || true
+  
+  # Start n8n in Docker (initial fallback before k8s deployment)
+  - docker run -d --name=n8n-init --restart=always -p 5678:5678 -v n8n_data:/home/node/.n8n -e NODE_ENV=production n8nio/n8n
+  
+  # Start PostgreSQL for TimescaleDB
+  - docker run -d --name=postgres-castuo --restart=always -p 5432:5432 -e POSTGRES_PASSWORD=castuo_secure_pwd_change_me -v /mnt/castuo-data/postgres:/var/lib/postgresql/data postgres:15-alpine
+  
+  # Start Prometheus for monitoring
+  - docker run -d --name=prometheus --restart=always -p 9090:9090 -v /mnt/castuo-data/prometheus:/prometheus prom/prometheus --config.file=/prometheus/prometheus.yml
+  
+  # Configure firewall (UFW)
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 5678/tcp
+  - ufw allow 6443/tcp
+  - ufw --force enable
+  
+  # Create system info snapshot
+  - PUBLIC_IP=$(curl -sf https://api64.ipify.org || hostname -I | awk '{print $1}')
+  - echo "CASTUO-SYSTEM deployment initialized at $(date)" > /root/DEPLOYMENT_INFO.txt
+  - echo "Server IP: $PUBLIC_IP" >> /root/DEPLOYMENT_INFO.txt
+  - echo "k3s installed and running" >> /root/DEPLOYMENT_INFO.txt
+  - echo "n8n available at http://$PUBLIC_IP:5678" >> /root/DEPLOYMENT_INFO.txt
+  - echo "PostgreSQL: localhost:5432" >> /root/DEPLOYMENT_INFO.txt
+  - echo "Prometheus: http://$PUBLIC_IP:9090" >> /root/DEPLOYMENT_INFO.txt
+
+# Final message
+final_message: "CASTUO-SYSTEM infrastructure initialized successfully. Check /root/DEPLOYMENT_INFO.txt"

@@ -1,0 +1,9 @@
+RUNBOOK PRE-PILOT SUMMARY
+UTC: 2026-04-03T10:28:45Z
+OUTPUT_DIR: /workspaces/Castuo-system/artifacts/prepilot/20260403-102841
+PASS: 9
+WARN: 3
+FAIL: 1
+
+GO_NO_GO: NO-GO
+Motivo: existen bloqueantes criticos

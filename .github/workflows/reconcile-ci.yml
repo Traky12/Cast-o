@@ -1,0 +1,112 @@
+name: Reconcile CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: reconcile-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    env:
+      SABIONDA_API_KEY: ${{ secrets.SABIONDA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar secreto local (opcional)
+        run: |
+          mkdir -p secrets
+          if [ -n "${SABIONDA_API_KEY:-}" ]; then
+            umask 077
+            printf '%s' "$SABIONDA_API_KEY" > secrets/sabionda_key
+            echo "Secret SABIONDA_API_KEY preparado para jobs locales"
+          else
+            echo "SABIONDA_API_KEY no definido en GitHub Secrets"
+          fi
+
+      - name: Ejecutar reconciliacion (dry-run)
+        id: reconcile
+        env:
+          SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
+          TARGET_BRANCH: ${{ github.base_ref || 'main' }}
+        run: |
+          mkdir -p artifacts
+          rc=0
+          bash scripts/reconcile.sh \
+            --dry-run \
+            --output-dir ./artifacts \
+            --summary-json ./artifacts/summary.json \
+            --source-branch "${SOURCE_BRANCH}" \
+            --target-branch "${TARGET_BRANCH}" || rc=$?
+          echo "reconcile_exit_code=$rc" >> "$GITHUB_OUTPUT"
+
+      - name: Validar prerequisitos y artefactos
+        run: |
+          set -euo pipefail
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "jq no esta disponible en el runner" >&2
+            exit 1
+          fi
+
+          if [ ! -f ./artifacts/summary.json ]; then
+            rc="${{ steps.reconcile.outputs.reconcile_exit_code || '1' }}"
+            jq -n \
+              --argjson rc "${rc}" \
+              '{
+                drift_detected: false,
+                status: {
+                  code: $rc,
+                  message: "summary.json no generado por reconcile.sh"
+                },
+                status_code: $rc,
+                message: "summary.json no generado por reconcile.sh"
+              }' > ./artifacts/summary.json
+          fi
+
+      - name: Subir artefactos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reconcile-artifacts
+          path: ./artifacts/
+
+      - name: "Politica de reconcile (PR: permitir drift)"
+        run: |
+          set -euo pipefail
+          drift="$(jq -r '.drift_detected // false' ./artifacts/summary.json)"
+          status_code="$(jq -r '.status.code // .status_code // 1' ./artifacts/summary.json)"
+          echo "### Reconcile Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Event: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Drift: ${drift}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Status code: ${status_code}" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "$drift" = "true" ]; then
+              echo "Drift detectado en PR (permitido): revisar artefactos adjuntos."
+              exit 0
+            fi
+            if [ "$status_code" != "0" ]; then
+              echo "Error critico en reconcile para PR (status=$status_code)."
+              exit 1
+            fi
+            echo "Sin drift en PR."
+          else
+            if [ "$drift" = "true" ]; then
+              echo "Drift detectado fuera de PR: bloqueo de release."
+              exit 1
+            fi
+            if [ "$status_code" != "0" ]; then
+              echo "Reconcile fallo con status=$status_code fuera de PR."
+              exit 1
+            fi
+            echo "Sin drift y reconcile OK fuera de PR."
+          fi

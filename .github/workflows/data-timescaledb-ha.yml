@@ -1,0 +1,63 @@
+name: Data - TimescaleDB HA Setup
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  timescaledb-ha:
+    runs-on: ubuntu-latest
+    env:
+      CI_POSTGRES_PASSWORD: ci-timescaledb-test-pass
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: castuo_test
+          POSTGRES_USER: castuo
+          POSTGRES_PASSWORD: ${{ env.CI_POSTGRES_PASSWORD }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install psycopg2
+        run: |
+          pip install psycopg2-binary
+      
+      - name: Validate TimescaleDB replication settings
+        run: |
+          PGPASSWORD="${CI_POSTGRES_PASSWORD}" psql -h localhost -U castuo -d castuo_test -c \
+            "SHOW max_wal_senders; SHOW max_replication_slots; SHOW wal_level;"
+      
+      - name: Test hypertable creation
+        run: |
+          set -euo pipefail
+          PGPASSWORD="${CI_POSTGRES_PASSWORD}" psql -h localhost -U castuo -d castuo_test << EOF
+          CREATE TABLE IF NOT EXISTS sensor_telemetry (
+            id BIGSERIAL,
+            time TIMESTAMPTZ NOT NULL,
+            sensor_id TEXT NOT NULL,
+            value FLOAT8 NOT NULL,
+            PRIMARY KEY (time, sensor_id, id)
+          );
+          SELECT create_hypertable('sensor_telemetry', 'time', if_not_exists := TRUE);
+          SELECT * FROM timescaledb_information.hypertables;
+          EOF
+      
+      - name: Test WAL archiving
+        run: |
+          set -euo pipefail
+          PGPASSWORD="${CI_POSTGRES_PASSWORD}" psql -h localhost -U castuo -d castuo_test -c \
+            "SHOW archive_mode; SHOW archive_command;"

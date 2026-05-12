@@ -1,0 +1,167 @@
+{
+  "uid": "castuo-overview",
+  "title": "CASTÚO-SYSTEM™ — Vista General Soberana",
+  "description": "Dashboard principal: servicios, IoT, blockchain, compliance RGPD",
+  "tags": ["castuo", "sovereign", "agriculture", "blockchain"],
+  "timezone": "Europe/Madrid",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Estado Global del Sistema",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "count(up{job=~\"sabionda-api|n8n|postgres|gaiachain|lorawan\"} == 1)",
+          "legendFormat": "Servicios Activos"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "value": 0, "color": "red" },
+            { "value": 3, "color": "yellow" },
+            { "value": 5, "color": "green" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Soberanía UE",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "castuo_eu_sovereignty_score",
+          "legendFormat": "Score Soberanía"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "unit": "percent"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Transacciones GaiaChain / hora",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(gaiachain_transactions_total[1h]) * 3600",
+          "legendFormat": "Tx/hora"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Latencia SABIONDA API (P95)",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"sabionda-api\"}[5m]))",
+          "legendFormat": "P95 Latencia (s)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Sensores IoT LoRaWAN Activos",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "count(lorawan_device_last_seen_seconds < 300)",
+          "legendFormat": "Sensores Activos"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "QR Generados (24h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 12 },
+      "targets": [
+        {
+          "expr": "increase(castuo_qr_generated_total[24h])",
+          "legendFormat": "QR / 24h"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "CPU Servidores Hetzner",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "CPU % — {{ instance }}"
+        }
+      ],
+      "alert": {
+        "conditions": [
+          { "type": "query", "query": { "params": ["A", "5m", "now"] },
+            "reducer": { "type": "avg" },
+            "evaluator": { "type": "gt", "params": [80] }
+          }
+        ],
+        "name": "CPU Alta — Auto-Scaling Requerido"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Documentos GOV Generados",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "castuo_documents_generated_total",
+          "legendFormat": "{{ doc_type }}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "RGPD Compliance Score",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "castuo_rgpd_compliance_score",
+          "legendFormat": "RGPD Score"
+        }
+      ],
+      "options": {
+        "minValue": 0,
+        "maxValue": 100,
+        "thresholds": {
+          "steps": [
+            { "value": 0, "color": "red" },
+            { "value": 70, "color": "yellow" },
+            { "value": 90, "color": "green" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Registros IPFS Anclados",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 24 },
+      "targets": [
+        {
+          "expr": "ipfs_cluster_pins_total",
+          "legendFormat": "Pins IPFS"
+        }
+      ]
+    }
+  ]
+}

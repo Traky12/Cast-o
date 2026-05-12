@@ -1,0 +1,5 @@
+# Telemetria IoT en topic castuo/#
+# CMD: if [ -n 'castuo-mqtt-bridge' ]; then docker exec 'castuo-mqtt-bridge' sh -lc "mosquitto_pub -h localhost -t castuo/prepilot/telemetry -m '{\"status\":\"ok\"}' -q 1 && mosquitto_sub -h localhost -t 'castuo/#' -C 1 -W 5"; else echo 'MQTT container no disponible'; exit 1; fi
+# UTC: 2026-04-03T10:49:40Z
+
+Error response from daemon: Container 06c7d5ba5475dba86833d6ef1f76fd95712d88ef048e0fa009ba7c1e060a5b51 is restarting, wait until the container is running

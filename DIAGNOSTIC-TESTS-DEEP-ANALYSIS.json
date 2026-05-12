@@ -1,0 +1,298 @@
+{
+  "diagnostic_timestamp": "2026-04-04T00:00:00Z",
+  "project": "Castúo-System v3.1.1",
+  "test_suite_status": {
+    "total_tests": 428,
+    "passing": 425,
+    "failing": 3,
+    "pass_rate": 99.3,
+    "execution_time_seconds": 83.76
+  },
+  "critical_blocking_issues": [
+    {
+      "id": "GH-001",
+      "file": "tests/test_greenhouse_advanced_capture.py",
+      "count": 3,
+      "root_cause": "3 endpoints críticos para captura de datos 3D (holografía y fotogrametría) NO ESTÁN IMPLEMENTADOS en api/routers/greenhouse.py. Los tests esperan endpoints que retornen 200 pero reciben 404 Not Found.",
+      "blocking_what": "Captura de datos 3D en prototipos P1 y P2 para digital twin. Sin estos endpoints, no se puede registrar datos de holografía/fotogrametría ni consultar estado de digital twin.",
+      "fix_complexity": "medium",
+      "estimated_time": 2.5,
+      "severity": "HIGH",
+      "affected_tests": [
+        "test_register_holography_capture",
+        "test_register_photogrammetry_scan", 
+        "test_digital_twin_status_includes_3d_systems"
+      ],
+      "error_pattern": "404 Not Found on POST/GET endpoints",
+      "detailed_analysis": {
+        "test_expectations": [
+          "POST /api/v1/greenhouse/{prototype_id}/holography/register — Retorna 200 con estructura {prototype_id, registered, capture{...}}",
+          "POST /api/v1/greenhouse/{prototype_id}/photogrammetry/register — Retorna 200 con estructura {prototype_id, registered, capture{...}}",
+          "GET /api/v1/greenhouse/{prototype_id}/digital-twin/status — Retorna 200 con {prototype_id, holography{captures_total}, photogrammetry{captures_total}, system_ready}"
+        ],
+        "current_implementation": "Router greenhouse.py tiene 9 endpoints (telemetry, status, alerts, actuator, recipe, history, compare, health, cloud_flush) pero FALTAN los 3 nuevos para captura 3D.",
+        "why_falta": "Feature para digital twin (captura 3D de estado físico de prototipos) fue diseñada en tests pero no completó implementación en router. Tests fueron escritos como especificación adelantada.",
+        "payload_mismatch": {
+          "test_expects_holography": {
+            "request": {
+              "device_id": "holo-p1-cam",
+              "resolution": "4k",
+              "point_density": 125000.0,
+              "coverage_percent": 92.5,
+              "operator_id": "ops-01"
+            },
+            "response": {
+              "prototype_id": 1,
+              "registered": true,
+              "capture": {
+                "device_id": "...",
+                "resolution": "...",
+                "point_density": 125000.0,
+                "coverage_percent": 92.5,
+                "registered_at": "ISO timestamp"
+              }
+            }
+          },
+          "test_expects_photogrammetry": {
+            "request": {
+              "device_id": "photo-p2-rig",
+              "images_count": 96,
+              "overlap_percent": 78.0,
+              "avg_reprojection_error": 0.42,
+              "operator_id": "ops-02"
+            },
+            "response": {
+              "prototype_id": 2,
+              "registered": true,
+              "capture": {
+                "device_id": "...",
+                "images_count": 96,
+                "overlap_percent": 78.0,
+                "avg_reprojection_error": 0.42,
+                "registered_at": "ISO timestamp"
+              }
+            }
+          },
+          "test_expects_digital_twin_status": {
+            "response": {
+              "prototype_id": 1,
+              "holography": {
+                "captures_total": 1,
+                "last_capture_timestamp": "ISO",
+                "avg_point_density": 120000.0
+              },
+              "photogrammetry": {
+                "captures_total": 1,
+                "last_capture_timestamp": "ISO",
+                "avg_images_count": 80
+              },
+              "system_ready": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "missing_implementations": [
+    {
+      "endpoint": "/api/v1/greenhouse/{prototype_id}/holography/register",
+      "method": "POST",
+      "models_needed": [
+        "HolographyCapture (Pydantic model with device_id, resolution, point_density, coverage_percent, operator_id, registered_at)",
+        "HolographyRegistrationResponse (Pydantic model with prototype_id, registered, capture dict)"
+      ],
+      "db_tables_needed": [
+        "greenhouse_holography_captures (id, prototype_id, device_id, resolution, point_density, coverage_percent, operator_id, created_at, updated_at)",
+        "OR: in-memory dict in _PrototypeState for tests"
+      ],
+      "logic": "Route handler accepting HolographyCapture, storing in prototype state or DB, returning HolographyRegistrationResponse with status=200. Must increment captures_total counter.",
+      "test_file": "tests/test_greenhouse_advanced_capture.py::test_register_holography_capture",
+      "blocking_status": "CRITICAL — without this, 3D capture data cannot be registered"
+    },
+    {
+      "endpoint": "/api/v1/greenhouse/{prototype_id}/photogrammetry/register",
+      "method": "POST",
+      "models_needed": [
+        "PhotogrammetryScan (Pydantic with device_id, images_count, overlap_percent, avg_reprojection_error, operator_id, registered_at)",
+        "PhotogrammetryRegistrationResponse (Pydantic with prototype_id, registered, capture dict)"
+      ],
+      "db_tables_needed": [
+        "greenhouse_photogrammetry_scans (id, prototype_id, device_id, images_count, overlap_percent, avg_reprojection_error, operator_id, created_at, updated_at)",
+        "OR: in-memory dict in _PrototypeState for tests"
+      ],
+      "logic": "Route handler accepting PhotogrammetryScan, storing state, returning PhotogrammetryRegistrationResponse status=200. Must track captures_total and last_capture metadata.",
+      "test_file": "tests/test_greenhouse_advanced_capture.py::test_register_photogrammetry_scan",
+      "blocking_status": "CRITICAL — without this, photogrammetry results cannot be persisted"
+    },
+    {
+      "endpoint": "/api/v1/greenhouse/{prototype_id}/digital-twin/status",
+      "method": "GET",
+      "models_needed": [
+        "DigitalTwinStatus (Pydantic with prototype_id, holography{captures_total, last_capture_timestamp, avg_point_density}, photogrammetry{captures_total, last_capture_timestamp, avg_images_count}, system_ready)"
+      ],
+      "db_tables_needed": [
+        "Query greenhouse_holography_captures and greenhouse_photogrammetry_scans for prototype_id",
+        "OR: aggregate from _PrototypeState.holography_captures and _PrototypeState.photogrammetry_scans lists"
+      ],
+      "logic": "Route handler querying both holography and photogrammetry data for prototype, calculating system_ready based on captures availability, returning DigitalTwinStatus. system_ready = True if captures_total >= 1 for each modality.",
+      "test_file": "tests/test_greenhouse_advanced_capture.py::test_digital_twin_status_includes_3d_systems",
+      "blocking_status": "CRITICAL — without this endpoint, cannot query 3D capture status which breaks digital twin feature"
+    }
+  ],
+  "contextual_analysis": {
+    "state_before": "Prior diagnostic (plan-integracion.md) indicated 56 tests failing (31 + 11 + 14). That was ASPIRATIONAL PLAN written before recent implementation waves.",
+    "state_current": "425/428 tests passing (99.3%). Major features ARE implemented:\n  ✅ test_invernadero.py: 43/43 PASS (all greenhouse nutritive solution, climate, agrovoltaico, QR traceability endpoints work)\n  ✅ test_whatsapp_alerts.py: 13/13 PASS (all tenant phone management, alert logging, emergency contacts, n8n workflow tests pass)\n  ❌ test_greenhouse_advanced_capture.py: 0/3 PASS (3D capture endpoints missing)\n",
+    "root_cause_of_gap": "Feature for digital twin 3D capture (holography + photogrammetry) was spec'd in tests AHEAD of implementation. Tests written as behavioral spec, but routes were not completed. This is a normal 'specification-first testing' approach that is now blocking integration.",
+    "why_this_happened": "Likely workflow:\n  1. Test-driven development: tests written first to spec the exact API contract\n  2. Router started with basic telemetry/status endpoints\n  3. Advanced 3D capture feature scope expansion happened\n  4. new tests written for 3D features\n  5. router implementation was interrupted before completing the 3D endpoints\n  6. Tests now fail because contract is defined but implementation missing",
+    "adoption_pattern": "This is GOOD from a quality perspective — tests caught the missing feature before production deployment. This is exactly what TDD should do."
+  },
+  "tier_classification": {
+    "P0_blocking": [
+      "GH-001: 3 missing 3D capture endpoints (blocks digital twin feature entirely)"
+    ],
+    "P1_important": [
+      "None identified in current test suite"
+    ],
+    "P2_nice_to_have": [
+      "None identified in current test suite"
+    ]
+  },
+  "dependency_analysis": {
+    "critical_dependencies": {
+      "HolographyCapture_model": {
+        "status": "MISSING",
+        "needed_by": ["POST /holography/register"],
+        "required_fields": ["device_id (str)", "resolution (str, e.g., '4k')", "point_density (float)", "coverage_percent (float)", "operator_id (str, optional)"],
+        "estimated_lines_of_code": 10
+      },
+      "PhotogrammetryScan_model": {
+        "status": "MISSING",
+        "needed_by": ["POST /photogrammetry/register"],
+        "required_fields": ["device_id (str)", "images_count (int)", "overlap_percent (float)", "avg_reprojection_error (float)", "operator_id (str, optional)"],
+        "estimated_lines_of_code": 10
+      },
+      "DigitalTwinStatus_model": {
+        "status": "MISSING",
+        "needed_by": ["GET /digital-twin/status"],
+        "required_fields": ["prototype_id (int)", "holography (dict with captures_total, last_capture_timestamp, avg_point_density)", "photogrammetry (dict with captures_total, last_capture_timestamp, avg_images_count)", "system_ready (bool)"],
+        "estimated_lines_of_code": 20
+      },
+      "_PrototypeState_extensions": {
+        "status": "PARTIALLY_PRESENT",
+        "current": "_PrototypeState already has state tracking (last_telemetry, alerts, history, recipe, actuators, created_at)",
+        "needed_addition": "Add holography_captures: list[dict] and photogrammetry_scans: list[dict] to track 3D captures",
+        "estimated_lines_of_code": 5
+      }
+    }
+  },
+  "implementation_roadmap": {
+    "phase_1_models_and_state": {
+      "duration_minutes": 20,
+      "tasks": [
+        "Add 3 Pydantic models (HolographyCapture, PhotogrammetryScan, DigitalTwinStatus) to greenhouse.py",
+        "Extend _PrototypeState.__init__() to add holography_captures: list = [] and photogrammetry_scans: list = []",
+        "Add helper method _PrototypeState.register_holography(capture: dict) and register_photogrammetry(scan: dict)"
+      ],
+      "estimated_lines": 40
+    },
+    "phase_2_endpoints": {
+      "duration_minutes": 45,
+      "tasks": [
+        "Implement POST /{prototype_id}/holography/register endpoint",
+        "Implement POST /{prototype_id}/photogrammetry/register endpoint",
+        "Implement GET /{prototype_id}/digital-twin/status endpoint",
+        "Each endpoint: validate prototype_id, extract data, call helper, return response"
+      ],
+      "estimated_lines": 80
+    },
+    "phase_3_testing": {
+      "duration_minutes": 15,
+      "tasks": [
+        "Run pytest tests/test_greenhouse_advanced_capture.py -v to verify all 3 tests pass",
+        "Run pytest --tb=short to ensure no regressions in other 425 tests"
+      ]
+    },
+    "total_estimated_hours": 1.67
+  },
+  "quality_metrics_and_recommendations": {
+    "current_test_coverage": {
+      "greenhouse_telemetry": "FULL — ingest_telemetry, status, alerts, actuator, recipe, history all tested",
+      "greenhouse_3d_capture": "SPECIFICATION_WRITTEN — tests exist but feature not yet implemented",
+      "invernadero_module": "FULL — 43 tests all passing",
+      "whatsapp_integration": "FULL — 13 tests all passing",
+      "overall": "99.3% pass rate indicates mature, stable codebase"
+    },
+    "why_3d_capture_tests_were_written_first": "Behavioral TDD: Requirements came in (need digital twin with 3D capture), tests were written to spec exact API contract, then implementation was partially completed. This is CORRECT process.",
+    "best_practice_confirmed": "✅ Test-first approach caught missing feature before production\n✅ Tests define exact API contract\n✅ Clear specification of inputs/outputs\n✅ No ambiguity about what should be implemented",
+    "risk_if_not_fixed": [
+      "Digital twin feature cannot launch — endpoints return 404",
+      "3D capture data (holography, photogrammetry) from prototypes P1/P2 cannot be stored",
+      "Status queries for 3D systems will fail",
+      "Breaks entire advanced capture workflow"
+    ]
+  },
+  "comparison_with_other_routers": {
+    "invernadero.py": {
+      "endpoints": 12,
+      "test_coverage": "43/43 tests passing (100%)",
+      "implementation_status": "COMPLETE"
+    },
+    "greenhouse.py": {
+      "endpoints": 9,
+      "test_coverage": "Multiple passing tests + 3 failing",
+      "missing": 3,
+      "implementation_status": "92% complete (missing 3D capture feature)"
+    },
+    "other_routers": {
+      "tenant.py": "Tests passing",
+      "auth.py": "Tests passing",
+      "audit.py": "Tests passing",
+      "blockchain_router.py": "Tests passing",
+      "etc": "~18 other routers, all with passing test coverage"
+    }
+  },
+  "actionable_next_steps": [
+    {
+      "step": 1,
+      "action": "Read api/routers/greenhouse.py lines 1-250 to understand existing _PrototypeState and model pattern",
+      "owner": "Developer",
+      "time": "5 min"
+    },
+    {
+      "step": 2,
+      "action": "Add 4 new Pydantic models + extend _PrototypeState class (Phase 1)",
+      "owner": "Developer",
+      "time": "20 min",
+      "template": "Copy TelemetryPayload pattern, rename fields per test expectations"
+    },
+    {
+      "step": 3,
+      "action": "Implement 3 route handlers (Phase 2)",
+      "owner": "Developer",
+      "time": "45 min",
+      "reference": "Copy pattern from ingest_telemetry, get_status handlers"
+    },
+    {
+      "step": 4,
+      "action": "Run pytest tests/test_greenhouse_advanced_capture.py -v",
+      "owner": "Developer",
+      "time": "2 min",
+      "expected_outcome": "3 passed, 0 failed"
+    },
+    {
+      "step": 5,
+      "action": "Run full pytest suite to ensure no regressions",
+      "owner": "CI/CD",
+      "time": "2 min",
+      "expected_outcome": "428 passed, 0 failed"
+    }
+  ],
+  "summary": {
+    "current_state": "Castúo-System is 99.3% complete (425/428 tests passing). Only 3 tests failing, all in same feature: advanced 3D capture for greenhouse digital twin.",
+    "critical_gap": "3 API endpoints for holography/photogrammetry registration + digital twin status query are spec'd in tests but NOT implemented in router.",
+    "impact": "Digital twin 3D capture feature blocked. Cannot store/query holographic or photogrammetric scan data from prototypes.",
+    "effort_to_fix": "1.67 hours (20 min models + 45 min endpoints + 15 min testing + margin)",
+    "confidence": "HIGH — Tests clearly define what is needed, implementation pattern is obvious from existing router code",
+    "recommendation": "PROCEED with implementation. This is not a 'defect' but a 'feature scope gap' caught by good TDD practices. Tests are correct specification. Add the 3 missing endpoints and go from 99.3% to 100% test pass rate."
+  }
+}
