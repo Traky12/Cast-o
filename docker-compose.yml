@@ -1,0 +1,113 @@
+version: "3.8"
+
+services:
+  openclaw-agente:
+    image: openclaw/openclaw:latest
+    container_name: sabionda-agent
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./agents/sabionda:/app/agents/sabionda:ro
+      - ./config:/app/config:ro
+    environment:
+      - AGENT_NAME=SABIONDA
+      - AGENT_VERSION=2.1
+      - RAG_ENABLED=true
+      - RAG_MODEL=openclaw-rag-2.0
+      - DATABASE_URL=postgresql://castuo:${POSTGRES_PASSWORD}@postgres:5432/castuo_db
+      - FASTAPI_URL=http://fastapi:8000
+      - SIEX_API_URL=${SIEX_API_URL:-https://siex.mapa.gob.es/api}
+      - TRACES_API_URL=${TRACES_API_URL:-https://webgate.ec.europa.eu/tracesnt/api}
+      - SIGPAC_API_URL=${SIGPAC_API_URL:-https://sigpac.mapa.gob.es/api}
+      - REGEPA_API_URL=${REGEPA_API_URL:-https://regepa.mapa.gob.es/api}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fastapi:
+        condition: service_started
+    networks:
+      - castuo-network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: sabionda-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sabionda-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=castuo_db
+      - POSTGRES_USER=castuo
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U castuo -d castuo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - castuo-network
+
+  fastapi:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: sabionda-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config/schemas:/app/schemas:ro
+    environment:
+      - DATABASE_URL=postgresql://castuo:${POSTGRES_PASSWORD}@postgres:5432/castuo_db
+      - SIEX_API_URL=${SIEX_API_URL:-https://siex.mapa.gob.es/api}
+      - TRACES_API_URL=${TRACES_API_URL:-https://webgate.ec.europa.eu/tracesnt/api}
+      - SIGPAC_API_URL=${SIGPAC_API_URL:-https://sigpac.mapa.gob.es/api}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network
+
+  lorawan-gateway:
+    image: thethingsnetwork/lorawan-stack:latest
+    container_name: sabionda-lorawan
+    restart: unless-stopped
+    ports:
+      - "1700:1700/udp"
+      - "8887:8887"
+    environment:
+      - TTN_LW_IS_DATABASE_URI=postgresql://castuo:${POSTGRES_PASSWORD}@postgres:5432/castuo_ttn
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - castuo-network
+
+volumes:
+  postgres_data:
+  n8n_data:
+
+networks:
+  castuo-network:
+    driver: bridge
