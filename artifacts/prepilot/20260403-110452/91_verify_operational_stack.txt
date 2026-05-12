@@ -1,0 +1,26 @@
+# Verificacion operativa integral
+# CMD: bash '/workspaces/Castuo-system/scripts/verify_operational_stack.sh'
+# UTC: 2026-04-03T11:05:00Z
+
+=== Verificación Operativa CASTUO-SYSTEM ===
+[PASS] MariaDB corriendo
+[PASS] Conexión MariaDB (SHOW DATABASES)
+[PASS] Tablas críticas castuo_system
+[PASS] Contenedor API corriendo
+[WARN] FastAPI /health responde (HTTP 000)
+[WARN] FastAPI expone métricas
+[PASS] Contenedor WordPress corriendo
+[WARN] Frontend /?pagename=sistema responde (HTTP 000)
+[PASS] Logs WordPress accesibles
+[PASS] Contenedor Mosquitto corriendo
+[WARN] Suscripción MQTT básica (desde contenedor)
+[PASS] Contenedor Redis corriendo
+[PASS] Redis responde PONG (desde contenedor)
+[PASS] Redis keys ejecuta (desde contenedor)
+[PASS] Contenedor Prometheus corriendo
+[PASS] Prometheus query API responde
+[PASS] Contenedor Grafana corriendo
+[PASS] Grafana responde HTTP (HTTP 302)
+[WARN] kubectl sin cluster activo (skip checks cert-manager)
+
+Resumen: PASS=14 WARN=5

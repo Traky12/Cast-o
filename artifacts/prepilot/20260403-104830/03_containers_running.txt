@@ -1,0 +1,13 @@
+# Contenedores castuo en running
+# CMD: docker ps --filter 'name=castuo' --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+# UTC: 2026-04-03T10:48:47Z
+
+NAMES                        STATUS                             PORTS
+castuo-mqtt-bridge           Restarting (3) 1 second ago        
+castuo-wordpress             Up 16 seconds (health: starting)   127.0.0.1:8083->80/tcp
+castuo-system-grafana-1      Up 3 minutes                       0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+castuo-system-prometheus-1   Up 3 minutes                       0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp
+castuo-system-api-1          Up 7 seconds (health: starting)    0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+castuo-system-postgres-1     Up 8 seconds                       0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+castuo-system-redis-1        Up 3 minutes                       0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+castuo-mariadb               Up 55 minutes (healthy)            3306/tcp

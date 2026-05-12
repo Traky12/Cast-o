@@ -1,0 +1,145 @@
+name: 48h Operativity Gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      enforce_gate:
+        description: "Fail workflow when operativity or TRL9 is NO-GO"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: operativity-48h-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  operativity-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run 48h operativity checks
+        id: operativity
+        continue-on-error: true
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+          MQTT_HOST: ${{ vars.MQTT_HOST }}
+          MQTT_TOPIC: ${{ vars.MQTT_TOPIC }}
+          RUN_DEMO_FLOW: ${{ vars.RUN_DEMO_FLOW }}
+          DEMO_EMAIL: ${{ secrets.DEMO_EMAIL }}
+          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+        run: |
+          make operativity-48h-check
+
+      - name: Recalculate TRL9 gate status
+        id: trl9
+        run: |
+          make trl9-gate-status
+
+      - name: Extract operativity and TRL9 status
+        id: status
+        if: always()
+        run: |
+          set -euo pipefail
+          GO_FILE="artifacts/operativity/trl9/go-nogo-status.md"
+          LAST_REPORT="$(ls -1t artifacts/operativity/trl9/connection-48h-check-*.md 2>/dev/null | head -n1 || true)"
+
+          OPERATIVITY_STATE="UNKNOWN"
+          TRL9_STATE="UNKNOWN"
+
+          if [[ -n "$LAST_REPORT" ]]; then
+            OPERATIVITY_STATE="$(grep -E "^- Operatividad tecnica 48h:" "$LAST_REPORT" | awk -F': ' '{print $2}' || echo UNKNOWN)"
+          fi
+
+          if [[ -f "$GO_FILE" ]]; then
+            TRL9_STATE="$(grep -E "^- TRL 9 \(certificacion externa\):" "$GO_FILE" | awk -F': ' '{print $2}' || echo UNKNOWN)"
+          fi
+
+          echo "operativity_state=$OPERATIVITY_STATE" >> "$GITHUB_OUTPUT"
+          echo "trl9_state=$TRL9_STATE" >> "$GITHUB_OUTPUT"
+          echo "report_file=${LAST_REPORT:-not-generated}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload operativity artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operativity-48h-evidence
+          path: |
+            artifacts/operativity/trl9/connection-48h-check-*.md
+            artifacts/operativity/trl9/go-nogo-status.md
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Resolve target PR number
+        id: pr
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            if (context.eventName === 'pull_request') {
+              core.setOutput('number', String(context.payload.pull_request.number));
+              return;
+            }
+
+            const headBranch = context.ref.replace('refs/heads/', '');
+            const prs = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${headBranch}`,
+              per_page: 1,
+            });
+
+            const number = prs.data?.[0]?.number;
+            core.setOutput('number', number ? String(number) : '');
+
+      - name: Comment PR with operativity summary
+        if: ${{ always() && steps.pr.outputs.number != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = Number('${{ steps.pr.outputs.number }}');
+            const body = [
+              `🚦 **48h Operativity: ${{ steps.status.outputs.operativity_state }}**`,
+              `- TRL9 Gate: **${{ steps.status.outputs.trl9_state }}**`,
+              `- Workflow result: **${{ job.status }}**`,
+              `- Report file: \`${{ steps.status.outputs.report_file }}\``,
+              '- Gate source: `artifacts/operativity/trl9/go-nogo-status.md`',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
+
+      - name: Enforce gate (optional)
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.enforce_gate }}
+        run: |
+          if [[ "${{ steps.status.outputs.operativity_state }}" != "GO" || "${{ steps.status.outputs.trl9_state }}" != "GO" ]]; then
+            echo "[ERROR] Gate enforced and status is NO-GO"
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 48h Operativity Gate" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Operativity state: ${{ steps.status.outputs.operativity_state }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- TRL9 state: ${{ steps.status.outputs.trl9_state }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Report: ${{ steps.status.outputs.report_file }}" >> "$GITHUB_STEP_SUMMARY"

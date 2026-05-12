@@ -1,0 +1,103 @@
+## CASTÚO-SYSTEM™ v3.0 — Prometheus Configuration
+## Monitorización soberana europea: RGPD-compliant, datos en Hetzner UE
+## Retención: 15 días (cumplimiento RGPD — datos mínimos necesarios)
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    system: "castuo-system"
+    environment: "production"
+    sovereignty: "EU"
+
+# ─────────────────────────────────────────────
+# Alerting — Alertmanager
+# ─────────────────────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# ─────────────────────────────────────────────
+# Rule files
+# ─────────────────────────────────────────────
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+# ─────────────────────────────────────────────
+# Scrape Configurations
+# ─────────────────────────────────────────────
+scrape_configs:
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # FastAPI — SABIONDA Backend
+  - job_name: "sabionda-api"
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["fastapi:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "sabionda-api"
+
+  # n8n Workflow Engine
+  - job_name: "n8n"
+    static_configs:
+      - targets: ["n8n-main:5678"]
+    metrics_path: /metrics
+
+  # PostgreSQL Exporter (Arsys DB)
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "arsys-postgres"
+
+  # Node Exporter — métricas de sistema en cada servidor Hetzner
+  - job_name: "node-exporter"
+    static_configs:
+      - targets:
+          - "node-exporter:9100"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+
+  # GaiaChain Node
+  - job_name: "gaiachain"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["gaiachain-node:8545"]
+    metrics_path: /metrics
+
+  # IPFS Cluster
+  - job_name: "ipfs-cluster"
+    static_configs:
+      - targets: ["ipfs-cluster:8888"]
+    metrics_path: /metrics
+
+  # LoRaWAN Gateway
+  - job_name: "lorawan"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["lorawan-gateway:1700"]
+    metrics_path: /metrics
+
+  # QR Generator Service
+  - job_name: "qr-generator"
+    static_configs:
+      - targets: ["qr-generator:8000"]
+    metrics_path: /metrics
+
+  # Cadvisor — métricas de contenedores Docker
+  - job_name: "cadvisor"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["cadvisor:8080"]

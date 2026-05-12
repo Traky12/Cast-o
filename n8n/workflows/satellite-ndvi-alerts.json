@@ -1,0 +1,60 @@
+{
+  "name": "Satellite NDVI Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "topic": "ndvi-alerts",
+        "operation": "subscribe",
+        "options": {}
+      },
+      "name": "Kafka Trigger",
+      "type": "n8n-nodes-base.kafkaTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.all();\nconst payload = data[0].json || {};\nconst ndviValue = Number(payload.ndvi ?? 1);\nconst parcelId = payload.parcel_id || 'unknown';\nconst threshold = Number($env.NDVI_THRESHOLD || 0.3);\nif (ndviValue < threshold) {\n  return [{ json: { alert: true, parcel_id: parcelId, ndvi: ndviValue, message: `NDVI bajo (${ndviValue}) en parcela ${parcelId}` } }];\n}\nreturn [];"
+      },
+      "name": "Check Threshold",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.castuo-system.eu/api/v1/alerts",
+        "jsonParameters": true,
+        "options": {}
+      },
+      "name": "Send Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Kafka Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Threshold": {
+      "main": [
+        [
+          {
+            "node": "Send Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

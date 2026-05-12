@@ -1,0 +1,126 @@
+name: Agent Sync Hardening CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - hardening
+      - feat/**
+  schedule:
+    - cron: "15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: agent-sync-hardening-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: Preflight de robustez
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias minimas
+        run: |
+          python -m pip install --upgrade pip
+          pip install -q pytest
+
+      - name: Preparar entorno cloud minimo para CI
+        run: |
+          set -euo pipefail
+          if [[ ! -f .env.cloud ]]; then
+            cp .env.cloud.example .env.cloud
+          fi
+
+      - name: Ejecutar preflight
+        run: bash scripts/preflight.sh
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          CASTUO_SABIONDA_API_KEY: ${{ secrets.SABIONDA_API_KEY }}
+          SABIONDA_AUTH_HEALTH_URL: ${{ secrets.SABIONDA_AUTH_HEALTH_URL }}
+          OPENCLAW_ENDPOINT: ${{ secrets.OPENCLAW_ENDPOINT }}
+          RISK_GATE_ENV_FILES: .env.cloud
+
+  sync-metrics:
+    name: Exportar metricas de sincronizacion
+    needs: preflight
+    runs-on: ubuntu-latest
+    env:
+      PUSHGATEWAY_URL: ${{ secrets.PUSHGATEWAY_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generar metricas
+        run: bash scripts/metrics-sync.sh > metrics.prom
+
+      - name: Subir artefacto de metricas
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-sync-metrics
+          path: metrics.prom
+
+      - name: Publicar metricas a Pushgateway
+        if: ${{ env.PUSHGATEWAY_URL != '' }}
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST --data-binary @metrics.prom "${PUSHGATEWAY_URL}"
+
+  chaos-test:
+    name: Prueba de caos (drift simulation)
+    needs: sync-metrics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ejecutar chaos test seguro
+        run: bash scripts/chaos-test-sync.sh
+
+  checklist-sabionda:
+    name: Checklist Sabionda
+    needs: chaos-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Descargar metricas
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-sync-metrics
+
+      - name: Validar gates Sabionda
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f metrics.prom
+
+          sync_errors=$(awk '/^castuo_agent_sync_errors / {print $2}' metrics.prom)
+          drift=$(awk '/^castuo_agent_drift_detection / {print $2}' metrics.prom)
+
+          if [[ "${sync_errors:-1}" != "0" ]]; then
+            echo "ERROR: castuo_agent_sync_errors=${sync_errors}"
+            exit 1
+          fi
+
+          if [[ "${drift:-1}" != "0" ]]; then
+            echo "ERROR: castuo_agent_drift_detection=${drift}"
+            exit 1
+          fi
+
+          echo "Checklist Sabionda OK"
+
+      - name: Gate reconcile no dry-run
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, 'reconcile-non-dry')
+        run: |
+          echo "Reconcile no dry-run detectado. Requiere aprobacion manual Sabionda fuera de CI."

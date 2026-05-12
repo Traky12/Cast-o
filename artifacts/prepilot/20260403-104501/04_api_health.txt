@@ -1,0 +1,5 @@
+# API health responde
+# CMD: curl -fsS -I 'http://localhost:8000/health'
+# UTC: 2026-04-03T10:45:16Z
+
+curl: (7) Failed to connect to localhost port 8000 after 0 ms: Couldn't connect to server

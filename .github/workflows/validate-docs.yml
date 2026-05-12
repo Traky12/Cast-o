@@ -1,0 +1,10 @@
+name: Validate Documentation (deprecated)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deprecated. Use validate-all.yml"

@@ -1,0 +1,210 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-api
+  namespace: castuo-system
+  labels:
+    app: castuo-api
+    app.kubernetes.io/version: "3.1.1"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: castuo-api
+  template:
+    metadata:
+      labels:
+        app: castuo-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: castuo-api
+          image: registry.castuo-system.cloud/castuo-api:3.1.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: castuo-config
+            - secretRef:
+                name: castuo-secrets
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: castuo-data-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-n8n
+  namespace: castuo-system
+  labels:
+    app: castuo-n8n
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: castuo-n8n
+  template:
+    metadata:
+      labels:
+        app: castuo-n8n
+    spec:
+      containers:
+        - name: castuo-n8n
+          image: n8nio/n8n:latest
+          ports:
+            - containerPort: 5678
+              protocol: TCP
+          env:
+            - name: N8N_BASIC_AUTH_ACTIVE
+              value: "true"
+            - name: N8N_BASIC_AUTH_USER
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: N8N_BASIC_AUTH_USER
+            - name: N8N_BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: N8N_BASIC_AUTH_PASSWORD
+            - name: DB_TYPE
+              value: postgresdb
+            - name: DB_POSTGRESDB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: castuo-config
+                  key: DB_HOST
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: castuo-config
+                  key: DB_NAME
+            - name: DB_POSTGRESDB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: castuo-config
+                  key: DB_USER
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: castuo-secrets
+                  key: DB_PASSWORD
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "300m"
+              memory: "512Mi"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-prometheus
+  namespace: castuo-system
+  labels:
+    app: castuo-prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: castuo-prometheus
+  template:
+    metadata:
+      labels:
+        app: castuo-prometheus
+    spec:
+      containers:
+        - name: castuo-prometheus
+          image: prom/prometheus:latest
+          ports:
+            - containerPort: 9090
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "300m"
+              memory: "512Mi"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: castuo-grafana
+  namespace: castuo-system
+  labels:
+    app: castuo-grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: castuo-grafana
+  template:
+    metadata:
+      labels:
+        app: castuo-grafana
+    spec:
+      containers:
+        - name: castuo-grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "300m"
+              memory: "512Mi"

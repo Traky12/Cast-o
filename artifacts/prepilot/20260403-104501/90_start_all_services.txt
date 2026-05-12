@@ -1,0 +1,46 @@
+# Arranque de stack recomendado
+# CMD: bash '/workspaces/Castuo-system/scripts/start_all_services.sh'
+# UTC: 2026-04-03T10:45:02Z
+
+[INFO] Iniciando procesos críticos CASTUO-SYSTEM...
+[INFO] 1/7 Iniciando frontend local hardened (WordPress + MariaDB)...
+Frontend disponible en: http://localhost:5432
+Admin en: http://localhost:5432/wp-admin
+[INFO] 2/7 Iniciando Redis...
+time="2026-04-03T10:45:11Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:45:11Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Container castuo-system-redis-1  Starting
+ Container castuo-system-redis-1  Started
+[INFO] 3/7 Iniciando MQTT broker...
+time="2026-04-03T10:45:12Z" level=warning msg="The \"GF_ADMIN_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:45:12Z" level=warning msg="The \"THINGSDATA_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:45:12Z" level=warning msg="The \"THINGSDATA_SECRET\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:45:12Z" level=warning msg="The \"THINGSDATA_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:45:12Z" level=warning msg="/workspaces/Castuo-system/docker-compose.iot.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ mosquitto Pulling 
+ mosquitto Error manifest for eclipse-mosquitto:2.0.15-alpine not found: manifest unknown: manifest unknown
+Error response from daemon: manifest for eclipse-mosquitto:2.0.15-alpine not found: manifest unknown: manifest unknown
+[WARN] Mosquitto no inició
+[INFO] 4/7 Iniciando backend API...
+time="2026-04-03T10:45:13Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:45:13Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Container castuo-system-redis-1  Running
+ Container castuo-system-postgres-1  Starting
+Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint castuo-system-postgres-1 (07e5f1095a1da209571f37a8aa4f37358af8e8e5bb8dbcd84c05d49b455bc29c): Bind for 127.0.0.1:5432 failed: port is already allocated
+[WARN] API no inició
+[INFO] 5/7 Iniciando Prometheus...
+time="2026-04-03T10:45:14Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:45:14Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Container castuo-system-prometheus-1  Starting
+ Container castuo-system-prometheus-1  Started
+[INFO] 6/7 Iniciando Grafana...
+time="2026-04-03T10:45:14Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T10:45:14Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+ Container castuo-system-prometheus-1  Running
+ Container castuo-system-grafana-1  Starting
+ Container castuo-system-grafana-1  Started
+[INFO] 7/7 Inicializando persistencia castuo_system...
+[ERROR] Define WP_DB_ROOT_PASSWORD o MYSQL_ROOT_PASSWORD para inicializar la persistencia
+[WARN] Persistencia no inicializada automáticamente
+[OK] Arranque recomendado completado.
+Comando recomendado de verificación: bash /workspaces/Castuo-system/scripts/verify_operational_stack.sh

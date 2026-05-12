@@ -1,0 +1,16 @@
+services:
+  vault:
+    image: hashicorp/vault:1.18
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_DEV_ROOT_TOKEN_ID: "change-me-root-token"
+    volumes:
+      - vault_data:/vault/file
+    cap_add:
+      - IPC_LOCK
+    command: vault server -dev
+
+volumes:
+  vault_data:
