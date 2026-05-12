@@ -1,0 +1,5 @@
+# API health responde
+# CMD: for i in {1..12}; do curl -fsS 'http://localhost:8000/health' && exit 0; sleep 5; done; exit 1
+# UTC: 2026-04-03T11:11:11Z
+
+{"status":"ok","agent":"SABIONDA","version":"3.1.1","timescale":"fallback","eidas":"simulated"}

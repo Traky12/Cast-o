@@ -1,0 +1,177 @@
+groups:
+  - name: CASTUO_SLOs
+    interval: 30s
+    rules:
+      # Uptime SLO: 99.5%
+      - alert: UptimeBelowSLO
+        expr: |
+          (1 - (count(up{job="fastapi"} == 0) / count(up{job="fastapi"}))) < 0.995
+        for: 5m
+        labels:
+          severity: critical
+          slo_type: uptime
+        annotations:
+          summary: "Uptime below SLO (99.5%)"
+          description: "System uptime has dropped below 99.5%. Current: {{ $value | humanizePercentage }}"
+      
+      # Yield SLO: 99.2%
+      - alert: YieldBelowSLO
+        expr: |
+          (rate(http_requests_total{status=~"2.."}[5m]) / rate(http_requests_total[5m])) < 0.992
+        for: 10m
+        labels:
+          severity: high
+          slo_type: yield
+        annotations:
+          summary: "Yield below SLO (99.2%)"
+          description: "Request success rate below 99.2%. Current: {{ $value | humanizePercentage }}"
+      
+      # Response time P99: < 500ms
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          metric_type: latency
+        annotations:
+          summary: "P99 response time exceeds 500ms"
+          description: "P99 latency: {{ $value | humanizeDuration }}"
+      
+      # Database replication lag
+      - alert: DatabaseReplicationLag
+        expr: |
+          pg_replication_lag{instance="timescaledb"} > 10
+        for: 2m
+        labels:
+          severity: high
+          component: database
+        annotations:
+          summary: "PostgreSQL replication lag detected"
+          description: "Database lag: {{ $value | humanizeDuration }}"
+      
+      # Disk usage warning
+      - alert: DiskUsageHigh
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse|squashfs"} / 
+           node_filesystem_size_bytes) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "Disk usage above 85%"
+          description: "Available disk: {{ $value | humanizePercentage }}"
+      
+      # Memory usage critical
+      - alert: MemoryCritical
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.90
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Memory usage above 90%"
+          description: "Used memory: {{ $value | humanizePercentage }}"
+      
+      # CPU usage high
+      - alert: CPUUsageHigh
+        expr: |
+          100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "CPU usage high"
+          description: "CPU usage: {{ $value | humanize }}%"
+      
+      # MQTT broker down
+      - alert: MQTTBrokerDown
+        expr: |
+          up{job="mqtt"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: mqtt
+        annotations:
+          summary: "MQTT broker is down"
+          description: "MQTT broker {{ $labels.instance }} has been down for more than 1 minute"
+      
+      # IoT sensor offline (more than 10% of sensors)
+      - alert: HighSensorOfflineRate
+        expr: |
+          (count(ALERTS{sensor_online="false"}) / count(ALERTS{sensor_type="iot"})) > 0.10
+        for: 5m
+        labels:
+          severity: high
+          component: iot
+        annotations:
+          summary: "More than 10% of IoT sensors offline"
+          description: "Offline sensors: {{ $value | humanizePercentage }}"
+      
+      # Thingsdata API errors
+      - alert: ThingsdataAPIErrors
+        expr: |
+          rate(thingsdata_api_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: high
+          component: thingsdata
+        annotations:
+          summary: "Thingsdata API error rate > 5%"
+          description: "Error rate: {{ $value | humanizePercentage }}"
+      
+      # n8n workflow failures
+      - alert: N8NWorkflowFailure
+        expr: |
+          n8n_workflow_execution_failed_total > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: automation
+        annotations:
+          summary: "n8n workflow failure detected"
+          description: "Workflow {{ $labels.workflow_id }} failed"
+
+  - name: CASTUO_Thresholds
+    interval: 1m
+    rules:
+      # Business metrics thresholds
+      
+      # Certificate processing > 2 hours
+      - alert: CertificateProcessingLag
+        expr: |
+          histogram_quantile(0.95, rate(certificate_processing_duration_seconds_bucket[10m])) > 7200
+        for: 30m
+        labels:
+          severity: high
+          business_metric: true
+        annotations:
+          summary: "Certificate processing > 2 hours (P95)"
+          description: "Processing time: {{ $value | humanizeDuration }}"
+      
+      # Document generation failures > 1%
+      - alert: DocumentGenerationFailureRate
+        expr: |
+          rate(document_generation_failures_total[5m]) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          business_metric: true
+        annotations:
+          summary: "Document generation failure rate > 1%"
+          description: "Failure rate: {{ $value | humanizePercentage }}"
+      
+      # IoT data ingestion lag > 5 minutes
+      - alert: IoTDataIngestionLag
+        expr: |
+          (time() - max(timestamp(sensor_last_reading_timestamp))) > 300
+        for: 5m
+        labels:
+          severity: warning
+          business_metric: true
+        annotations:
+          summary: "IoT data ingestion lagging > 5 minutes"
+          description: "Last reading: {{ humanizeTimestamp $value }}"

@@ -1,0 +1,54 @@
+{
+  "name": "Invernadero Temperature Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "topic": "invernadero/sensores/temperatura",
+        "operation": "subscribe"
+      },
+      "name": "MQTT Temp",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.all()[0].json || {};\nconst temp = Number(payload.temperatura ?? 0);\nif (temp > 30) {\n  return [{ json: { alert: 'Temperatura alta', value: temp, action: 'activar_ventilacion', timestamp: new Date().toISOString() } }];\n}\nif (temp < 15) {\n  return [{ json: { alert: 'Temperatura baja', value: temp, action: 'activar_calefaccion', timestamp: new Date().toISOString() } }];\n}\nreturn [];"
+      },
+      "name": "Check Temp",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.castuo-system.eu/api/v1/alerts",
+        "jsonParameters": true,
+        "options": {}
+      },
+      "name": "Send Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [700, 250]
+    },
+    {
+      "parameters": {
+        "topic": "invernadero/actuadores/ventilacion",
+        "operation": "publish",
+        "qos": 1
+      },
+      "name": "Activar Ventilacion",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [700, 380]
+    }
+  ],
+  "connections": {
+    "MQTT Temp": {
+      "main": [[{ "node": "Check Temp", "type": "main", "index": 0 }]]
+    },
+    "Check Temp": {
+      "main": [[{ "node": "Send Alert", "type": "main", "index": 0 }, { "node": "Activar Ventilacion", "type": "main", "index": 0 }]]
+    }
+  }
+}

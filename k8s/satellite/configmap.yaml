@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: castuo-satellite-config
+  namespace: castuo-system
+data:
+  COPERNICUS_STAC_URL: "https://catalogue.dataspace.copernicus.eu/stac"
+  EUMETSAT_API_URL: "https://api.eumetsat.int"
+  SIGPAC_API_URL: "https://sigpac.mapa.gob.es/api"
+  SIEX_API_URL: "https://siex.mapa.gob.es/api"
+  NDVI_DATA_DIR: "/data/ndvi"
+  NDMI_DATA_DIR: "/data/ndmi"
+  EVIDENCE_INDEX_PATH: "/data/evidence/index.json"

@@ -1,0 +1,5 @@
+# Redis responde PONG (contenedor)
+# CMD: docker exec 'castuo-system-redis-1' redis-cli ping
+# UTC: 2026-04-03T11:11:12Z
+
+PONG

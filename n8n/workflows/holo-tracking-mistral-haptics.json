@@ -1,0 +1,171 @@
+{
+  "name": "Holo - Tracking -> Mistral -> Haptics",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "holo/tracking/inference",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1-webhook-tracking",
+      "name": "Webhook - Tracking Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [220, 300],
+      "webhookId": "holo-tracking-inference"
+    },
+    {
+      "parameters": {
+        "js": "const body = $json.body || {};\nif (!body.farm_id) throw new Error('farm_id requerido');\nif (!body.device_id) throw new Error('device_id requerido');\nconst gesture = body.gesture || 'unknown';\nconst confidence = Number(body.confidence || 0);\nconst prompt = `Analiza gesto y sugiere pulso haptico para hidroponia. Gesto=${gesture}; confianza=${confidence}; farm=${body.farm_id}`;\nreturn {\n  farm_id: body.farm_id,\n  device_id: body.device_id,\n  gesture,\n  confidence,\n  tracking_payload: body,\n  mistral_text: prompt,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "2-prepare-prompt",
+      "name": "Code - Build Mistral Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.CASTUO_API_BASE_URL || 'http://castuo-holo-api-service') + '/api/v1/mistral/analyze' }}",
+        "method": "POST",
+        "sendBody": true,
+        "jsonBody": "={ \"text\": $json.mistral_text }",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.CASTUO_SYSTEM_AUTH_BEARER || '' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "3-mistral-analyze",
+      "name": "HTTP - Mistral Analyze",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [820, 300]
+    },
+    {
+      "parameters": {
+        "js": "const analysis = $json.analysis || '';\nlet intensity = 0.45;\nlet frequency_hz = 180;\nlet duration_ms = 90;\nlet pattern = 'guidance_soft';\n\nconst lower = analysis.toLowerCase();\nif (lower.includes('critica') || lower.includes('critical')) {\n  intensity = 0.9;\n  frequency_hz = 260;\n  duration_ms = 150;\n  pattern = 'alert_critical';\n} else if (lower.includes('atencion') || lower.includes('warning')) {\n  intensity = 0.7;\n  frequency_hz = 220;\n  duration_ms = 120;\n  pattern = 'warning_medium';\n}\n\nconst source = $input.first().json;\nreturn {\n  farm_id: source.farm_id || source.tracking_payload?.farm_id,\n  device_id: source.device_id || source.tracking_payload?.device_id,\n  intensity,\n  frequency_hz,\n  duration_ms,\n  pattern,\n  analysis\n};"
+      },
+      "id": "4-build-haptics",
+      "name": "Code - Build Haptics Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.CASTUO_API_BASE_URL || 'http://castuo-holo-api-service') + '/api/v1/holo/haptics/pulse' }}",
+        "method": "POST",
+        "sendBody": true,
+        "jsonBody": "={ { \"farm_id\": $json.farm_id, \"device_id\": $json.device_id, \"intensity\": $json.intensity, \"frequency_hz\": $json.frequency_hz, \"duration_ms\": $json.duration_ms, \"pattern\": $json.pattern } }",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.CASTUO_SYSTEM_AUTH_BEARER || '' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "5-trigger-haptics",
+      "name": "HTTP - Trigger Haptics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1420, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ { \"status\": \"ok\", \"workflow\": \"tracking-mistral-haptics\", \"haptics\": $json } }",
+        "options": {}
+      },
+      "id": "6-webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1700, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Tracking Event": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Mistral Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Mistral Prompt": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Mistral Analyze",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Mistral Analyze": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Haptics Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Haptics Command": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Trigger Haptics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Trigger Haptics": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  }
+}

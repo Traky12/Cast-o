@@ -1,0 +1,43 @@
+name: Security - MFA Authentication Setup (deprecated)
+on:
+  workflow_dispatch:
+jobs:
+  mfa-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install MFA dependencies
+        run: |
+          pip install pyotp hvac python-jose[cryptography] pytest
+      
+      - name: Validate MFA implementation
+        run: |
+          if [ -f tests/test_mfa.py ]; then
+            python -m pytest tests/test_mfa.py -v
+          else
+            echo "tests/test_mfa.py not found; skipping specific MFA test file"
+          fi
+      
+      - name: Test TOTP generation and verification
+        run: |
+          python -c "
+          import pyotp
+          secret = pyotp.random_base32()
+          totp = pyotp.TOTP(secret)
+          token = totp.now()
+          assert totp.verify(token), 'TOTP verification failed'
+          print('✓ TOTP working correctly')
+          "
+      
+      - name: Scan for exposed secrets
+        uses: trufflesecurity/trufflehog@v3.63.2
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD

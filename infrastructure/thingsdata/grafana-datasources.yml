@@ -1,0 +1,58 @@
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL IoT
+    type: postgres
+    access: proxy
+    url: postgres-iot:5432
+    database: castuo_telemetry
+    user: castuo_iot
+    secureJsonData:
+      password: $POSTGRES_PASSWORD
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 100
+      maxIdleConns: 100
+    editable: true
+    isDefault: false
+
+  - name: TimescaleDB IoT
+    type: postgres
+    access: proxy
+    url: timescaledb-iot:5434
+    database: castuo_telemetry
+    user: castuo_iot
+    secureJsonData:
+      password: $POSTGRES_PASSWORD
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 100
+      maxIdleConns: 100
+    editable: true
+    isDefault: true
+
+  - name: Prometheus IoT
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    jsonData:
+      manageAlerts: true
+      alertmanagerUid: alertmanager
+    editable: true
+
+  - name: MQTT Broker Status
+    type: grafana-piechart-panel
+    access: proxy
+    url: http://mosquitto:1883
+    isDefault: false
+    editable: false
+
+  - name: Thingsdata API Metrics
+    type: prometheus
+    access: proxy
+    url: http://thingsdata:8080/api/v1/metrics
+    isDefault: false
+    jsonData:
+      httpMethod: POST
+    editable: true

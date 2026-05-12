@@ -1,0 +1,81 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 24h
+  
+  routes:
+    # Critical alerts → PagerDuty + Slack
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 0s
+      group_interval: 5m
+      repeat_interval: 1h
+    
+    # High priority → Email + Slack
+    - match:
+        severity: high
+      receiver: 'slack-high'
+      group_wait: 5s
+      repeat_interval: 12h
+    
+    # Medium/Low → Slack only
+    - match:
+        severity: medium
+      receiver: 'slack-medium'
+      repeat_interval: 24h
+
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}'
+        details:
+          firing: '{{ template "pagerduty.default.instances" .Alerts.Firing }}'
+    slack_configs:
+      - channel: '#critical-alerts'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        color: 'danger'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+
+  - name: 'slack-high'
+    slack_configs:
+      - channel: '#alerts'
+        title: '⚠️ HIGH: {{ .GroupLabels.alertname }}'
+        color: 'warning'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+
+  - name: 'slack-medium'
+    slack_configs:
+      - channel: '#alerts'
+        title: 'ℹ️ MEDIUM: {{ .GroupLabels.alertname }}'
+        color: '#0099ff'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+
+inhibit_rules:
+  # Suppress low priority if high priority exists
+  - source_match:
+      severity: 'high'
+    target_match:
+      severity: 'low'
+    equal: ['alertname', 'cluster', 'service']
+  
+  # Suppress warning if critical exists
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster']

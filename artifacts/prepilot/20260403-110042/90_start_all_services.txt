@@ -1,0 +1,61 @@
+# Arranque de stack recomendado
+# CMD: bash '/workspaces/Castuo-system/scripts/start_all_services.sh'
+# UTC: 2026-04-03T11:00:44Z
+
+[INFO] Iniciando procesos críticos CASTUO-SYSTEM...
+[INFO] Frontend en puerto: 8083
+[INFO] 1/7 Iniciando frontend local hardened (WordPress + MariaDB)...
+Frontend disponible en: http://localhost:8083
+Admin en: http://localhost:8083/wp-admin
+[INFO] 2/7 Iniciando Redis...
+time="2026-04-03T11:00:49Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:49Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:49Z" level=warning msg="Found orphan containers ([castuo-mqtt-bridge]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-system-redis-1  Running
+[INFO] 3/7 Iniciando MQTT broker...
+time="2026-04-03T11:00:50Z" level=warning msg="The \"THINGSDATA_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:50Z" level=warning msg="The \"THINGSDATA_SECRET\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:50Z" level=warning msg="The \"THINGSDATA_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:50Z" level=warning msg="The \"GF_ADMIN_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:50Z" level=warning msg="/workspaces/Castuo-system/docker-compose.iot.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+time="2026-04-03T11:00:50Z" level=warning msg="Found orphan containers ([castuo-system-api-1 castuo-system-grafana-1 castuo-system-prometheus-1 castuo-system-postgres-1 castuo-system-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-mqtt-bridge  Starting
+ Container castuo-mqtt-bridge  Started
+[INFO] 4/7 Iniciando backend API...
+time="2026-04-03T11:00:50Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:50Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:50Z" level=warning msg="Found orphan containers ([castuo-mqtt-bridge]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-system-redis-1  Running
+ Container castuo-system-postgres-1  Running
+ Container castuo-system-api-1  Starting
+ Container castuo-system-api-1  Started
+[INFO] 5/7 Iniciando Prometheus...
+time="2026-04-03T11:00:50Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:50Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:50Z" level=warning msg="Found orphan containers ([castuo-mqtt-bridge]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-system-prometheus-1  Running
+[INFO] 6/7 Iniciando Grafana...
+time="2026-04-03T11:00:51Z" level=warning msg="The \"N8N_BASIC_AUTH_USER\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:51Z" level=warning msg="The \"N8N_BASIC_AUTH_PASSWORD\" variable is not set. Defaulting to a blank string."
+time="2026-04-03T11:00:51Z" level=warning msg="Found orphan containers ([castuo-mqtt-bridge]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container castuo-system-prometheus-1  Running
+ Container castuo-system-grafana-1  Running
+[INFO] 7/7 Inicializando persistencia castuo_system...
+[INFO] Inicializando persistencia en MariaDB (castuo-mariadb)...
+[INFO] Verificando bases de datos...
+Database
+castuo_system
+information_schema
+mysql
+performance_schema
+sys
+wordpress
+[INFO] Verificando tablas críticas...
+Tables_in_castuo_system
+farms
+logs
+transactions
+users
+[OK] Persistencia inicializada: users, farms, transactions, logs
+[OK] Arranque recomendado completado.
+Comando recomendado de verificación: bash /workspaces/Castuo-system/scripts/verify_operational_stack.sh
