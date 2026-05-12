@@ -1,0 +1,5 @@
+# Prometheus healthy
+# CMD: for i in {1..8}; do curl -fsS 'http://localhost:9090/-/healthy' && exit 0; sleep 3; done; exit 1
+# UTC: 2026-04-03T10:51:32Z
+
+Prometheus Server is Healthy.

@@ -1,0 +1,130 @@
+name: AI Code Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "api/**"
+      - "castuo_graph/**"
+      - "services/**"
+      - "tests/**"
+
+jobs:
+  analyze-with-claude:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    outputs:
+      analysis: ${{ steps.claude-analysis.outputs.analysis }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze PR with Claude
+        id: claude-analysis
+        env:
+          SABIONDA_API_KEY: ${{ secrets.SABIONDA_API_KEY }}
+          SABIONDA_BASE_URL: ${{ vars.SABIONDA_BASE_URL }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -z "$SABIONDA_API_KEY" ]; then
+            echo "SABIONDA_API_KEY no configurada — skip análisis Claude"
+            echo "analysis=Sin análisis disponible (SABIONDA_API_KEY no configurada)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PR_INFO="PR #${PR_NUMBER}: ${PR_TITLE}"
+          PROMPT="Revisa el siguiente pull request de forma concisa (máx. 200 palabras).
+          Señala: (1) posibles bugs, (2) problemas de seguridad OWASP, (3) sugerencias clave.
+          ${PR_INFO}
+          Descripción: ${PR_BODY}"
+
+          response=$(curl --fail-with-body -s -X POST \
+            -H "Authorization: Bearer ${SABIONDA_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"prompt\": $(echo "$PROMPT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" \
+            "${SABIONDA_BASE_URL:-https://api.sabionda-system.eu}/api/v1/claude/generate") \
+          || response='{"response":"Análisis no disponible (SABIONDA offline)"}'
+
+          analysis=$(echo "$response" | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("response","Sin análisis"))' 2>/dev/null || echo "Sin análisis")
+          echo "analysis<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$analysis" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+  analyze-with-mistral:
+    name: Mistral Documentation
+    runs-on: ubuntu-latest
+    outputs:
+      docs: ${{ steps.mistral-docs.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate docs with Mistral
+        id: mistral-docs
+        env:
+          SABIONDA_API_KEY: ${{ secrets.SABIONDA_API_KEY }}
+          SABIONDA_BASE_URL: ${{ vars.SABIONDA_BASE_URL }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -z "$SABIONDA_API_KEY" ]; then
+            echo "SABIONDA_API_KEY no configurada — skip análisis Mistral"
+            echo "docs=Sin documentación disponible" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          TEXT="Genera un resumen técnico breve (máx. 100 palabras) para documentar el siguiente cambio:
+          ${PR_TITLE}
+          ${PR_BODY}"
+
+          response=$(curl --fail-with-body -s -X POST \
+            -H "Authorization: Bearer ${SABIONDA_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": $(echo "$TEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" \
+            "${SABIONDA_BASE_URL:-https://api.sabionda-system.eu}/api/v1/mistral/analyze") \
+          || response='{"analysis":"Documentación no disponible (SABIONDA offline)"}'
+
+          docs=$(echo "$response" | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("analysis","Sin documentación"))' 2>/dev/null || echo "Sin documentación")
+          echo "docs<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$docs" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+  comment-pr:
+    name: Comment PR with AI Analysis
+    runs-on: ubuntu-latest
+    needs: [analyze-with-claude, analyze-with-mistral]
+    if: always()
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post analysis comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const claudeAnalysis = `${{ needs.analyze-with-claude.outputs.analysis || 'No disponible' }}`;
+            const mistralDocs    = `${{ needs.analyze-with-mistral.outputs.docs || 'No disponible' }}`;
+
+            const body = [
+              '## 🤖 Análisis Automático IA',
+              '',
+              '### Claude — Revisión de código',
+              '```',
+              claudeAnalysis,
+              '```',
+              '',
+              '### Mistral — Documentación generada',
+              '```',
+              mistralDocs,
+              '```',
+              '',
+              '> Generado automáticamente por SABIONDA · GaiaChain trazabilidad activa',
+            ].join('\n');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });

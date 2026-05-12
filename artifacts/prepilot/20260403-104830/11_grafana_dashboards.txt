@@ -1,0 +1,12 @@
+# Grafana health endpoint
+# CMD: curl -fsS -I 'http://localhost:3000/api/health'
+# UTC: 2026-04-03T10:48:49Z
+
+HTTP/1.1 200 OK
+Cache-Control: no-store
+Content-Type: application/json; charset=UTF-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: deny
+X-Xss-Protection: 1; mode=block
+Date: Fri, 03 Apr 2026 10:48:49 GMT
+

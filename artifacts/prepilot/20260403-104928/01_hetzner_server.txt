@@ -1,0 +1,2 @@
+Sin --ip: checks SSH y puertos omitidos
+Definir HETZNER_IP para validacion remota

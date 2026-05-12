@@ -1,0 +1,11 @@
+# MariaDB SHOW DATABASES
+# CMD: docker exec castuo-mariadb mariadb -uroot -p'castuo_root' -e 'SHOW DATABASES;'
+# UTC: 2026-04-03T10:28:43Z
+
+Database
+castuo_system
+information_schema
+mysql
+performance_schema
+sys
+wordpress

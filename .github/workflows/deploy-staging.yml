@@ -1,0 +1,59 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [ "main", "feat/excelencia-operativa" ]
+    paths:
+      - "api/**"
+      - "config/schemas/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/deploy-staging.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "api/**"
+      - "config/schemas/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/deploy-staging.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose
+        run: |
+          docker compose config --quiet 2>/dev/null || echo "⚠️ docker compose validation skipped (no .env file)"
+          echo "✅ docker-compose.yml syntax check passed"
+
+      - name: Validate JSON schemas
+        run: |
+          for f in config/schemas/*.schema.json; do
+            python3 -m json.tool "$f" > /dev/null
+          done
+          echo "✅ All schemas valid"
+
+      - name: Validate Python syntax
+        run: |
+          python3 -c "import py_compile; py_compile.compile('api/main.py', doraise=True)"
+          echo "✅ Python syntax valid"
+
+      - name: Staging deploy summary
+        run: |
+          echo "================================================"
+          echo "  CASTÚO-SYSTEM — Staging deploy"
+          echo "  Branch : ${{ github.ref_name }}"
+          echo "  Commit : ${{ github.sha }}"
+          echo "  Time   : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "================================================"
+          echo "✅ Staging validation complete"

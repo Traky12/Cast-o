@@ -1,0 +1,69 @@
+name: Sync with SABIONDA
+
+on:
+  push:
+    branches: [main, feat/excelencia-operativa]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  notify-sabionda:
+    name: Notify SABIONDA Core
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Notify SABIONDA webhook
+        env:
+          SABIONDA_API_KEY: ${{ secrets.SABIONDA_API_KEY }}
+          SABIONDA_BASE_URL: ${{ vars.SABIONDA_BASE_URL }}
+        run: |
+          if [ -z "$SABIONDA_API_KEY" ]; then
+            echo "SABIONDA_API_KEY no configurada — skip notificación"
+            exit 0
+          fi
+          curl --fail-with-body -s -X POST \
+            -H "Authorization: Bearer ${SABIONDA_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"event\": \"${{ github.event_name }}\",
+              \"repo\": \"${{ github.repository }}\",
+              \"ref\": \"${{ github.ref }}\",
+              \"commit\": \"${{ github.sha }}\",
+              \"actor\": \"${{ github.actor }}\"
+            }" \
+            "${SABIONDA_BASE_URL:-https://api.sabionda-system.eu}/api/v1/github/webhook" \
+          && echo "Notificación enviada a SABIONDA" \
+          || echo "Warning: SABIONDA no disponible — continuando"
+
+  register-blockchain:
+    name: Register Push in GaiaChain
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Log to GaiaChain
+        env:
+          SABIONDA_API_KEY: ${{ secrets.SABIONDA_API_KEY }}
+          SABIONDA_BASE_URL: ${{ vars.SABIONDA_BASE_URL }}
+        run: |
+          if [ -z "$SABIONDA_API_KEY" ]; then
+            echo "SABIONDA_API_KEY no configurada — skip blockchain log"
+            exit 0
+          fi
+          curl --fail-with-body -s -X POST \
+            -H "Authorization: Bearer ${SABIONDA_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"event_type\": \"code_push\",
+              \"data\": {
+                \"repo\": \"${{ github.repository }}\",
+                \"commit\": \"${{ github.sha }}\",
+                \"ref\": \"${{ github.ref }}\",
+                \"workflow\": \"sabionda-sync\"
+              },
+              \"actor\": \"github_actions\"
+            }" \
+            "${SABIONDA_BASE_URL:-https://api.sabionda-system.eu}/api/v1/blockchain/log" \
+          && echo "Evento registrado en GaiaChain" \
+          || echo "Warning: GaiaChain no disponible — continuando"

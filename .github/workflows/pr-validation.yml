@@ -1,0 +1,9 @@
+name: PR Validation - CASTÚO-SYSTEM™ (deprecated)
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deprecated. Use validate-all.yml + e2e-first-pr.yml"

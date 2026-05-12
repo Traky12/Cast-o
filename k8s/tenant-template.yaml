@@ -1,0 +1,105 @@
+---
+# Plantilla para desplegar un nuevo tenant en CASTÚO-SYSTEM™
+# Uso: kubectl apply -f <(envsubst < k8s/tenant-template.yaml) -n castuo-system
+# Variables requeridas: TENANT_ID, TENANT_NAME
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-${TENANT_ID}-config
+  namespace: castuo-system
+data:
+  TENANT_ID: "${TENANT_ID}"
+  TENANT_NAME: "${TENANT_NAME}"
+  DB_SCHEMA: "tenant_${TENANT_ID}"
+  IOT_TOPIC_PREFIX: "castuo/${TENANT_ID}/"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenant-${TENANT_ID}-api
+  namespace: castuo-system
+  labels:
+    app: castuo-api
+    tenant: "${TENANT_ID}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: castuo-api
+      tenant: "${TENANT_ID}"
+  template:
+    metadata:
+      labels:
+        app: castuo-api
+        tenant: "${TENANT_ID}"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: castuo-api
+        image: registry.castuo-system.cloud/castuo-api:3.1.1
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: tenant-${TENANT_ID}-config
+        - configMapRef:
+            name: castuo-config
+        - secretRef:
+            name: castuo-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        volumeMounts:
+        - name: tenant-data
+          mountPath: /data/tenants/${TENANT_ID}
+      volumes:
+      - name: tenant-data
+        persistentVolumeClaim:
+          claimName: castuo-data-pvc
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tenant-${TENANT_ID}-ingress
+  namespace: castuo-system
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - "${TENANT_ID}.api.castuo-system.cloud"
+    secretName: tenant-${TENANT_ID}-tls
+  rules:
+  - host: "${TENANT_ID}.api.castuo-system.cloud"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: castuo-api-service
+            port:
+              number: 80

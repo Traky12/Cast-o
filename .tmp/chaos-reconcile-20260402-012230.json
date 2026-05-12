@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-04-02T01:22:31.885084+00:00",
+  "source_branch": "chaos-sync-20260402-012230",
+  "target_branch": "feat/excelencia-operativa",
+  "dry_run": true,
+  "drift_detected": true,
+  "report": "logs/reconcile-20260402-012230.log",
+  "patch_file": "logs/reconcile-20260402-012230.patch",
+  "status": {
+    "code": 1,
+    "message": "Drift detectado en dry-run"
+  },
+  "status_code": 1,
+  "message": "Drift detectado en dry-run"
+}

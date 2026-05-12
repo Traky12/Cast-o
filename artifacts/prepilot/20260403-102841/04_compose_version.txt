@@ -1,0 +1,5 @@
+# Docker Compose v1/v2 disponible
+# CMD: docker-compose --version
+# UTC: 2026-04-03T10:28:41Z
+
+Docker Compose version v2.40.3

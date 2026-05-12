@@ -1,0 +1,7 @@
+# Contenedores castuo en running
+# CMD: docker ps --filter 'name=castuo' --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+# UTC: 2026-04-03T10:27:07Z
+
+NAMES              STATUS                    PORTS
+castuo-wordpress   Up 33 minutes (healthy)   127.0.0.1:5432->80/tcp
+castuo-mariadb     Up 33 minutes (healthy)   3306/tcp

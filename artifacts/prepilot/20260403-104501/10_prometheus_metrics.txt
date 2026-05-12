@@ -1,0 +1,5 @@
+# Prometheus healthy
+# CMD: curl -fsS 'http://localhost:9090/-/healthy'
+# UTC: 2026-04-03T10:45:17Z
+
+curl: (56) Recv failure: Connection reset by peer

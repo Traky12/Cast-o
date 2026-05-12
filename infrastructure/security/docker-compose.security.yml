@@ -1,0 +1,47 @@
+services:
+  modsecurity:
+    image: owasp/modsecurity-crs:nginx
+    container_name: castuo-modsecurity
+    ports:
+      - "8010:80"
+    volumes:
+      - ./modsecurity/custom_rules.conf:/etc/modsecurity.d/custom_rules.conf:ro
+    environment:
+      MODSEC_RULE_ENGINE: DetectionOnly
+    restart: unless-stopped
+
+  suricata:
+    image: jasonish/suricata:7.0
+    container_name: castuo-suricata
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_NICE
+    volumes:
+      - ./suricata/custom.rules:/etc/suricata/rules/custom.rules:ro
+      - ../../logs/suricata:/var/log/suricata
+    command: ["-i", "eth0", "-S", "/etc/suricata/rules/custom.rules"]
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    container_name: castuo-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.2
+    container_name: castuo-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    restart: unless-stopped
