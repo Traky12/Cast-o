@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SIGPAC Parcelas",
+  "description": "Schema para consulta y gestión de parcelas SIGPAC (Sistema de Información Geográfica de Parcelas Agrícolas)",
+  "type": "object",
+  "required": ["explotacion", "parcelas"],
+  "properties": {
+    "explotacion": {
+      "type": "object",
+      "required": ["titular", "superficie_total_ha"],
+      "properties": {
+        "titular": {
+          "type": "string"
+        },
+        "nif": {
+          "type": "string"
+        },
+        "superficie_total_ha": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 50000
+        }
+      }
+    },
+    "parcelas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["provincia", "municipio", "poligono", "parcela", "recinto"],
+        "properties": {
+          "provincia": {
+            "type": "integer"
+          },
+          "municipio": {
+            "type": "integer"
+          },
+          "agregado": {
+            "type": "integer",
+            "default": 0
+          },
+          "zona": {
+            "type": "integer",
+            "default": 0
+          },
+          "poligono": {
+            "type": "integer"
+          },
+          "parcela": {
+            "type": "integer"
+          },
+          "recinto": {
+            "type": "integer"
+          },
+          "referencia_catastral": {
+            "type": "string"
+          },
+          "uso_sigpac": {
+            "type": "string",
+            "enum": ["TA", "TH", "IV", "FL", "FY", "FS", "OF", "OV", "OC", "CI", "CF", "CS", "CV", "PS", "PR", "PA", "FO", "CA", "AG", "ZU", "ZV", "ED", "EP", "IM", "ZC"]
+          },
+          "superficie_ha": {
+            "type": "number",
+            "minimum": 0.01
+          },
+          "coeficiente_regadio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "pendiente_media": {
+            "type": "number",
+            "description": "Pendiente media en porcentaje"
+          }
+        }
+      }
+    }
+  }
+}
