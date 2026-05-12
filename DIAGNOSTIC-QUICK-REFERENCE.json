@@ -1,0 +1,101 @@
+{
+  "critical_blocking_issues": [
+    {
+      "file": "tests/test_greenhouse_advanced_capture.py",
+      "count": 3,
+      "root_cause": "Advanced 3D capture feature for greenhouse digital twin — 3 endpoints (holography register, photogrammetry register, digital-twin status) defined in tests but NOT implemented in api/routers/greenhouse.py. Tests are correct specification; implementation is incomplete.",
+      "blocking_what": "Digital Twin 3D Capture System — Cannot register holographic or photogrammetric scan data from greenhouse prototypes P1/P2, cannot query 3D capture status. Feature entirely blocked.",
+      "fix_complexity": "medium",
+      "estimated_time": 1.67
+    }
+  ],
+  "missing_implementations": [
+    {
+      "endpoint": "/api/v1/greenhouse/{prototype_id}/holography/register",
+      "method": "POST",
+      "models_needed": [
+        "HolographyCapture (input): device_id (str), resolution (str), point_density (float), coverage_percent (float 0-100), operator_id (optional str)",
+        "HolographyRegistrationResponse (output): prototype_id (int), registered (bool), capture (dict with all input fields + registered_at timestamp)"
+      ],
+      "db_tables_needed": [
+        "in-memory: _PrototypeState.holography_captures: list[dict]"
+      ],
+      "logic": "Validate prototype_id exists (1 or 2), extract holography capture data, append to _PrototypeState.holography_captures list, return HolographyRegistrationResponse with status=200"
+    },
+    {
+      "endpoint": "/api/v1/greenhouse/{prototype_id}/photogrammetry/register",
+      "method": "POST",
+      "models_needed": [
+        "PhotogrammetryScan (input): device_id (str), images_count (int), overlap_percent (float 0-100), avg_reprojection_error (float), operator_id (optional str)",
+        "PhotogrammetryRegistrationResponse (output): prototype_id (int), registered (bool), capture (dict with all input fields + registered_at timestamp)"
+      ],
+      "db_tables_needed": [
+        "in-memory: _PrototypeState.photogrammetry_scans: list[dict]"
+      ],
+      "logic": "Validate prototype_id exists (1 or 2), extract photogrammetry scan data, append to _PrototypeState.photogrammetry_scans list, return PhotogrammetryRegistrationResponse with status=200"
+    },
+    {
+      "endpoint": "/api/v1/greenhouse/{prototype_id}/digital-twin/status",
+      "method": "GET",
+      "models_needed": [
+        "DigitalTwinStatus (output): prototype_id (int), holography (dict{captures_total (int), last_capture_timestamp (str), avg_point_density (float)}), photogrammetry (dict{captures_total (int), last_capture_timestamp (str), avg_images_count (float)}), system_ready (bool)"
+      ],
+      "db_tables_needed": [
+        "query/aggregate from: _PrototypeState.holography_captures and _PrototypeState.photogrammetry_scans lists"
+      ],
+      "logic": "Validate prototype_id exists, count holography captures (=captures_total), retrieve last capture timestamp, calculate avg point_density; same for photogrammetry; system_ready = (holography.captures_total >= 1 AND photogrammetry.captures_total >= 1); return DigitalTwinStatus with status=200"
+    }
+  ],
+  "priority_order": [
+    "GH-001: 3D Capture Endpoints (1.67 hours) — Unblock digital twin feature, move test pass rate from 99.3% to 100%"
+  ],
+  "total_estimated_hours": 1.67,
+  "additional_context": {
+    "total_tests_in_suite": 428,
+    "currently_passing": 425,
+    "failure_percentage": 0.7,
+    "why_so_few_failures": "Most endpoints are already implemented. Only the advanced 3D capture feature (added to test suite as requirement) was not completed in the router.",
+    "status_of_other_major_features": {
+      "invernadero_agrovoltaico": "✅ 43/43 tests passing — All endpoints fully implemented (lote apertura, solucion-nutritiva, clima, agrovoltaico, cosecha, rangos, fitosanitario, QR traceability)",
+      "whatsapp_alerts": "✅ 13/13 tests passing — All endpoints fully implemented (tenant phone management, alert logging, emergency contacts, n8n workflow integration)",
+      "greenhouse_telemetry_and_control": "✅ 9/9 endpoints passing tests (telemetry ingestion, status, alerts, actuator control, recipe update, history, compare, health checks)"
+    },
+    "why_tests_exist_before_implementation": "Test-Driven Development (TDD) methodology: Feature requirement came in ('digital twin with 3D capture'), tests were written first to define exact API contract with inputs/outputs, router implementation was started but the 3D capture endpoints were not completed before feature freeze",
+    "is_this_an_error_in_tests": "NO — Tests are CORRECT specification. They define what the API should do. The implementation is what needs to be completed.",
+    "implementation_pattern_available": "YES — Router already has 9 similar endpoints with established patterns for Pydantic models, response structures, state management. New endpoints follow same pattern exactly.",
+    "risk_level": "LOW (95% confidence) — Pattern is straightforward, specification is crystal clear from tests, no missing dependencies"
+  },
+  "implementation_timeline": [
+    {
+      "phase": 1,
+      "name": "Models & State Extension",
+      "duration_minutes": 20,
+      "tasks": [
+        "Add HolographyCapture Pydantic model (10 lines)",
+        "Add PhotogrammetryScan Pydantic model (10 lines)",
+        "Add DigitalTwinStatus Pydantic model (15 lines)",
+        "Extend _PrototypeState with holography_captures: list and photogrammetry_scans: list (5 lines)"
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Route Handlers",
+      "duration_minutes": 45,
+      "tasks": [
+        "@router.post('/{prototype_id}/holography/register') async def register_holography(...) (20 lines)",
+        "@router.post('/{prototype_id}/photogrammetry/register') async def register_photogrammetry(...) (20 lines)",
+        "@router.get('/{prototype_id}/digital-twin/status') async def get_digital_twin_status(...) (30 lines)"
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Validation & Testing",
+      "duration_minutes": 15,
+      "tasks": [
+        "Run: pytest tests/test_greenhouse_advanced_capture.py -v (expect 3 passed)",
+        "Run: pytest --tb=short (expect 428 passed, 0 failed)",
+        "PR review"
+      ]
+    }
+  ]
+}

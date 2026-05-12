@@ -1,0 +1,155 @@
+{
+  "name": "Woo order-paid -> TRACES PDF -> Email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "woocommerce/order-paid",
+        "responseMode": "responseNode"
+      },
+      "id": "WebhookOrderPaid",
+      "name": "Webhook Order Paid",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $json.order || $json;\nconst lineItems = body.line_items || [];\nconst target = lineItems.find(i => (i.name || '').toLowerCase().includes('certificacion agricola'));\nif (!target) {\n  return [{skip: true, message: 'Pedido no incluye Certificacion Agricola'}];\n}\nreturn [{\n  skip: false,\n  orderId: body.id || body.order_id || 0,\n  email: body.billing?.email || 'cliente@example.com',\n  traces: {\n    explotacion_rega: body.meta_data?.find(m => m.key === 'rega')?.value || 'ES120340000001',\n    nombre_explotacion: body.billing?.company || body.billing?.first_name || 'Cliente Castuo',\n    direccion_explotacion: `${body.billing?.address_1 || ''} ${body.billing?.city || ''}`.trim(),\n    animales: { especie: 'bovino', raza: 'retinta', cantidad: 1 },\n    tipo_movimiento: 'EXPORT',\n    destino_pais: 'PT',\n    destino_explotacion: 'PT-DEST-009'\n  }\n}];"
+      },
+      "id": "FilterAndMap",
+      "name": "Filter + Map Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.skip}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "IfSkip",
+      "name": "Skip?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.FASTAPI_BASE_URL}}/api/v1/traces/certificado",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.traces}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "CallTraces",
+      "name": "Call TRACES",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PDF_SERVICE_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"template\":\"traces\",\"payload\":$json}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "GeneratePdf",
+      "name": "Generate PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1260, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$node['Filter + Map Payload'].json.email}}",
+        "subject": "Tu Certificacion TRACES",
+        "text": "Adjuntamos tu certificado TRACES en PDF.",
+        "attachmentsUi": {
+          "attachmentsBinary": [
+            {
+              "property": "data"
+            }
+          ]
+        }
+      },
+      "id": "SendEmail",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1490, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"ok\":true,\"message\":\"workflow procesado\"}"
+      },
+      "id": "ResponseOk",
+      "name": "Webhook Response OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1720, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"ok\":true,\"skipped\":true,\"message\":$json.message}"
+      },
+      "id": "ResponseSkip",
+      "name": "Webhook Response Skip",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1020, 420]
+    }
+  ],
+  "connections": {
+    "Webhook Order Paid": {
+      "main": [[{"node":"Filter + Map Payload","type":"main","index":0}]]
+    },
+    "Filter + Map Payload": {
+      "main": [[{"node":"Skip?","type":"main","index":0}]]
+    },
+    "Skip?": {
+      "main": [
+        [{"node":"Webhook Response Skip","type":"main","index":0}],
+        [{"node":"Call TRACES","type":"main","index":0}]
+      ]
+    },
+    "Call TRACES": {
+      "main": [[{"node":"Generate PDF","type":"main","index":0}]]
+    },
+    "Generate PDF": {
+      "main": [[{"node":"Send Email","type":"main","index":0}]]
+    },
+    "Send Email": {
+      "main": [[{"node":"Webhook Response OK","type":"main","index":0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

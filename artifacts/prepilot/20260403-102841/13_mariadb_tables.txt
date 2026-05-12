@@ -1,0 +1,9 @@
+# Schema castuo_system con tablas criticas
+# CMD: docker exec castuo-mariadb mariadb -uroot -p'castuo_root' -e 'USE castuo_system; SHOW TABLES;'
+# UTC: 2026-04-03T10:28:44Z
+
+Tables_in_castuo_system
+farms
+logs
+transactions
+users

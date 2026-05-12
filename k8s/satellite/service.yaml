@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ndvi-api-service
+  namespace: castuo-system
+  labels:
+    app: ndvi-api
+spec:
+  selector:
+    app: ndvi-api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

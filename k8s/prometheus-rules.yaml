@@ -1,0 +1,64 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: castuo-alerts
+  namespace: monitoring
+  labels:
+    app: castuo-system
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: castuo-system
+    interval: 30s
+    rules:
+    # Alta latencia en validar_lote (p95 > 2s en 5 minutos)
+    - alert: HighLatencyValidarLote
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(castuo_endpoint_latency_seconds_bucket{endpoint=~".*/validar_lote.*"}[5m]))
+          by (le, tenant)
+        ) > 2
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Alta latencia en /validar_lote (tenant: {{ $labels.tenant }})"
+        description: >
+          La latencia del 95% supera 2 s en /validar_lote para el tenant
+          {{ $labels.tenant }}. Revisar blockchain y TRACES.
+
+    # Errores en transacciones blockchain
+    - alert: BlockchainTxErrors
+      expr: increase(castuo_blockchain_tx_total{status="error"}[1h]) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Errores en transacciones blockchain (tenant: {{ $labels.tenant }})"
+        description: >
+          Se han producido {{ $value }} errores en transacciones blockchain
+          en la última hora para el tenant {{ $labels.tenant }}.
+
+    # Posible spam de dispositivo IoT (> 100 req/min)
+    - alert: IoTDeviceSpam
+      expr: rate(castuo_iot_requests_total[1m]) > 100
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Posible spam de dispositivo IoT (device: {{ $labels.device_id }})"
+        description: >
+          El dispositivo {{ $labels.device_id }} está enviando más de 100
+          requests por minuto durante más de 2 minutos.
+
+    # Sin lotes procesados en 1 hora (posible caída del servicio)
+    - alert: NoLotesProcessed
+      expr: increase(castuo_lotes_procesados_total[1h]) == 0
+      for: 60m
+      labels:
+        severity: info
+      annotations:
+        summary: "Sin lotes procesados en 1 hora (tenant: {{ $labels.tenant }})"
+        description: >
+          No se han procesado lotes en la última hora para tenant
+          {{ $labels.tenant }}. Puede ser normal fuera de horario laboral.

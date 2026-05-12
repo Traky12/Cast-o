@@ -1,0 +1,226 @@
+name: Deploy to Hetzner (Kubernetes)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "feat/excelencia-operativa"]
+    paths:
+      - "api/**"
+      - "k8s/**"
+      - ".github/workflows/deploy-to-hetzner.yml"
+
+concurrency:
+  group: deploy-hetzner-k8s
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+jobs:
+  validate-secrets:
+    name: Validar secrets requeridos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar que todos los secrets existen
+        env:
+          HETZNER_KUBECONFIG: ${{ secrets.HETZNER_KUBECONFIG }}
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          GAIACHAIN_PRIVATE_KEY: ${{ secrets.GAIACHAIN_PRIVATE_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          N8N_BASIC_AUTH_USER: ${{ secrets.N8N_BASIC_AUTH_USER }}
+          N8N_BASIC_AUTH_PASSWORD: ${{ secrets.N8N_BASIC_AUTH_PASSWORD }}
+        run: |
+          required_secrets=(
+            "HETZNER_KUBECONFIG"
+            "REGISTRY_USER"
+            "REGISTRY_PASSWORD"
+            "JWT_SECRET_KEY"
+            "GAIACHAIN_PRIVATE_KEY"
+            "DB_PASSWORD"
+            "N8N_BASIC_AUTH_USER"
+            "N8N_BASIC_AUTH_PASSWORD"
+          )
+
+          missing_secrets=()
+          for secret in "${required_secrets[@]}"; do
+            if [ -z "${!secret}" ]; then
+              missing_secrets+=("$secret")
+            fi
+          done
+
+          if [ ${#missing_secrets[@]} -gt 0 ]; then
+            echo "❌ Error: Los siguientes secrets no están configurados: ${missing_secrets[*]}"
+            exit 1
+          fi
+          echo "✅ Todos los secrets requeridos están configurados."
+
+  test-api:
+    name: Tests API
+    runs-on: ubuntu-latest
+    needs: validate-secrets
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements.txt
+          pip install pytest
+
+      - name: Run API tests
+        run: python -m pytest tests/test_api.py -v
+
+  build-push:
+    name: Build & Push image
+    runs-on: ubuntu-latest
+    needs: test-api
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: registry.castuo-system.cloud/castuo-api
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest
+
+      - name: Login to registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.castuo-system.cloud
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    name: Deploy k8s Hetzner
+    runs-on: ubuntu-latest
+    needs: build-push
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.HETZNER_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Apply namespace and config
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+
+      - name: Apply secrets desde GitHub Secrets
+        run: |
+          kubectl create secret generic castuo-secrets \
+            --namespace castuo-system \
+            --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+            --from-literal=GAIACHAIN_PRIVATE_KEY="${{ secrets.GAIACHAIN_PRIVATE_KEY }}" \
+            --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --from-literal=N8N_BASIC_AUTH_USER="${{ secrets.N8N_BASIC_AUTH_USER }}" \
+            --from-literal=N8N_BASIC_AUTH_PASSWORD="${{ secrets.N8N_BASIC_AUTH_PASSWORD }}" \
+            --save-config \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create registry pull secret
+        run: |
+          kubectl create secret docker-registry regcred \
+            --namespace castuo-system \
+            --docker-server=registry.castuo-system.cloud \
+            --docker-username="${{ secrets.REGISTRY_USER }}" \
+            --docker-password="${{ secrets.REGISTRY_PASSWORD }}" \
+            --save-config \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply storage and networking
+        run: |
+          kubectl apply -f k8s/pvc.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/ingress.yaml
+          kubectl apply -f k8s/hpa.yaml
+
+      - name: Apply deployment base
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+
+      - name: Update image tag and deploy
+        run: |
+          IMAGE_TAG="${{ needs.build-push.outputs.image_tag }}"
+          kubectl set image deployment/castuo-api \
+            castuo-api=registry.castuo-system.cloud/castuo-api:${IMAGE_TAG} \
+            -n castuo-system
+          kubectl annotate deployment/castuo-api \
+            castuo-system/image-tag="${IMAGE_TAG}" \
+            -n castuo-system --overwrite
+          kubectl rollout status deployment/castuo-api -n castuo-system --timeout=180s
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "⚠️ Despliegue fallido. Realizando rollback..."
+          kubectl rollout undo deployment/castuo-api -n castuo-system
+          kubectl rollout status deployment/castuo-api -n castuo-system --timeout=180s
+          echo "✅ Rollback completado."
+
+      - name: Healthcheck post-deploy
+        run: |
+          kubectl wait --for=condition=ready pod -n castuo-system --all --timeout=300s
+          curl -fsS https://api.castuo-system.cloud/health
+          echo "✅ Despliegue exitoso: Todos los pods están listos y el endpoint /health responde."
+
+      - name: Notify deployment status
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          JOB_STATUS: ${{ job.status }}
+          GIT_REF: ${{ github.ref }}
+        run: |
+          if [ -z "${TELEGRAM_BOT_TOKEN}" ] || [ -z "${TELEGRAM_CHAT_ID}" ]; then
+            echo "ℹ️ Telegram secrets no configurados — notificación omitida."
+            exit 0
+          fi
+          STATUS="✅ Éxito"
+          if [ "${JOB_STATUS}" = "failure" ]; then
+            STATUS="❌ Fallido — Rollback realizado automáticamente."
+          fi
+          MESSAGE="🚀 Despliegue de CASTÚO-SYSTEM™: ${STATUS} en producción (${GIT_REF})"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}&text=${MESSAGE}&parse_mode=HTML"
+
+      - name: Resumen del despliegue
+        if: always()
+        run: |
+          echo "=== Estado del despliegue ==="
+          kubectl get pods -n castuo-system
+          kubectl get hpa -n castuo-system
+          kubectl get ingress -n castuo-system

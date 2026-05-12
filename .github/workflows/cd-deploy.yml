@@ -1,0 +1,25 @@
+name: CD Deploy Cloud
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: cd-deploy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate cloud config
+        run: |
+          cp .env.cloud.example .env.cloud
+          mkdir -p secrets
+          for f in vault_token iot_bearer wireless_logic_token mistral_key sabionda_key; do echo dummy > "secrets/$f"; done
+          python tests/cloud/cloud_validator.py --env-file .env.cloud --profiles "core,iot,ai,observability"
+      - name: Dry run compose
+        run: docker compose -f docker-compose.cloud.yml --env-file .env.cloud config >/dev/null

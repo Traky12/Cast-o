@@ -1,0 +1,5 @@
+# TLS endpoint publico responde
+# CMD: curl -fsS -I 'https://api.castuo-system.cloud/health'
+# UTC: 2026-04-03T10:39:02Z
+
+curl: (6) Could not resolve host: api.castuo-system.cloud

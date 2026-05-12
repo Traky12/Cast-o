@@ -1,0 +1,106 @@
+{
+  "thingsdata": {
+    "api_url": "http://thingsdata:8080/api/v1",
+    "api_key": "${THINGSDATA_API_KEY}",
+    "secret": "${THINGSDATA_SECRET}",
+    "sim_pool": 1000,
+    "apn": "castuo.es",
+    "webhook_url": "http://n8n:5678/webhook/thingsdata-ingest",
+    "webhook_secret": "${WEBHOOK_SECRET}"
+  },
+  "mqtt": {
+    "broker": "mosquitto",
+    "port": 1883,
+    "tls": false,
+    "topics": {
+      "telemetry": "castuo/iot/telemetry",
+      "commands": "castuo/iot/commands",
+      "alerts": "castuo/iot/alerts",
+      "health": "castuo/health"
+    },
+    "qos": 1,
+    "retain": false,
+    "clean_session": true,
+    "keepalive": 60
+  },
+  "n8n": {
+    "credentials": {
+      "thingsdata_api": {
+        "type": "generic_credentials",
+        "auth_type": "http_header_auth",
+        "header_key": "Authorization",
+        "header_value": "Bearer ${THINGSDATA_API_KEY}"
+      },
+      "mqtt": {
+        "type": "mqtt_credentials",
+        "host": "mosquitto",
+        "port": 1883,
+        "username": "castuo",
+        "password": "${MQTT_PASSWORD}"
+      }
+    },
+    "workflows": [
+      {
+        "name": "Ingestion IoT Thingsdata",
+        "description": "Ingesta de telemetría desde Thingsdata ES a PostgreSQL + TimescaleDB",
+        "enabled": true,
+        "nodes": [
+          "HTTP Request (Thingsdata API)",
+          "MQTT Publish (Broker)",
+          "Transform JSON",
+          "PostgreSQL Write",
+          "TimescaleDB Insert"
+        ]
+      },
+      {
+        "name": "Command Execution",
+        "description": "Ejecutar comandos a sensores vía Thingsdata",
+        "enabled": true,
+        "nodes": [
+          "Webhook Receiver",
+          "HTTP Request (Execute Command)",
+          "MQTT Command Publish",
+          "Log Result"
+        ]
+      },
+      {
+        "name": "Alert Management",
+        "description": "Procesar alertas en tiempo real",
+        "enabled": true,
+        "nodes": [
+          "MQTT Subscribe (Alerts)",
+          "Filter by Type",
+          "Send Notification",
+          "Store in Database"
+        ]
+      }
+    ]
+  },
+  "monitoring": {
+    "prometheus_port": 9090,
+    "grafana_port": 3000,
+    "metrics_retention": "15d",
+    "dashboards": [
+      "thingsdata-overview",
+      "mqtt-broker-metrics",
+      "sensor-telemetry-realtime",
+      "latency-analytics"
+    ]
+  },
+  "compliance": {
+    "rgpd": {
+      "data_location": "EU-only",
+      "encryption": "AES-256",
+      "retention_days": 90,
+      "anonymization_enabled": true
+    },
+    "eidas": {
+      "signature_required": true,
+      "timestamp_service": "trusted_provider"
+    },
+    "nis2": {
+      "audit_frequency": "quarterly",
+      "threat_feed": "enabled"
+    }
+  }
+}

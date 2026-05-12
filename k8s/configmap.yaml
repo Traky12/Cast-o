@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: castuo-config
+  namespace: castuo-system
+data:
+  ENVIRONMENT: "production"
+  DB_HOST: "postgres"
+  DB_NAME: "castuo_db"
+  DB_USER: "castuo"
+  GAIACHAIN_RPC_URL: "https://gaiachain.castuo-system.cloud/rpc"
+  JWT_ISSUER: "castuo-system"
+  LOG_LEVEL: "INFO"
+  QR_OUTPUT_PATH: "/data/qr"
+  PDF_OUTPUT_PATH: "/data/pdf"
+  REDIS_URL: "redis://redis:6379/0"

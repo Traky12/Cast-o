@@ -1,0 +1,17 @@
+{
+  "dpia_id": "dpia-blockchain-001",
+  "scope": "Traceability records on blockchain (hash metadata)",
+  "risk_level": "medium",
+  "identified_risks": [
+    "Potential linkage risk if off-chain mapping leaks",
+    "Irreversible publication of incorrect metadata hashes",
+    "Operational overexposure through verbose logs"
+  ],
+  "mitigations": [
+    "Use of pseudonymized identifiers (hash_nif)",
+    "Off-chain governance and correction workflows",
+    "Log sanitization in ELK pipeline"
+  ],
+  "residual_risk": "medium",
+  "review_frequency": "quarterly"
+}
