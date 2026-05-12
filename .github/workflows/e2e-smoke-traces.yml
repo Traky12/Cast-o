@@ -1,0 +1,84 @@
+name: E2E Smoke — TRACES API
+
+on:
+  workflow_run:
+    workflows: [ "Deploy to Staging (Hetzner)" ]
+    types: [ completed ]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+
+    env:
+      BASE_URL: ${{ vars.STAGING_BASE_URL || 'http://localhost:8000' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install fastapi uvicorn pydantic httpx jsonschema pytest -q
+
+      - name: Run unit tests (offline)
+        run: python -m pytest tests/test_api.py -v
+
+      - name: Smoke — Health check
+        run: |
+          echo "🔍 Checking /health endpoint..."
+          curl --fail --silent "$BASE_URL/health" | \
+            python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d['status'] == 'ok', f'Unexpected status: {d}'
+          assert d['agent'] == 'SABIONDA', f'Unexpected agent: {d}'
+          print('✅ Health check passed:', d)
+          "
+
+      - name: Smoke — TRACES certificate generation
+        run: |
+          echo "🔍 Testing TRACES certificate endpoint..."
+          curl --fail --silent -X POST "$BASE_URL/api/v1/traces/certificado" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "explotacion_rega": "ES100600000001",
+              "nombre_explotacion": "Finca Smoke Test",
+              "direccion_explotacion": "Calle Test 1, Badajoz",
+              "animales": {"especie": "porcino", "raza": "Ibérico", "cantidad": 10},
+              "tipo_movimiento": "EXPORT",
+              "destino_pais": "PT",
+              "destino_explotacion": "PT500100000042"
+            }' | \
+            python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d['payload']['firma']['pendiente_firma'] is True, 'Missing pendiente_firma'
+          assert d['payload']['certificado']['numero'].startswith('TRACES-ES-'), 'Bad cert number'
+          assert d['aviso'] == 'Documento generado para REVISIÓN y FIRMA del productor', 'Missing aviso'
+          print('✅ TRACES smoke test passed:', d['estado'])
+          "
+
+      - name: Smoke — SIEX cuaderno de campo
+        run: |
+          echo "🔍 Testing SIEX cuaderno-campo endpoint..."
+          curl --fail --silent -X POST "$BASE_URL/api/v1/siex/cuaderno-campo" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "explotacion": {"rea": "EX123456", "titular": "Smoke Test", "nif": "12345678A"},
+              "parcelas": [{"sigpac_ref": "10:20:0:0:1:1:1", "superficie_ha": 50.0, "cultivo": "trigo"}],
+              "tratamientos": []
+            }' | \
+            python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d['payload']['firma']['pendiente_firma'] is True, 'Missing pendiente_firma'
+          assert d['payload']['estado_cumplimiento']['pac_compliant'] is True, 'Not PAC compliant'
+          print('✅ SIEX smoke test passed:', d['estado'])
+          "

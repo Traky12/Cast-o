@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PAC 2026 Eco-esquemas",
+  "description": "Schema para generación de solicitudes PAC 2023-2027 con eco-esquemas y mínimos ambientales",
+  "type": "object",
+  "required": ["solicitante", "campana", "parcelas", "eco_esquemas"],
+  "properties": {
+    "solicitante": {
+      "type": "object",
+      "required": ["nif", "nombre", "rea"],
+      "properties": {
+        "nif": {
+          "type": "string"
+        },
+        "nombre": {
+          "type": "string"
+        },
+        "rea": {
+          "type": "string"
+        },
+        "tipo": {
+          "type": "string",
+          "enum": ["agricultor_activo", "joven_agricultor", "agricultura_familiar"]
+        }
+      }
+    },
+    "campana": {
+      "type": "string",
+      "pattern": "^[0-9]{4}$",
+      "description": "Año de la campaña PAC (ej. '2026')"
+    },
+    "parcelas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sigpac_ref", "superficie_ha", "uso"],
+        "properties": {
+          "sigpac_ref": {
+            "type": "string"
+          },
+          "superficie_ha": {
+            "type": "number",
+            "minimum": 0.01
+          },
+          "uso": {
+            "type": "string",
+            "enum": ["tierra_arable", "cultivo_permanente", "pasto_permanente", "barbecho", "forestal"]
+          },
+          "cultivo": {
+            "type": "string"
+          },
+          "tipo_riego": {
+            "type": "string",
+            "enum": ["secano", "regadio"]
+          }
+        }
+      }
+    },
+    "eco_esquemas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["codigo", "descripcion"],
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "description": "Código del eco-esquema PAC"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "parcelas_aplicadas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cumplimiento_porcentaje": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      }
+    },
+    "condicionalidad": {
+      "type": "object",
+      "properties": {
+        "bcam_cumplimiento": {
+          "type": "boolean",
+          "description": "Buenas Condiciones Agrarias y Medioambientales"
+        },
+        "rle_cumplimiento": {
+          "type": "boolean",
+          "description": "Requisitos Legales de Gestión"
+        },
+        "minimos_ambientales": {
+          "type": "boolean"
+        }
+      }
+    },
+    "estado_cumplimiento": {
+      "type": "object",
+      "properties": {
+        "pac_compliant": {
+          "type": "boolean"
+        },
+        "porcentaje_global": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "firma": {
+      "type": "object",
+      "properties": {
+        "pendiente_firma": {
+          "type": "boolean",
+          "default": true
+        },
+        "aviso": {
+          "type": "string",
+          "default": "Documento generado para REVISIÓN y FIRMA del productor"
+        }
+      }
+    }
+  }
+}

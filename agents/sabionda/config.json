@@ -1,0 +1,156 @@
+{
+  "agent": {
+    "name": "SABIONDA",
+    "version": "2.1",
+    "description": "Agente de Inteligencia Autónoma para gestión integral de explotaciones agroindustriales",
+    "organization": "CASTÚO 360 S.L.",
+    "model": "openclaw-rag-2.0",
+    "system_prompt": "system-prompt.md"
+  },
+  "capabilities": {
+    "livestock_management": {
+      "enabled": true,
+      "breeds": {
+        "vacuno": ["Retinta", "Avileña"],
+        "porcino": ["Duroc", "Ibérico"],
+        "ovino": ["Manchega", "Churra"],
+        "caprino": ["Manchega", "Churra"],
+        "aves": ["GRASP"],
+        "apicultura": ["GRASP"]
+      },
+      "nutrition": {
+        "retinta_ms_kg_day": 6.5,
+        "retinta_live_weight_kg": 500
+      },
+      "alerts": {
+        "fever_threshold_celsius": 39.4,
+        "protocol": "veterinary_sms"
+      }
+    },
+    "crop_management": {
+      "enabled": true,
+      "secano": ["trigo", "olivo", "viñedo"],
+      "regadio": ["tomate", "pimiento"],
+      "invernadero": {
+        "co2_ppm_range": [700, 1000],
+        "vpd_kpa_range": [0.8, 1.2],
+        "ph_range": [5.8, 6.2]
+      },
+      "frutas": ["manzana", "pera", "cítricos"],
+      "certification": "GlobalGAP 5.4"
+    },
+    "irrigation_management": {
+      "enabled": true,
+      "tensiometer_range_cb": [-20, -50],
+      "flow_meters": true,
+      "fertigation": true
+    },
+    "document_generation": {
+      "enabled": true,
+      "formats": ["JSON", "PDF", "XML"],
+      "documents": [
+        "SIEX",
+        "SIGPAC",
+        "TRACES",
+        "REGEPA",
+        "PAC",
+        "GlobalGAP",
+        "GRASP",
+        "ISO14001",
+        "libro_fitosanitario"
+      ]
+    }
+  },
+  "compliance": {
+    "pac_2023_2027": true,
+    "ai_act_eu": true,
+    "rgpd": true,
+    "rd_285_2023": true,
+    "rd_1311_2012": true,
+    "siex_digital_2027": true,
+    "globalgap_5_4": true
+  },
+  "security": {
+    "data_sovereignty": "hetzner_eu",
+    "gdpr_compliant": true,
+    "digital_signature": true,
+    "sensor_error_policy": "ERROR_DE_CORRELACION"
+  },
+  "openclaw_functions": {
+    "document_generation": [
+      {
+        "name": "generate_siex_cuaderno",
+        "endpoint": "POST /api/v1/siex/cuaderno-campo",
+        "description": "Genera el Cuaderno de Campo Digital SIEX con parcelas y tratamientos fitosanitarios",
+        "required_fields": ["explotacion", "parcelas"],
+        "optional_fields": ["tratamientos"]
+      },
+      {
+        "name": "generate_traces_certificado",
+        "endpoint": "POST /api/v1/traces/certificado",
+        "description": "Genera certificado sanitario TRACES para movimiento/exportación de animales",
+        "required_fields": ["explotacion_rega", "nombre_explotacion", "animales", "tipo_movimiento", "destino_pais", "destino_explotacion"]
+      },
+      {
+        "name": "generate_pac_eco_esquema",
+        "endpoint": "POST /api/v1/pac/eco-esquema",
+        "description": "Genera la solicitud PAC 2026 con eco-esquemas y calcula % de cumplimiento",
+        "required_fields": ["nif", "nombre", "rea", "campana", "parcelas", "eco_esquemas"]
+      },
+      {
+        "name": "generate_regepa_explotacion",
+        "endpoint": "POST /api/v1/regepa/explotacion",
+        "description": "Genera el registro de explotación ganadera REGEPA con especies y bienestar animal",
+        "required_fields": ["explotacion_rega", "tipo_explotacion", "capacidad_maxima", "sistema_explotacion", "titular_nif", "titular_nombre", "titular_comunidad", "especies"]
+      },
+      {
+        "name": "generate_sigpac_parcelas",
+        "endpoint": "POST /api/v1/sigpac/parcelas",
+        "description": "Genera el informe de parcelas SIGPAC con referencias catastrales y usos de suelo",
+        "required_fields": ["titular_nombre", "titular_nif", "parcelas"]
+      }
+    ],
+    "rag_tools": [
+      {
+        "name": "rag_buscar_fitosanitario",
+        "description": "Busca en la base documental dosis, PHI y LD50 de un producto fitosanitario por cultivo",
+        "parameters": ["producto", "cultivo", "plaga"]
+      },
+      {
+        "name": "rag_consultar_normativa",
+        "description": "Recupera artículos del RD 285/2023, Ley de Agricultura Familiar u otra normativa aplicable",
+        "parameters": ["norma", "tema"]
+      },
+      {
+        "name": "rag_calcular_racion",
+        "description": "Calcula la ración óptima diaria para una especie/raza y condición productiva",
+        "parameters": ["especie", "raza", "peso_vivo_kg", "estado_productivo"]
+      }
+    ],
+    "iot_alerts": [
+      {
+        "name": "alert_veterinary_sms",
+        "description": "Activa protocolo veterinario SMS cuando temperatura animal supera umbral",
+        "trigger": "temperatura_vacuno > 39.4°C (umbral específico para razas Retinta/Avileña)",
+        "action": "sms_veterinario + registro_REGEPA"
+      },
+      {
+        "name": "alert_irrigation_auto",
+        "description": "Activa riego automático cuando la tensión matricial o humedad está fuera de rango",
+        "trigger": "tension_matricial < -50cb (suelo seco) OR humedad < 30%",
+        "action": "riego_mm_calculado + fertirrigacion_NPK"
+      },
+      {
+        "name": "alert_invernadero_co2",
+        "description": "Regula CO₂, VPD y pH del invernadero fuera de los rangos óptimos",
+        "trigger": "co2 < 700ppm OR co2 > 1000ppm OR vpd fuera [0.8,1.2]kPa",
+        "action": "ajuste_automatico + notificacion_tecnico"
+      }
+    ]
+  },
+  "integrations": {
+    "iot": ["kafka", "mqtt", "lorawan_ttn"],
+    "apis": ["siex", "traces", "sigpac", "regepa", "pac"],
+    "backend": ["n8n", "fastapi", "postgresql"]
+  }
+}

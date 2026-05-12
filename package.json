@@ -1,0 +1,23 @@
+{
+  "name": "castuo-system",
+  "version": "2.0.0",
+  "description": "CASTÚO-SYSTEM™ — Plataforma autónoma de gestión rural con agente SABIONDA",
+  "private": true,
+  "scripts": {
+    "validate:schemas": "for f in config/schemas/*.schema.json; do python3 -m json.tool \"$f\" > /dev/null && echo \"✅ $f\"; done",
+    "validate:compose": "docker compose config --quiet",
+    "test": "python -m pytest tests/test_api.py -v",
+    "lint": "python3 -m py_compile api/main.py && echo '✅ Python syntax OK'"
+  },
+  "keywords": [
+    "agriculture",
+    "fastapi",
+    "sabionda",
+    "siex",
+    "traces",
+    "pac",
+    "sigpac",
+    "regepa"
+  ],
+  "license": "AGPL-3.0"
+}
