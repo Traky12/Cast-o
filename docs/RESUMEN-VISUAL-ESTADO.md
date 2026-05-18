@@ -1,7 +1,7 @@
 # Resumen Visual - CASTUO-SYSTEM 2040
 
-Actualizado: 2026-05-11 10:50 UTC
-Ultimo cambio: d302dc5 - docs: actualizar quick reference automatizado
+Actualizado: 2026-05-18 11:46 UTC
+Ultimo cambio: d1b6e5c - Add GitHub Actions workflow for Python package with Conda
 
 ## Estado General
 
@@ -47,7 +47,7 @@ action: Validacion ISO 27001 y despliegue operativo ampliado - 90 dias
 
 ## Enlaces Operativos
 
-- Pull Requests: https://github.com/Traky12/Castuo-system/pulls
-- Issues: https://github.com/Traky12/Castuo-system/issues
+- Pull Requests: https://github.com/Traky12/Cast-o/pulls
+- Issues: https://github.com/Traky12/Cast-o/issues
 - Documentacion tecnica: docs/CASTUO-SYSTEM-ANALISIS-COMPLETO.md
 - Resumen ejecutivo: docs/RESUMEN-EJECUTIVO-1PAGE.md
