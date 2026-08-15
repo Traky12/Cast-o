@@ -44,6 +44,7 @@ jobs:
       - name: Ejecutar preflight
         run: bash scripts/preflight.sh
         env:
+          CASTUO_CI_MODE: "1"
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           CASTUO_SABIONDA_API_KEY: ${{ secrets.SABIONDA_API_KEY }}
           SABIONDA_AUTH_HEALTH_URL: ${{ secrets.SABIONDA_AUTH_HEALTH_URL }}
