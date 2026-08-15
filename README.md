@@ -1,202 +1,79 @@
-# Cast-o — Entorno de Testing, Validación y Automatización para CASTÚO-SYSTEM
+# 🧪 Cast-o — Automated Testing & Benchmarking
 
-Cast-o es un repositorio técnico base (template) diseñado para estructurar, automatizar y validar el ecosistema de CASTÚO-SYSTEM mediante tests, scripts, infraestructura como código y herramientas de integración.
+![Status](https://img.shields.io/badge/Status-Active%20Engineering-blue)
+![Maturity](https://img.shields.io/badge/Maturity-Implementado-informational)
+![License](https://img.shields.io/badge/License-AGPL--3.0-yellow)
 
-No es la plataforma productiva en sí, sino un **framework operativo de soporte** para asegurar calidad, reproducibilidad y despliegue consistente.
-
----
-
-## 🎯 Propósito
-
-Este repositorio proporciona un entorno unificado para:
-
-- Automatizar tests (unitarios, integración y E2E)
-- Validar configuraciones de infraestructura y despliegue
-- Ejecutar pipelines de CI/CD reproducibles
-- Probar integraciones (IoT, IA, workflows, APIs)
-- Centralizar diagnósticos técnicos y auditorías
+> **Automated testing and performance benchmarking engine for CASTÚO-SYSTEM™**
 
 ---
 
-## 🧩 Qué incluye realmente el repositorio
+## 1. Purpose & Scope
+**Cast-o** is the quality assurance and performance engine of the ecosystem. It provides a unified environment to structure, automate, and validate the CASTÚO-SYSTEM ecosystem through tests, infrastructure-as-code, and integration tools.
 
-### 1. Testing framework
-
-- Tests en Python (`pytest`) y JavaScript
-- Tests E2E (`test_e2e.py`)
-- Tests de integración de componentes (ej. GitHub toggle, orquestación)
-- Configuración unificada (`pytest.ini`, `tests/conftest.py`)
-- Archivo `.coverage` para análisis de cobertura
-
-Ejemplo:
-- `test_github_integration_toggle.py` valida flags de integración
-- `test_e2e.py` prueba flujos completos del sistema
-
-### 2. CI/CD básico
-
-- GitHub Actions configurado para entorno Python (Conda)
-- Scripts de validación:
-  - `ci_validation.sh`
-  - `hardening_checklist.sh`
-
-Objetivo:
-- Garantizar reproducibilidad de entorno
-- Validar cambios antes de integración
-
-### 3. Infraestructura como código (base)
-
-- Terraform (Hetzner):
-  - `hetzner_infra/`
-- Kubernetes manifests:
-  - `k8s/`
-  - `infrastructure/`
-
-Esto permite:
-- Simular despliegues reales
-- Validar configuraciones antes de producción
-
-### 4. Entornos Docker modulares
-
-Múltiples configuraciones según caso de uso:
-
-- `docker-compose.yml` (base)
-- `docker-compose.iot.yml`
-- `docker-compose.microservices.yml`
-- `docker-compose.cloud.yml`
-- `docker-compose.ha.yml`
-- `docker-compose.whatsapp.yml`
-
-Uso:
-- Testing local de distintos escenarios
-- Validación de arquitectura distribuida
-
-### 5. Integración IoT y edge
-
-- Código para ESP32 (`esp32_code/`)
-- Configuración IoT (Thingsdata, MQTT, etc.)
-- Variables de entorno específicas (`.env.thingsdata`)
-
-### 6. Automatización y workflows
-
-- Flujos n8n (`n8n/workflows/`)
-- Scripts auxiliares (`scripts/`)
-- Workers y servicios desacoplados (`workers/`, `services/`)
-
-### 7. Observabilidad y operaciones
-
-- Configuración de monitoring (`monitoring/`)
-- Logs, artefactos y resultados (`artifacts/`)
-- Auditorías (`audits/`)
-
-### 8. Documentación técnica y diagnósticos
-
-Gran parte del valor del repo está aquí:
-
-- Diagnósticos estructurados:
-  - `DIAGNOSTICO-SISTEMA.md`
-  - `DIAGNOSTIC-*.json`
-- Checklists:
-  - `INTEGRATION-CHECKLIST.md`
-- Guías operativas:
-  - `INICIA-AQUI.md`
-  - `EJECUTOR-PASOS.md`
-- Informes de contingencia:
-  - `CONTINGENCY_REPORT.md`
-
-### 9. Backend y API (base)
-
-- Estructura de API (`api/`, `backend/`)
-- No es un backend completo productivo, sino base para testing e integración
+Its scope covers:
+- **Automated Testing:** Unit, integration, and E2E tests (`pytest`, Playwright).
+- **Infrastructure Validation:** Terraform (Hetzner) and Kubernetes manifests.
+- **IoT & Edge Simulation:** ESP32 code and MQTT integration testing.
+- **Performance Benchmarking:** Regression detection and resource usage analysis.
+- **CI/CD Support:** Reusable pipelines and hardening checklists.
 
 ---
 
-## ⚙️ Uso básico
+## 2. Ecosystem Position
+Cast-o acts as the **TOOLING** anchor, providing the necessary infrastructure for technical validation across all layers.
 
-### Clonar repositorio
+```text
+Cast-o (Tooling)
+     │
+     ├── CASTÚO-SYSTEM (Core)
+     │      Validation target
+     │
+     ├── GOLDfish (Assurance)
+     │      Evidence provider
+     │
+     └── castuo-agro-edge (Edge)
+            Performance benchmark target
+```
 
+---
+
+## 3. Core Components
+- **Testing Framework:** Unit, integration, and E2E tests for AI and IoT components.
+- **Dockerized Environments:** Modular `docker-compose` files for IoT, Cloud, and HA scenarios.
+- **Infrastructure as Code:** Terraform assets for Hetzner and K8s manifests.
+- **Observability:** Monitoring configurations for Prometheus and Grafana.
+- **Documentation & Diagnostics:** System diagnostics, integration checklists, and contingency reports.
+
+---
+
+## 4. Engineering & Evidence
+Following the **Evidence-First** principle, Cast-o provides the raw data that supports maturity claims in the ecosystem.
+- **Implemented:** Unit and integration test suites, Docker environments, and IaC bases.
+- **Validated:** Performance benchmarking for core API endpoints and CI/CD automation.
+
+Every test run generates a verifiable record linked to the target commit, federated in **CASTÚO-EVOLUTION**.
+
+---
+
+## 5. Quick Start
 ```bash
 git clone https://github.com/Traky12/Cast-o.git
 cd Cast-o
-```
-
-### Configurar entorno
-
-```bash
 cp .env.example .env
-```
-
-### Levantar entorno base
-
-```bash
 docker compose up -d
-```
-
-### Ejecutar tests
-
-```bash
 pytest tests/ -v
 ```
 
 ---
 
-## 🧪 Casos de uso reales
-
-Este repo es útil para:
-
-- Validar cambios antes de integrarlos en CASTÚO-SYSTEM
-- Probar configuraciones de infraestructura sin afectar producción
-- Simular escenarios IoT y workflows automatizados
-- Ejecutar auditorías técnicas y de seguridad
-- Servir como base para nuevos entornos o despliegues
-
-Ejemplo:
-Un cambio en la API puede validarse aquí ejecutando tests + Docker antes de desplegar en el sistema principal.
+## 6. Navigation
+[← Ecosystem Profile](https://github.com/Traky12) | [→ Core Platform](https://github.com/Traky12/Castuo-system) | [→ Assurance](https://github.com/Traky12/goldfish) | [→ Architecture Docs](docs/)
 
 ---
 
-## 🧱 Estructura del proyecto (simplificada)
+## 🌐 Connect
+- 🌍 [Website](https://castuo-system.es/)
+- 🧪 [Cast-o Repository](https://github.com/Traky12/Cast-o)
 
-- `api/` → endpoints y lógica base
-- `backend/` → servicios backend
-- `tests/` → tests automatizados
-- `scripts/` → utilidades CLI
-- `infrastructure/`, `k8s/` → despliegue
-- `hetzner_infra/` → Terraform
-- `monitoring/` → observabilidad
-- `n8n/workflows/` → automatización
-- `esp32_code/` → edge/IoT
-- `docs/` → documentación técnica
-
----
-
-## 🔐 Seguridad
-
-- Archivo `SECURITY.md` con política de vulnerabilidades
-- Scripts de hardening incluidos
-- Soporte para análisis estático (ej. Semgrep, Trivy)
-
----
-
-## 📌 Estado del proyecto
-
-- Template funcional
-- Estructura completa, pero parcialmente poblada
-- Enfocado a evolución y adaptación
-- No representa un sistema productivo desplegado
-
----
-
-## ⚖️ Licencia
-
-- Código: AGPL-3.0 (según repositorio)
-
----
-
-## 🧭 Enfoque
-
-Cast-o no busca ser un producto final, sino un **entorno de ingeniería** que permita:
-
-- Reducir riesgo en despliegues
-- Aumentar calidad del software
-- Estandarizar procesos técnicos
-- Acelerar iteración en proyectos complejos (IoT + IA + SaaS)
+**Build · Validate · Observe · Document · Evolve**
