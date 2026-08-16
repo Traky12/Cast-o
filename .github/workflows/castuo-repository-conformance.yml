@@ -17,11 +17,20 @@ jobs:
       - name: Checkout Cast-o
         uses: actions/checkout@v4
 
+      - name: Require canonical control-plane token
+        env:
+          CASTUO_AUDIT_TOKEN: ${{ secrets.CASTUO_AUDIT_TOKEN }}
+        run: |
+          if [ -z "$CASTUO_AUDIT_TOKEN" ]; then
+            echo "::error::CASTUO_AUDIT_TOKEN is required to read the private castuo-evolution control plane."
+            exit 1
+          fi
+
       - name: Checkout canonical standard
         uses: actions/checkout@v4
         with:
           repository: Traky12/castuo-evolution
-          token: ${{ secrets.CASTUO_AUDIT_TOKEN || github.token }}
+          token: ${{ secrets.CASTUO_AUDIT_TOKEN }}
           path: .castuo-standard
           ref: main
           persist-credentials: false
