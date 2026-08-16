@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-16
 
+- Merge 4f135b9a336b7ce0688da3d0426bfffc57a09f7a into e3aabfcdc870d3166109a22287e2fcf325306632 (3bd5583)
+- ci: authenticate canonical control plane checkout (4f135b9)
+- docs: actualizar changelog preview del PR (b79974c)
 - Merge f9aaa398e034e9dc4ca41a0c85e605b67ba3d3a5 into e3aabfcdc870d3166109a22287e2fcf325306632 (649b0f9)
 - chore: add CASTUO V1.0 conformance metadata (f9aaa39)
 - feat: consume canonical castuo repository conformance (cf3d311)
