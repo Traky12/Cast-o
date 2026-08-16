@@ -2,6 +2,11 @@
 
 ## [Unreleased] - 2026-08-16
 
+- Merge 339f913839762b4f439ade8bebd1e410ae7545ac into e3aabfcdc870d3166109a22287e2fcf325306632 (3ce1468)
+- feat: integrate CASTUO official brand identity (339f913)
+- docs: add governed CASTUO public surface (1d18345)
+- docs: add CASTUO public surface boundary (265c395)
+- docs: actualizar changelog preview del PR (ea6d788)
 - Merge 772ab281c915bfe5689cd1ddb8c7ca095389d040 into e3aabfcdc870d3166109a22287e2fcf325306632 (5b3d366)
 - ci: fail clearly when audit token is missing (772ab28)
 - docs: actualizar changelog preview del PR (12017db)
