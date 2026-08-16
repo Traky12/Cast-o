@@ -1,0 +1,40 @@
+name: CASTUO repository conformance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Validate against CASTUO-REPOSITORY-STANDARD-V1.0
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Cast-o
+        uses: actions/checkout@v4
+
+      - name: Checkout canonical standard
+        uses: actions/checkout@v4
+        with:
+          repository: Traky12/castuo-evolution
+          path: .castuo-standard
+          ref: main
+          persist-credentials: false
+
+      - name: Run canonical validator adapter
+        run: |
+          python3 scripts/run_castuo_repository_conformance.py \
+            --standard-root .castuo-standard \
+            --repository-root . \
+            --output artifacts/castuo-repository-conformance.json
+
+      - name: Upload conformance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: castuo-repository-conformance
+          path: artifacts/castuo-repository-conformance.json
