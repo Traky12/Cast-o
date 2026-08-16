@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-16
 
+- Merge 772ab281c915bfe5689cd1ddb8c7ca095389d040 into e3aabfcdc870d3166109a22287e2fcf325306632 (5b3d366)
+- ci: fail clearly when audit token is missing (772ab28)
+- docs: actualizar changelog preview del PR (12017db)
 - Merge 4f135b9a336b7ce0688da3d0426bfffc57a09f7a into e3aabfcdc870d3166109a22287e2fcf325306632 (3bd5583)
 - ci: authenticate canonical control plane checkout (4f135b9)
 - docs: actualizar changelog preview del PR (b79974c)
