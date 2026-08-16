@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-16
 
+- Merge 2805233bb48191b7e695641d51321b99e76cd40e into e3aabfcdc870d3166109a22287e2fcf325306632 (d77c869)
+- chore: sync CASTUO V1.0 repository reference (2805233)
+- docs: actualizar changelog preview del PR (234517f)
 - Merge 1d18345a703c5119059eea814ba3cf966df428c4 into e3aabfcdc870d3166109a22287e2fcf325306632 (d30b9d2)
 - docs: add governed CASTUO public surface (1d18345)
 - docs: add CASTUO public surface boundary (265c395)
