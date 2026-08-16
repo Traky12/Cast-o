@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-16
 
+- Merge e79f1d50a227fcd7824e6bc6528ae6e4cd591a36 into e3aabfcdc870d3166109a22287e2fcf325306632 (25cb95e)
+- docs: normalize CASTUO public integration surfaces (e79f1d5)
+- docs: actualizar changelog preview del PR (d4f1b67)
 - Merge e733415ec62c2015fa6fa991f913bf8b8d9aa045 into e3aabfcdc870d3166109a22287e2fcf325306632 (cd690b5)
 - docs: add CASTUO brand surface reference (e733415)
 - docs: actualizar changelog preview del PR (b95e6d9)
@@ -29,5 +32,3 @@
 - Create SECURITY.md for security policy and reporting (#5) (e067bde)
 - docs: actualizar resumen visual automatizado (cf1b175)
 - Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
-- docs: actualizar quick reference automatizado (c4309d4)
-- Initial commit (67cc765)
