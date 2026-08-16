@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-16
 
+- Merge e733415ec62c2015fa6fa991f913bf8b8d9aa045 into e3aabfcdc870d3166109a22287e2fcf325306632 (cd690b5)
+- docs: add CASTUO brand surface reference (e733415)
+- docs: actualizar changelog preview del PR (b95e6d9)
 - Merge 339f913839762b4f439ade8bebd1e410ae7545ac into e3aabfcdc870d3166109a22287e2fcf325306632 (3ce1468)
 - feat: integrate CASTUO official brand identity (339f913)
 - docs: add governed CASTUO public surface (1d18345)
