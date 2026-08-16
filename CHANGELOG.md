@@ -1,9 +1,28 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-01
+## [Unreleased] - 2026-08-16
 
-- Merge fe9a1449e46f3e84ce0fe013375dd0b7938ba43c into e067bde4d081caf85c3af10b51160abef24c466a (0ba736c)
-- Revise README for Cast-o framework details (fe9a144)
+- Merge 339f913839762b4f439ade8bebd1e410ae7545ac into e3aabfcdc870d3166109a22287e2fcf325306632 (3ce1468)
+- feat: integrate CASTUO official brand identity (339f913)
+- docs: add governed CASTUO public surface (1d18345)
+- docs: add CASTUO public surface boundary (265c395)
+- docs: actualizar changelog preview del PR (ea6d788)
+- Merge 772ab281c915bfe5689cd1ddb8c7ca095389d040 into e3aabfcdc870d3166109a22287e2fcf325306632 (5b3d366)
+- ci: fail clearly when audit token is missing (772ab28)
+- docs: actualizar changelog preview del PR (12017db)
+- Merge 4f135b9a336b7ce0688da3d0426bfffc57a09f7a into e3aabfcdc870d3166109a22287e2fcf325306632 (3bd5583)
+- ci: authenticate canonical control plane checkout (4f135b9)
+- docs: actualizar changelog preview del PR (b79974c)
+- Merge f9aaa398e034e9dc4ca41a0c85e605b67ba3d3a5 into e3aabfcdc870d3166109a22287e2fcf325306632 (649b0f9)
+- chore: add CASTUO V1.0 conformance metadata (f9aaa39)
+- feat: consume canonical castuo repository conformance (cf3d311)
+- docs: add negative assurance boundary (e3aabfc)
+- docs: add private cloud evidence boundary (4d0c0f7)
+- ci: align documentation and validation contracts (6c9e233)
+- ci: make hardening and Python validation CI-safe (0c86512)
+- chore: apply architecture governance and security baseline (5ccf164)
+- docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
+- Revise README for Cast-o framework details (#11) (f4ea214)
 - Create SECURITY.md for security policy and reporting (#5) (e067bde)
 - docs: actualizar resumen visual automatizado (cf1b175)
 - Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
