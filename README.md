@@ -70,6 +70,10 @@ pytest tests/ -v
 ## 6. Navigation
 [← Ecosystem Profile](https://github.com/Traky12) | [→ Core Platform](https://github.com/Traky12/Castuo-system) | [→ Assurance](https://github.com/Traky12/goldfish) | [→ Architecture Docs](docs/)
 
+### Commercial-readiness connection
+
+Cast-o supplies validation and provenance checks for the bounded product and pilot path. The canonical control-plane references are the [product scope](https://github.com/Traky12/castuo-evolution/blob/chore/refresh-integration-status-20260816/docs/product/CASTUO_EVIDENCE_READY_FIELD_OPERATIONS.md), [PILOT-001 scope](https://github.com/Traky12/castuo-evolution/blob/chore/refresh-integration-status-20260816/docs/pilot/PILOT-001_PUBLIC_SCOPE.md) and [commercial gates](https://github.com/Traky12/castuo-evolution/blob/chore/refresh-integration-status-20260816/docs/commercial/COMMERCIAL_READINESS_GATES_G0_G8.md). Cast-o test results support their declared scope; they do not establish a customer, contract, invoice, payment or production operation.
+
 ---
 
 ## 🌐 Connect
