@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-17
 
+- Merge df440425ffc6106b2a85141a64e3e8f36200c521 into e3aabfcdc870d3166109a22287e2fcf325306632 (21edec4)
+- docs: add governed CASTUO traceability block (df44042)
+- docs: actualizar changelog preview del PR (9caf9b5)
 - Merge 404aaf909449d62fc6bf5e0968234d55ab1bb399 into e3aabfcdc870d3166109a22287e2fcf325306632 (398f259)
 - docs: add governed CASTUO traceability block (404aaf9)
 - docs: actualizar changelog preview del PR (274e1db)
@@ -29,6 +32,3 @@
 - docs: add private cloud evidence boundary (4d0c0f7)
 - ci: align documentation and validation contracts (6c9e233)
 - ci: make hardening and Python validation CI-safe (0c86512)
-- chore: apply architecture governance and security baseline (5ccf164)
-- docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
-- Revise README for Cast-o framework details (#11) (f4ea214)
