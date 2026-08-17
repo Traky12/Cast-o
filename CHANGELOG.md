@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-17
 
+- Merge f5a99607eb78863cdf366032b028fb4a7183bb8a into e3aabfcdc870d3166109a22287e2fcf325306632 (84d54a8)
+- docs: connect commercial readiness path (f5a9960)
+- docs: actualizar changelog preview del PR (0c4cbe1)
 - Merge d2397981c903b1259b3fd5e3470d0fa4ff976664 into e3aabfcdc870d3166109a22287e2fcf325306632 (957b863)
 - ci: add bounded CASTUO V1 conformance check (d239798)
 - docs: actualizar changelog preview del PR (3a42bbd)
@@ -29,6 +32,3 @@
 - docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
 - Revise README for Cast-o framework details (#11) (f4ea214)
 - Create SECURITY.md for security policy and reporting (#5) (e067bde)
-- docs: actualizar resumen visual automatizado (cf1b175)
-- Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
-- docs: actualizar quick reference automatizado (c4309d4)
