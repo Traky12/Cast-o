@@ -1,7 +1,10 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-16
+## [Unreleased] - 2026-08-17
 
+- Merge d2397981c903b1259b3fd5e3470d0fa4ff976664 into e3aabfcdc870d3166109a22287e2fcf325306632 (957b863)
+- ci: add bounded CASTUO V1 conformance check (d239798)
+- docs: actualizar changelog preview del PR (3a42bbd)
 - Merge 2805233bb48191b7e695641d51321b99e76cd40e into e3aabfcdc870d3166109a22287e2fcf325306632 (d77c869)
 - chore: sync CASTUO V1.0 repository reference (2805233)
 - docs: actualizar changelog preview del PR (234517f)
@@ -29,4 +32,3 @@
 - docs: actualizar resumen visual automatizado (cf1b175)
 - Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
 - docs: actualizar quick reference automatizado (c4309d4)
-- Initial commit (67cc765)
