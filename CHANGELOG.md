@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-17
 
+- Merge 353572f40fb5faef617fa98134c1b7b3eb3dedf8 into e3aabfcdc870d3166109a22287e2fcf325306632 (2b3b25b)
+- docs: add governed CASTUO traceability block (353572f)
+- docs: actualizar changelog preview del PR (8fa21ba)
 - Merge 70ebc847741b346eb08e9ed1d4bd80c71b2edb8d into e3aabfcdc870d3166109a22287e2fcf325306632 (cd60787)
 - docs: add governed CASTUO traceability block (70ebc84)
 - docs: actualizar changelog preview del PR (6035aa2)
@@ -29,5 +32,3 @@
 - Create SECURITY.md for security policy and reporting (#5) (e067bde)
 - docs: actualizar resumen visual automatizado (cf1b175)
 - Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
-- docs: actualizar quick reference automatizado (c4309d4)
-- Initial commit (67cc765)
