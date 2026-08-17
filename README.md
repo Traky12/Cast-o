@@ -70,6 +70,10 @@ pytest tests/ -v
 ## 6. Navigation
 [← Ecosystem Profile](https://github.com/Traky12) | [→ Core Platform](https://github.com/Traky12/Castuo-system) | [→ Assurance](https://github.com/Traky12/goldfish) | [→ Architecture Docs](docs/)
 
+### Commercial-readiness connection
+
+Cast-o supplies validation and provenance checks for the bounded product and pilot path. The canonical control-plane references are the [product scope](https://github.com/Traky12/castuo-evolution/blob/chore/refresh-integration-status-20260816/docs/product/CASTUO_EVIDENCE_READY_FIELD_OPERATIONS.md), [PILOT-001 scope](https://github.com/Traky12/castuo-evolution/blob/chore/refresh-integration-status-20260816/docs/pilot/PILOT-001_PUBLIC_SCOPE.md) and [commercial gates](https://github.com/Traky12/castuo-evolution/blob/chore/refresh-integration-status-20260816/docs/commercial/COMMERCIAL_READINESS_GATES_G0_G8.md). Cast-o test results support their declared scope; they do not establish a customer, contract, invoice, payment or production operation.
+
 ---
 
 ## 🌐 Connect
@@ -99,3 +103,13 @@ A passing local test proves only the declared test scope. It does not prove fede
 This repository is part of the CASTÚO-SYSTEM private-cloud target architecture. Its repository scope does not by itself prove cloud provisioning, DNS, production operation, customer traction, financing, certification or independent validation. The service identity is a governed target boundary until a deployment record, access control, health check, observability, backup, restore, rollback, owner and dated Evidence Center record are published.
 
 The public state model is `DOCUMENTED` → `IMPLEMENTED_LOCAL` → `TESTED` → `VALIDATED` → `OPERATIONAL`. OpenClaw and n8n, where referenced, are optional compatibility adapters and not the sovereign governance control plane.\n
+
+<!-- CASTUO:PUBLIC-SURFACE -->
+## CASTÚO integration boundary
+
+This repository exposes only a bounded public integration surface. Its role, current state and claims are subordinate to the `Traky12/castuo-evolution` control plane.
+
+This repository does not by itself claim production operation, certification, independent validation, customer contracts, revenue, autonomous authority, global federation or legal compliance. Do not publish secrets, credentials, private endpoints, customer data, private evidence or unpublished security findings.
+
+See [`docs/CASTUO_PUBLIC_SURFACE.md`](docs/CASTUO_PUBLIC_SURFACE.md) for the public boundary. `Claim != Evidence`; `CURRENT != TARGET`; promotion requires control-plane authorization.
+<!-- CASTUO:PUBLIC-SURFACE-END -->
