@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-17
 
+- Merge 5fd893596db31a8510f0bdf5a2b914ca934ad9a6 into e3aabfcdc870d3166109a22287e2fcf325306632 (fbb5e81)
+- docs: add governed CASTUO traceability block (5fd8935)
+- docs: actualizar changelog preview del PR (4c07e0d)
 - Merge d660210e50d9cb6d47a1da4dd2a84cfcb8cf48ec into e3aabfcdc870d3166109a22287e2fcf325306632 (f4e6c27)
 - docs: add governed CASTUO traceability block (d660210)
 - docs: actualizar changelog preview del PR (dedeba2)
