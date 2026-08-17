@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-17
 
+- Merge 5f56080ecd5751903d5ed52595ca1ea16afc4a26 into e3aabfcdc870d3166109a22287e2fcf325306632 (fe5bc60)
+- docs: define CASTUO README scope and evidence boundary (5f56080)
+- docs: actualizar changelog preview del PR (19c56c3)
 - Merge bb2bddec7b277635e6225cbea8791a2eec05654c into e3aabfcdc870d3166109a22287e2fcf325306632 (fb4bd74)
 - docs: align README with CASTUO ecosystem (bb2bdde)
 - docs: actualizar changelog preview del PR (d670e29)
@@ -29,6 +32,3 @@
 - docs: add private cloud evidence boundary (4d0c0f7)
 - ci: align documentation and validation contracts (6c9e233)
 - ci: make hardening and Python validation CI-safe (0c86512)
-- chore: apply architecture governance and security baseline (5ccf164)
-- docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
-- Revise README for Cast-o framework details (#11) (f4ea214)
