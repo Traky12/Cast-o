@@ -1,7 +1,10 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-16
+## [Unreleased] - 2026-08-17
 
+- Merge bb2bddec7b277635e6225cbea8791a2eec05654c into e3aabfcdc870d3166109a22287e2fcf325306632 (fb4bd74)
+- docs: align README with CASTUO ecosystem (bb2bdde)
+- docs: actualizar changelog preview del PR (d670e29)
 - Merge e79f1d50a227fcd7824e6bc6528ae6e4cd591a36 into e3aabfcdc870d3166109a22287e2fcf325306632 (25cb95e)
 - docs: normalize CASTUO public integration surfaces (e79f1d5)
 - docs: actualizar changelog preview del PR (d4f1b67)
@@ -29,6 +32,3 @@
 - chore: apply architecture governance and security baseline (5ccf164)
 - docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
 - Revise README for Cast-o framework details (#11) (f4ea214)
-- Create SECURITY.md for security policy and reporting (#5) (e067bde)
-- docs: actualizar resumen visual automatizado (cf1b175)
-- Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
