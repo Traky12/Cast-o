@@ -1,9 +1,25 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-01
+## [Unreleased] - 2026-08-17
 
-- Merge fe9a1449e46f3e84ce0fe013375dd0b7938ba43c into e067bde4d081caf85c3af10b51160abef24c466a (0ba736c)
-- Revise README for Cast-o framework details (fe9a144)
+- Merge 5fd893596db31a8510f0bdf5a2b914ca934ad9a6 into e3aabfcdc870d3166109a22287e2fcf325306632 (fbb5e81)
+- docs: add governed CASTUO traceability block (5fd8935)
+- docs: actualizar changelog preview del PR (4c07e0d)
+- Merge d660210e50d9cb6d47a1da4dd2a84cfcb8cf48ec into e3aabfcdc870d3166109a22287e2fcf325306632 (f4e6c27)
+- docs: add governed CASTUO traceability block (d660210)
+- docs: actualizar changelog preview del PR (dedeba2)
+- Merge 0be20cdb18ab1765417bd17649595ab31b8429ff into e3aabfcdc870d3166109a22287e2fcf325306632 (02c4bea)
+- docs: add governed CASTUO traceability block (0be20cd)
+- docs: actualizar changelog preview del PR (50a4e29)
+- Merge 9461a1bbfe16e77f39d1c2fc073a1f1d692b1cd7 into e3aabfcdc870d3166109a22287e2fcf325306632 (5bc5b72)
+- docs: add governed CASTUO traceability block (9461a1b)
+- docs: add negative assurance boundary (e3aabfc)
+- docs: add private cloud evidence boundary (4d0c0f7)
+- ci: align documentation and validation contracts (6c9e233)
+- ci: make hardening and Python validation CI-safe (0c86512)
+- chore: apply architecture governance and security baseline (5ccf164)
+- docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
+- Revise README for Cast-o framework details (#11) (f4ea214)
 - Create SECURITY.md for security policy and reporting (#5) (e067bde)
 - docs: actualizar resumen visual automatizado (cf1b175)
 - Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
