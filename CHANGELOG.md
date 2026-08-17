@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-17
 
+- Merge c076fd5587e3dfa57c250394684d6335270a2da2 into e3aabfcdc870d3166109a22287e2fcf325306632 (9f9e3a5)
+- docs: add governed CASTUO traceability block (c076fd5)
+- docs: actualizar changelog preview del PR (fe75d30)
 - Merge df440425ffc6106b2a85141a64e3e8f36200c521 into e3aabfcdc870d3166109a22287e2fcf325306632 (21edec4)
 - docs: add governed CASTUO traceability block (df44042)
 - docs: actualizar changelog preview del PR (9caf9b5)
@@ -29,6 +32,3 @@
 - Merge 9461a1bbfe16e77f39d1c2fc073a1f1d692b1cd7 into e3aabfcdc870d3166109a22287e2fcf325306632 (5bc5b72)
 - docs: add governed CASTUO traceability block (9461a1b)
 - docs: add negative assurance boundary (e3aabfc)
-- docs: add private cloud evidence boundary (4d0c0f7)
-- ci: align documentation and validation contracts (6c9e233)
-- ci: make hardening and Python validation CI-safe (0c86512)
