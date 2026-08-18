@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-18
 
+- Merge 646f0329c83feb8c26a7a238e68ee78b2f01a8a3 into e3aabfcdc870d3166109a22287e2fcf325306632 (f0f7e70)
+- docs: add governed CASTUO traceability block (646f032)
+- docs: actualizar changelog preview del PR (ccce78f)
 - Merge 54abd3f726ac1ea82fb1f8058bce5fbb13074cdc into e3aabfcdc870d3166109a22287e2fcf325306632 (680dce4)
 - docs: add governed CASTUO traceability block (54abd3f)
 - docs: actualizar changelog preview del PR (2da57d0)
@@ -29,6 +32,3 @@
 - Merge 1e6f3bdec679520fd836a33f49028402692476dc into e3aabfcdc870d3166109a22287e2fcf325306632 (80abf59)
 - docs: add governed CASTUO traceability block (1e6f3bd)
 - docs: actualizar changelog preview del PR (bbb31b1)
-- Merge 89c0e3f571e959115cc5f9fd2b929a7a523f5149 into e3aabfcdc870d3166109a22287e2fcf325306632 (865dbb2)
-- docs: add governed CASTUO traceability block (89c0e3f)
-- docs: actualizar changelog preview del PR (2f5b836)
