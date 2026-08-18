@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-18
 
+- Merge 647dac741d728e18d899582b48b15aea13518b22 into e3aabfcdc870d3166109a22287e2fcf325306632 (93fad76)
+- docs: add governed CASTUO traceability block (647dac7)
+- docs: actualizar changelog preview del PR (891d55c)
 - Merge fd6d39d486a75e244dfb962049bc5399e4f6e944 into e3aabfcdc870d3166109a22287e2fcf325306632 (3476555)
 - docs: add governed CASTUO traceability block (fd6d39d)
 - docs: add negative assurance boundary (e3aabfc)
