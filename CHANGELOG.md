@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-18
 
+- Merge 532aac327dea461d0be88b7dca211385d75015df into e3aabfcdc870d3166109a22287e2fcf325306632 (e6131d7)
+- docs: add governed CASTUO traceability block (532aac3)
+- docs: actualizar changelog preview del PR (6363d97)
 - Merge ba635c66b547945280fd647215ca06531f480238 into e3aabfcdc870d3166109a22287e2fcf325306632 (620976e)
 - docs: add governed CASTUO traceability block (ba635c6)
 - docs: actualizar changelog preview del PR (8b5e27c)
@@ -29,6 +32,3 @@
 - chore: apply architecture governance and security baseline (5ccf164)
 - docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
 - Revise README for Cast-o framework details (#11) (f4ea214)
-- Create SECURITY.md for security policy and reporting (#5) (e067bde)
-- docs: actualizar resumen visual automatizado (cf1b175)
-- Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
