@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "api"))
 
 from main import app
-from routers import skills as skills_router
+from api.routers import skills as skills_router
 
 client = TestClient(app)
 
