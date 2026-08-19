@@ -137,3 +137,19 @@ For public navigation use the [Traky12 profile](https://github.com/Traky12/Traky
 
 `Identity != Documentation != Evidence != Execution != Review != Promotion`
 <!-- CASTUO:PUBLIC-GOVERNANCE:END -->
+
+## CASTÚO-SYSTEM public governance boundary
+
+**Role / Rol:** `VALIDATION / EVIDENCE`
+
+> NO CLAIM WITHOUT PROVENANCE.
+>
+> NINGÚN CLAIM SIN PROVENIENCIA.
+
+Cast-o validates bounded artifacts and reproducibility. It does not define public semantics or authorize promotion.
+
+Cast-o valida artefactos acotados y reproducibilidad. No define la semántica pública ni autoriza la promoción.
+
+The canonical meaning and promotion rules remain in [`castuo-evolution`](https://github.com/Traky12/castuo-evolution). The public profile is a read-model; this repository does not authorize promotion. Public state remains `EVIDENCE-SCOPED · STAGING-CANDIDATE · PROMOTION-BLOCKED` unless a newer source snapshot explicitly proves otherwise.
+
+La semántica canónica y las reglas de promoción permanecen en [`castuo-evolution`](https://github.com/Traky12/castuo-evolution). El perfil público es un read-model; este repositorio no autoriza la promoción. El estado público permanece `EVIDENCE-SCOPED · STAGING-CANDIDATE · PROMOTION-BLOCKED` salvo que un snapshot posterior lo demuestre explícitamente.
