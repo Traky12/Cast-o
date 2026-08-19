@@ -5,13 +5,13 @@ import os
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 
 try:
-    from middleware.tenant_middleware import get_tenant
-    from models.tenant import Tenant
-    from security.rbac import authorize_token, token_from_authorization_header
-except ModuleNotFoundError:  # pragma: no cover
     from api.middleware.tenant_middleware import get_tenant
     from api.models.tenant import Tenant
     from api.security.rbac import authorize_token, token_from_authorization_header
+except ModuleNotFoundError:  # pragma: no cover
+    from middleware.tenant_middleware import get_tenant
+    from models.tenant import Tenant
+    from security.rbac import authorize_token, token_from_authorization_header
 
 
 router = APIRouter(prefix="/api/v1/gdpr", tags=["GDPR"])

@@ -20,3 +20,4 @@ pyotp>=2.9.0                # MFA TOTP
 redis>=5.0.1                # Rate limiting distribuido
 boto3>=1.34.0               # Backups GDPR en S3
 SQLAlchemy>=2.0.35          # ORM para persistencia educativa
+jsonschema>=4.23.0         # Validación de contratos SIEX en CI
