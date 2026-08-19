@@ -6,15 +6,15 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 try:
-    from metrics.prometheus import record_active_users, record_lesson_view
-    from services.activitypub_server import ActivityPubServer
-    from services.education_content_validator import EducationalContentValidator
-    from services.ethics_policy import enforce_ethical_equity_text
-except ModuleNotFoundError:  # pragma: no cover
     from api.metrics.prometheus import record_active_users, record_lesson_view
     from api.services.activitypub_server import ActivityPubServer
     from api.services.education_content_validator import EducationalContentValidator
     from api.services.ethics_policy import enforce_ethical_equity_text
+except ModuleNotFoundError:  # pragma: no cover
+    from metrics.prometheus import record_active_users, record_lesson_view
+    from services.activitypub_server import ActivityPubServer
+    from services.education_content_validator import EducationalContentValidator
+    from services.ethics_policy import enforce_ethical_equity_text
 
 router = APIRouter(prefix="/api/v1/education", tags=["Education"])
 validator = EducationalContentValidator()
