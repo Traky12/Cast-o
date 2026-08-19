@@ -2,6 +2,10 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge 274adc7b912b16c84d850322cdb551c07e09c48d into e3aabfcdc870d3166109a22287e2fcf325306632 (0d0e32f)
+- Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (274adc7)
+- fix: ignore generated files in sync drift metric (3d3b478)
+- docs: actualizar changelog preview del PR (a7bc778)
 - Merge 04da6a3b630fd387f23fbf6eda9b572e245bbe8a into e3aabfcdc870d3166109a22287e2fcf325306632 (1f1ed32)
 - Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (04da6a3)
 - test: use canonical package imports in API suite (5124558)
@@ -28,7 +32,3 @@
 - fix: make CI reconciliation and ESP32 tests runnable (28d0574)
 - docs: actualizar changelog preview del PR (b2bf0c8)
 - Merge 82768e0217ddf1a1786b22bde18ef63d4bb2dcec into e3aabfcdc870d3166109a22287e2fcf325306632 (ace4a95)
-- docs: synchronize bilingual governed public projection (82768e0)
-- docs: add negative assurance boundary (e3aabfc)
-- docs: add private cloud evidence boundary (4d0c0f7)
-- ci: align documentation and validation contracts (6c9e233)
