@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge 7df487f655141f3d38c867261d3c4d67ddadaf82 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (24e56d5)
+- feat: add durable langgraph runtime and agent contracts (7df487f)
+- docs: actualizar changelog preview del PR (c0c933e)
 - Merge 235b2e52f6fdc2cd6f8efbef7f099ab65661e90f into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (78d980b)
 - fix: make educational model registration idempotent (235b2e5)
 - docs: actualizar changelog preview del PR (40a2bb9)
