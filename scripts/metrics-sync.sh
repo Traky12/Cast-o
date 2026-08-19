@@ -22,7 +22,7 @@ if ls logs/*.log > /dev/null 2>&1; then
 fi
 
 drift=0
-if [[ -n "$(git status --porcelain)" ]]; then
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
   drift=1
 fi
 
