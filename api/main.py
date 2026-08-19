@@ -145,7 +145,7 @@ def _require_integration_enabled(flag_name: str, integration_name: str) -> None:
 
 
 def _load_router_module(module_name: str) -> Any | None:
-    for prefix in ("routers", "api.routers"):
+    for prefix in ("api.routers", "routers"):
         try:
             return importlib.import_module(f"{prefix}.{module_name}")
         except ModuleNotFoundError:

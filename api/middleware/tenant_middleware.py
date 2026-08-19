@@ -3,9 +3,9 @@ from __future__ import annotations
 from fastapi import HTTPException, Request
 
 try:
-    from models.tenant import Tenant
-except ModuleNotFoundError:  # pragma: no cover
     from api.models.tenant import Tenant
+except ModuleNotFoundError:  # pragma: no cover
+    from models.tenant import Tenant
 
 
 def _sanitize_tenant_id(raw: str) -> str:
