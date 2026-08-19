@@ -24,7 +24,10 @@ import os
 import re
 from typing import List, Tuple
 
-from state import AgroState, SensorReading
+try:
+    from .state import AgroState, SensorReading
+except ImportError:
+    from state import AgroState, SensorReading
 
 
 # ─────────────────────────────────────────────────────────────────────────────
