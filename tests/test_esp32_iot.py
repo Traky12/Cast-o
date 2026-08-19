@@ -15,7 +15,7 @@ try:
     from api.routers.esp32_iot import router
     from main import app
 except ImportError:
-    from routers.esp32_iot import router
+    from api.routers.esp32_iot import router
 
 
 def create_test_app():
@@ -209,7 +209,7 @@ class TestDashboard:
 class TestActuatorControl:
     """Control de actuadores (riego, ozono)"""
     
-    @patch('routers.esp32_iot.httpx.AsyncClient')
+    @patch('api.routers.esp32_iot.httpx.AsyncClient')
     def test_valid_riego_command(self, mock_http_client, client, mock_actuator_control):
         """Comando riego válido"""
         response = client.post(
@@ -252,7 +252,7 @@ class TestSensorModels:
     
     def test_sensor_reading_validation(self):
         """SensorReading debe validar correctamente"""
-        from routers.esp32_iot import SensorReading
+        from api.routers.esp32_iot import SensorReading
         
         valid = SensorReading(
             sensor_type="pH",
@@ -264,14 +264,14 @@ class TestSensorModels:
     
     def test_sensors_payload_validation(self):
         """SensorsPayload debe requerir esp32_id"""
-        from routers.esp32_iot import SensorsPayload
+        from api.routers.esp32_iot import SensorsPayload
         
         with pytest.raises(Exception):  # ValidationError
             SensorsPayload()  # Falta esp32_id
     
     def test_actuator_control_validation(self):
         """ActuatorControl debe validar tipo de actuador"""
-        from routers.esp32_iot import ActuatorControl
+        from api.routers.esp32_iot import ActuatorControl
         
         valid = ActuatorControl(
             actuator="riego",
@@ -310,7 +310,7 @@ class TestErrorHandling:
     
     def test_esp32_connection_timeout(self, client):
         """Timeout al conectar con ESP32"""
-        with patch('routers.esp32_iot.httpx.AsyncClient') as mock_client:
+        with patch('api.routers.esp32_iot.httpx.AsyncClient') as mock_client:
             mock_client.side_effect = Exception("Connection timeout")
             response = client.get("/api/v1/esp32/camera/snapshot")
             assert response.status_code in [503, 500]
