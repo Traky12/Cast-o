@@ -17,6 +17,15 @@ try:
 except ImportError:
     from routers.esp32_iot import router
 
+
+def create_test_app():
+    """Create a minimal FastAPI app when the full application cannot be imported."""
+    from fastapi import FastAPI
+
+    test_app = FastAPI()
+    test_app.include_router(router)
+    return test_app
+
 # ─── FIXTURES ────────────────────────────
 
 @pytest.fixture
