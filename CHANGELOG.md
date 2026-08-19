@@ -2,6 +2,10 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge e9a30d6567b7bd643e656ce0cceae87dd624be75 into e3aabfcdc870d3166109a22287e2fcf325306632 (3946cec)
+- Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (e9a30d6)
+- fix: make CI reconciliation and ESP32 tests runnable (28d0574)
+- docs: actualizar changelog preview del PR (b2bf0c8)
 - Merge 82768e0217ddf1a1786b22bde18ef63d4bb2dcec into e3aabfcdc870d3166109a22287e2fcf325306632 (ace4a95)
 - docs: synchronize bilingual governed public projection (82768e0)
 - docs: add negative assurance boundary (e3aabfc)
