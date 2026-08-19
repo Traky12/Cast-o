@@ -2,6 +2,10 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge 04da6a3b630fd387f23fbf6eda9b572e245bbe8a into e3aabfcdc870d3166109a22287e2fcf325306632 (1f1ed32)
+- Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (04da6a3)
+- test: use canonical package imports in API suite (5124558)
+- docs: actualizar changelog preview del PR (4e62cb0)
 - Merge 1d31d4bce38c86e764449ae9b0b468e9374b8ccd into e3aabfcdc870d3166109a22287e2fcf325306632 (914631f)
 - fix: align CI dependencies and canonical skills test (1d31d4b)
 - Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (7ba9c4d)
@@ -28,7 +32,3 @@
 - docs: add negative assurance boundary (e3aabfc)
 - docs: add private cloud evidence boundary (4d0c0f7)
 - ci: align documentation and validation contracts (6c9e233)
-- ci: make hardening and Python validation CI-safe (0c86512)
-- chore: apply architecture governance and security baseline (5ccf164)
-- docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
-- Revise README for Cast-o framework details (#11) (f4ea214)
