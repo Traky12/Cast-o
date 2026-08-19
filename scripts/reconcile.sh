@@ -112,12 +112,25 @@ echo "[INFO] Reconciliando ${target_branch} <- ${source_branch}" | tee -a "$repo
 
 git fetch --all --prune > /dev/null 2>&1 || true
 
-if ! git rev-parse --verify "$target_branch" > /dev/null 2>&1; then
+resolve_ref() {
+  local requested="$1"
+  if git rev-parse --verify "$requested" > /dev/null 2>&1; then
+    printf '%s' "$requested"
+    return 0
+  fi
+  if [[ "$requested" != origin/* ]] && git rev-parse --verify "origin/${requested}" > /dev/null 2>&1; then
+    printf '%s' "origin/${requested}"
+    return 0
+  fi
+  return 1
+}
+
+if ! target_branch="$(resolve_ref "$target_branch")"; then
   echo "[ERROR] target_branch no existe: ${target_branch}" | tee -a "$report"
   finalize 1 0 "target_branch no existe: ${target_branch}"
 fi
 
-if ! git rev-parse --verify "$source_branch" > /dev/null 2>&1; then
+if ! source_branch="$(resolve_ref "$source_branch")"; then
   echo "[ERROR] source_branch no existe: ${source_branch}" | tee -a "$report"
   finalize 1 0 "source_branch no existe: ${source_branch}"
 fi

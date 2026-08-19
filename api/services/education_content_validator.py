@@ -5,15 +5,15 @@ import json
 from typing import Any, cast
 
 try:
-    from services.blockchain.logger import GaiaChainLogger
-except ModuleNotFoundError:  # pragma: no cover
     from api.services.blockchain.logger import GaiaChainLogger
+except ModuleNotFoundError:  # pragma: no cover
+    from services.blockchain.logger import GaiaChainLogger
 
 try:
-    from database import session as db_session
-    from models.educational_resource import EducationalResource
-except ModuleNotFoundError:  # pragma: no cover
     from api.database import session as db_session
+    from api.models.educational_resource import EducationalResource
+except ModuleNotFoundError:  # pragma: no cover
+    from database import session as db_session
     from api.models.educational_resource import EducationalResource
 
 SessionLocal: Any = getattr(db_session, "SessionLocal", None)
