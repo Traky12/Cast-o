@@ -24,16 +24,16 @@ Its scope covers:
 Cast-o acts as the **TOOLING** anchor, providing the necessary infrastructure for technical validation across all layers.
 
 ```text
-Cast-o (Tooling)
+Cast-o (Assurance)
      │
-     ├── CASTÚO-SYSTEM (Core)
-     │      Validation target
+     ├── castuo-evidence (Public Fabric)
+     │      Evidence verification target
      │
-     ├── GOLDfish (Assurance)
-     │      Evidence provider
+     ├── CASTÚO-SYSTEM (Private Core)
+     │      Execution engine
      │
-     └── castuo-agro-edge (Edge)
-            Performance benchmark target
+     └── castuo-evolution (Control Plane)
+            Policy & Governance SSOT
 ```
 
 ---
@@ -68,7 +68,7 @@ pytest tests/ -v
 ---
 
 ## 6. Navigation
-[← Ecosystem Profile](https://github.com/Traky12) | [→ Core Platform](https://github.com/Traky12/Castuo-system) | [→ Assurance](https://github.com/Traky12/goldfish) | [→ Architecture Docs](docs/)
+[← Profile](https://github.com/Traky12) | [→ Evidence](https://github.com/Traky12/castuo-evidence) | [→ Governance](https://github.com/Traky12/castuo-evolution) | [→ Architecture Docs](docs/)
 
 ---
 
