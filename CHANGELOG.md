@@ -2,6 +2,11 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge 1d31d4bce38c86e764449ae9b0b468e9374b8ccd into e3aabfcdc870d3166109a22287e2fcf325306632 (914631f)
+- fix: align CI dependencies and canonical skills test (1d31d4b)
+- Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (7ba9c4d)
+- fix: prefer canonical api routers during app startup (8dc9685)
+- docs: actualizar changelog preview del PR (bccfacd)
 - Merge da3fe32d930c3d49f161db05aed332057bb598ad into e3aabfcdc870d3166109a22287e2fcf325306632 (c9433e6)
 - Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (da3fe32)
 - fix: normalize Cast-o API imports for governed release checks (16129c7)
@@ -27,8 +32,3 @@
 - chore: apply architecture governance and security baseline (5ccf164)
 - docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
 - Revise README for Cast-o framework details (#11) (f4ea214)
-- Create SECURITY.md for security policy and reporting (#5) (e067bde)
-- docs: actualizar resumen visual automatizado (cf1b175)
-- Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
-- docs: actualizar quick reference automatizado (c4309d4)
-- Initial commit (67cc765)
