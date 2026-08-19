@@ -1,0 +1,11 @@
+{
+  "standard": "CASTUO-REPOSITORY-STANDARD-V1.0",
+  "validator_source": "../castuo-evolution/scripts/validate_repository_conformance.py",
+  "repository_root": "/home/ubuntu/Cast-o",
+  "status": "BLOCKED",
+  "findings": [
+    "BLOCKED:repository.yaml_missing"
+  ],
+  "generated_at": "2026-08-16T16:34:21.211678+00:00",
+  "semantic_owner": "castuo-evolution"
+}
