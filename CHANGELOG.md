@@ -2,6 +2,10 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge da3fe32d930c3d49f161db05aed332057bb598ad into e3aabfcdc870d3166109a22287e2fcf325306632 (c9433e6)
+- Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (da3fe32)
+- fix: normalize Cast-o API imports for governed release checks (16129c7)
+- docs: actualizar changelog preview del PR (740113a)
 - Merge 5fe7a319219d73e8117008187b3ac2b35c92daff into e3aabfcdc870d3166109a22287e2fcf325306632 (d020c02)
 - Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (5fe7a31)
 - fix: restore governed CI operativity targets (ef5e005)
