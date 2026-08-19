@@ -2,6 +2,10 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge 5fe7a319219d73e8117008187b3ac2b35c92daff into e3aabfcdc870d3166109a22287e2fcf325306632 (d020c02)
+- Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (5fe7a31)
+- fix: restore governed CI operativity targets (ef5e005)
+- docs: actualizar changelog preview del PR (729beb7)
 - Merge 902696f796f13da8a3973f707bff86d34f0e1832 into e3aabfcdc870d3166109a22287e2fcf325306632 (8d76eb4)
 - Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (902696f)
 - fix: align development pytest constraint with CI (114f6ce)
