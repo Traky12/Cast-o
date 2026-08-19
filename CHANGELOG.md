@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge 235b2e52f6fdc2cd6f8efbef7f099ab65661e90f into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (78d980b)
+- fix: make educational model registration idempotent (235b2e5)
+- docs: actualizar changelog preview del PR (40a2bb9)
 - Merge d9a4667c99df7fc4bef0919673166863fd05d0fb into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (5e559ca)
 - fix(ci): repair pytest resolution lint scope and drift detection (d9a4667)
 - docs(evos): integrate castuo-evidence into ecosystem navigation (b01ab01)
