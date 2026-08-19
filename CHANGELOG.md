@@ -2,6 +2,10 @@
 
 ## [Unreleased] - 2026-08-19
 
+- Merge 902696f796f13da8a3973f707bff86d34f0e1832 into e3aabfcdc870d3166109a22287e2fcf325306632 (8d76eb4)
+- Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (902696f)
+- fix: align development pytest constraint with CI (114f6ce)
+- docs: actualizar changelog preview del PR (dbda1c8)
 - Merge e9a30d6567b7bd643e656ce0cceae87dd624be75 into e3aabfcdc870d3166109a22287e2fcf325306632 (3946cec)
 - Merge remote-tracking branch 'origin/release/castuo-bilingual-evidence-20260819' into release/castuo-bilingual-evidence-20260819 (e9a30d6)
 - fix: make CI reconciliation and ESP32 tests runnable (28d0574)
