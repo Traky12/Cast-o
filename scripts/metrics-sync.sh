@@ -22,7 +22,10 @@ if ls logs/*.log > /dev/null 2>&1; then
 fi
 
 drift=0
-if [[ -n "$(git status --porcelain)" ]]; then
+# metrics.prom is the generated output of this script and must not self-report drift.
+# Keep every other working-tree change fail-closed.
+working_tree_changes=$(git status --porcelain --untracked-files=all | awk '$2 != "metrics.prom"')
+if [[ -n "$working_tree_changes" ]]; then
   drift=1
 fi
 
