@@ -11,9 +11,9 @@ except Exception:  # pragma: no cover
     func = None
 
 try:
-    from database.session import Base
-except ModuleNotFoundError:  # pragma: no cover
     from api.database.session import Base
+except ModuleNotFoundError:  # pragma: no cover
+    from database.session import Base
 
 
 class EducationalResource(Base):

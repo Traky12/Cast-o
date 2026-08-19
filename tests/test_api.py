@@ -16,13 +16,8 @@ import jwt
 import pytest
 from fastapi.testclient import TestClient
 
-# Adjust path so api/main.py can be imported
-import sys
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "api"))
-
-from main import app
-from routers import skills as skills_router
+from api.main import app
+from api.routers import skills as skills_router
 
 client = TestClient(app)
 
