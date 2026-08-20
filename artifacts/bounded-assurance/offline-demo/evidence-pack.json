@@ -1,0 +1,83 @@
+{
+  "schema_version": "castuo.bounded_assurance.v1",
+  "evidence_id": "CASTO-OFFLINE-DEMO-001",
+  "operation_id": "CASTO-SIM-001",
+  "scope": "bounded offline continuity demonstration",
+  "environment": "SIMULATION_ONLY",
+  "claim_boundary": "SIMULATION_ONLY",
+  "events": [
+    {
+      "event_id": "evt-001",
+      "type": "OPERATION_CREATED",
+      "at": "2026-08-20T00:00:00Z",
+      "payload": {
+        "scope": "bounded-demo"
+      }
+    },
+    {
+      "event_id": "evt-002",
+      "type": "CONNECTIVITY_LOST",
+      "at": "2026-08-20T00:01:00Z",
+      "payload": {
+        "buffer": "LOCAL"
+      }
+    },
+    {
+      "event_id": "evt-003",
+      "type": "FIELD_EVENT_CAPTURED",
+      "at": "2026-08-20T00:02:00Z",
+      "payload": {
+        "sequence": 1
+      }
+    },
+    {
+      "event_id": "evt-004",
+      "type": "CONNECTIVITY_RESTORED",
+      "at": "2026-08-20T00:03:00Z",
+      "payload": {
+        "sync": "READY"
+      }
+    },
+    {
+      "event_id": "evt-005",
+      "type": "EVIDENCE_PACK_GENERATED",
+      "at": "2026-08-20T00:04:00Z",
+      "payload": {
+        "replay": "REQUIRED"
+      }
+    }
+  ],
+  "connectivity_intervals": [
+    {
+      "status": "ONLINE",
+      "at": "2026-08-20T00:00:00Z"
+    },
+    {
+      "status": "OFFLINE",
+      "at": "2026-08-20T00:01:00Z"
+    },
+    {
+      "status": "ONLINE",
+      "at": "2026-08-20T00:03:00Z"
+    }
+  ],
+  "recovery_events": [
+    {
+      "event_id": "evt-004",
+      "type": "CONNECTIVITY_RESTORED",
+      "at": "2026-08-20T00:03:00Z",
+      "payload": {
+        "sync": "READY"
+      }
+    }
+  ],
+  "synchronisation": {
+    "status": "PASS",
+    "event_count": 5
+  },
+  "failures": [],
+  "integrity_hash": "612e2c6fc962ea25386a85be4d2ae81eeb87e286249e4a915256baf1503e0e2e",
+  "replay_result": "PASS",
+  "final_status": "VERIFIED_SIMULATION",
+  "promotion_effect": "BLOCKED"
+}
