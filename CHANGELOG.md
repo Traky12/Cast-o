@@ -1,8 +1,11 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-19
+## [Unreleased] - 2026-08-20
 
-- Merge 7df487f655141f3d38c867261d3c4d67ddadaf82 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (24e56d5)
+- Merge 03ab716749fde937047edc0db34aff9fd4c418cd into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (99a18d2)
+- fix(ci): add explicit trl9 gate status target (03ab716)
+- feat(casto): add bilingual bounded assurance quickstart (2a19a9c)
+- docs: actualizar changelog preview del PR (c6a23c3)
 - feat: add durable langgraph runtime and agent contracts (7df487f)
 - docs: actualizar changelog preview del PR (c0c933e)
 - Merge 235b2e52f6fdc2cd6f8efbef7f099ab65661e90f into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (78d980b)
