@@ -8,8 +8,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from datetime import datetime, timezone
 import httpx
-from state import AgroState, CompensatingAction
-from tools import tool_register_gaiachain, tool_log_elk, IPFS_API, IPFS_KEY
+try:
+    from ..state import AgroState, CompensatingAction
+    from ..tools import tool_register_gaiachain, tool_log_elk, IPFS_API, IPFS_KEY
+except ImportError:
+    from state import AgroState, CompensatingAction
+    from tools import tool_register_gaiachain, tool_log_elk, IPFS_API, IPFS_KEY
 
 
 async def procesado_node(state: AgroState) -> AgroState:

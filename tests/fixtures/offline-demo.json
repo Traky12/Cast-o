@@ -1,0 +1,10 @@
+{
+  "operation_id": "CASTO-SIM-001",
+  "events": [
+    {"event_id": "evt-001", "type": "OPERATION_CREATED", "at": "2026-08-20T00:00:00Z", "payload": {"scope": "bounded-demo"}},
+    {"event_id": "evt-002", "type": "CONNECTIVITY_LOST", "at": "2026-08-20T00:01:00Z", "payload": {"buffer": "LOCAL"}},
+    {"event_id": "evt-003", "type": "FIELD_EVENT_CAPTURED", "at": "2026-08-20T00:02:00Z", "payload": {"sequence": 1}},
+    {"event_id": "evt-004", "type": "CONNECTIVITY_RESTORED", "at": "2026-08-20T00:03:00Z", "payload": {"sync": "READY"}},
+    {"event_id": "evt-005", "type": "EVIDENCE_PACK_GENERATED", "at": "2026-08-20T00:04:00Z", "payload": {"replay": "REQUIRED"}}
+  ]
+}

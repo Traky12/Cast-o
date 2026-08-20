@@ -9,7 +9,7 @@ PROFILES ?= core iot ai observability
 	test-github-operativity test-github-certification test-github-evidence ctaex-compliance-check legal-compliance-check audit-package-exhaustive \
 	frontend-start frontend-init frontend-stop frontend-purge frontend-check frontend-open frontend-health \
 	docker-harden docker-verify-hardening init-castuo-persistence verify-operational-stack start-all-services \
-	runbook-prepilot security-hybrid-check
+  runbook-prepilot security-hybrid-check trl9-gate-status
 
 validate:
 	@profiles_csv="$$(echo "$(PROFILES)" | tr ' ' ',')"; \
@@ -39,6 +39,9 @@ agent-hardening:
 	@echo "[3/3] Simulando caos (dry-run)..."
 	bash scripts/chaos-test-sync.sh --allow-dirty --dry-run
 	@echo "[OK] Hardening local completado"
+
+trl9-gate-status:
+	@bash scripts/trl9-gate-status.sh
 
 reconcile-check:
 	@echo "[INFO] Ejecutando reconciliacion en dry-run..."
