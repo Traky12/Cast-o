@@ -7,8 +7,12 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from datetime import datetime, timezone
-from state import AgroState
-from tools import tool_log_elk
+try:
+    from ..state import AgroState
+    from ..tools import tool_log_elk
+except ImportError:
+    from state import AgroState
+    from tools import tool_log_elk
 
 
 async def reporte_node(state: AgroState) -> AgroState:
