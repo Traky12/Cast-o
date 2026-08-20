@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://castuo-system.es/schemas/bounded-assurance-report.schema.json",
+  "title": "CASTÚO Bounded Assurance Report",
+  "type": "object",
+  "required": ["report_id", "scope", "claims_tested", "results", "evidence_artifact", "replay", "limitations", "promotion_effect", "claim_boundary"],
+  "properties": {
+    "report_id": {"type": "string", "minLength": 1},
+    "scope": {"type": "string", "minLength": 1},
+    "claims_tested": {"type": "integer", "minimum": 0},
+    "results": {"type": "object", "required": ["passed", "failed", "unverified", "critical_findings"], "properties": {"passed": {"type": "integer", "minimum": 0}, "failed": {"type": "integer", "minimum": 0}, "unverified": {"type": "integer", "minimum": 0}, "critical_findings": {"type": "integer", "minimum": 0}}, "additionalProperties": false},
+    "evidence_artifact": {"type": "string", "minLength": 1},
+    "replay": {"type": "string", "enum": ["PASS", "REJECTED", "EVIDENCE_REQUIRED"]},
+    "limitations": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "promotion_effect": {"type": "string", "enum": ["BLOCKED", "REVIEW", "ALLOW"]},
+    "claim_boundary": {"type": "string", "enum": ["SIMULATION_ONLY", "STAGING_ONLY", "FIELD_ONLY"]}
+  },
+  "additionalProperties": false
+}
