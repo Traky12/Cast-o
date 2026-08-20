@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-20
 
+- Merge e9ef6a92c098ff211fb4ca354997d05dbb9e8c6f into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (393f75c)
+- docs: add independent review reproduction runbook (e9ef6a9)
+- docs: actualizar changelog preview del PR (da39f8f)
 - Merge b84ff001acf53d292a12a440ed0d6ef3e76f8008 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (1de063d)
 - feat: integrate CASTUO binary evolution boundary (b84ff00)
 - docs(evos): integrate castuo-evidence into ecosystem navigation (b01ab01)
