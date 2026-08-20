@@ -1,7 +1,10 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-19
+## [Unreleased] - 2026-08-20
 
+- Merge 3b8f60c9a096bc16145b1c0d6eb639b0aae78621 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (81f7544)
+- feat(casto): add bilingual bounded assurance quickstart (3b8f60c)
+- docs: actualizar changelog preview del PR (a9ed767)
 - Merge 7df487f655141f3d38c867261d3c4d67ddadaf82 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (24e56d5)
 - feat: add durable langgraph runtime and agent contracts (7df487f)
 - docs: actualizar changelog preview del PR (c0c933e)
