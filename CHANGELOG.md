@@ -1,9 +1,29 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-01
+## [Unreleased] - 2026-08-22
 
-- Merge fe9a1449e46f3e84ce0fe013375dd0b7938ba43c into e067bde4d081caf85c3af10b51160abef24c466a (0ba736c)
-- Revise README for Cast-o framework details (fe9a144)
+- Merge 070f71013a9ad1dedff6c0ac10e9b6e279dd2db7 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (428e4df)
+- docs: record second ecosystem audit (070f710)
+- docs: actualizar changelog preview del PR (ae4d5e9)
+- Merge 9c9b59ef5e8e23116f3451eabc8d384e27ea2941 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (319a520)
+- docs: add deep ecosystem audit boundary (9c9b59e)
+- docs: actualizar changelog preview del PR (2dfc57f)
+- Merge ae00fa389d0bdf38a7f237ab92a7ec85dbb684e5 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (12c4c15)
+- docs: synchronize CASTUO ecosystem evidence boundary (ae00fa3)
+- docs: actualizar changelog preview del PR (104a4ae)
+- Merge e9ef6a92c098ff211fb4ca354997d05dbb9e8c6f into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (393f75c)
+- docs: add independent review reproduction runbook (e9ef6a9)
+- docs: actualizar changelog preview del PR (da39f8f)
+- Merge b84ff001acf53d292a12a440ed0d6ef3e76f8008 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (1de063d)
+- feat: integrate CASTUO binary evolution boundary (b84ff00)
+- docs(evos): integrate castuo-evidence into ecosystem navigation (b01ab01)
+- docs: add negative assurance boundary (e3aabfc)
+- docs: add private cloud evidence boundary (4d0c0f7)
+- ci: align documentation and validation contracts (6c9e233)
+- ci: make hardening and Python validation CI-safe (0c86512)
+- chore: apply architecture governance and security baseline (5ccf164)
+- docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
+- Revise README for Cast-o framework details (#11) (f4ea214)
 - Create SECURITY.md for security policy and reporting (#5) (e067bde)
 - docs: actualizar resumen visual automatizado (cf1b175)
 - Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
