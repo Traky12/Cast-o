@@ -1,7 +1,10 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-20
+## [Unreleased] - 2026-08-22
 
+- Merge ae00fa389d0bdf38a7f237ab92a7ec85dbb684e5 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (12c4c15)
+- docs: synchronize CASTUO ecosystem evidence boundary (ae00fa3)
+- docs: actualizar changelog preview del PR (104a4ae)
 - Merge e9ef6a92c098ff211fb4ca354997d05dbb9e8c6f into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (393f75c)
 - docs: add independent review reproduction runbook (e9ef6a9)
 - docs: actualizar changelog preview del PR (da39f8f)
