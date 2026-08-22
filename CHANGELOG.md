@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-22
 
+- Merge 070f71013a9ad1dedff6c0ac10e9b6e279dd2db7 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (428e4df)
+- docs: record second ecosystem audit (070f710)
+- docs: actualizar changelog preview del PR (ae4d5e9)
 - Merge 9c9b59ef5e8e23116f3451eabc8d384e27ea2941 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (319a520)
 - docs: add deep ecosystem audit boundary (9c9b59e)
 - docs: actualizar changelog preview del PR (2dfc57f)
