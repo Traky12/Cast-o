@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-08-22
 
+- Merge 9c9b59ef5e8e23116f3451eabc8d384e27ea2941 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (319a520)
+- docs: add deep ecosystem audit boundary (9c9b59e)
+- docs: actualizar changelog preview del PR (2dfc57f)
 - Merge ae00fa389d0bdf38a7f237ab92a7ec85dbb684e5 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (12c4c15)
 - docs: synchronize CASTUO ecosystem evidence boundary (ae00fa3)
 - docs: actualizar changelog preview del PR (104a4ae)
