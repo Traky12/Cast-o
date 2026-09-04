@@ -1,10 +1,10 @@
 fastapi==0.115.12
 uvicorn==0.34.2
 pydantic==2.11.1
-cryptography==44.0.1
+cryptography==48.0.1
 cffi>=1.15.0           # required by cryptography (environment fix)
-PyJWT==2.10.1
-web3==7.7.0
+PyJWT==2.13.0
+web3==7.15.0
 reportlab==4.4.10
 qrcode[pil]==8.1
 anthropic>=0.40.0
@@ -14,7 +14,7 @@ kafka-python>=2.0.2
 # ──────────────────────────────────────────────
 psycopg2-binary>=2.9.9      # TimescaleDB / PostgreSQL
 prometheus-client>=0.20.0   # Métricas Prometheus
-requests>=2.32.0            # HTTP para TRACES, eIDAS TSA, Hyperledger
+requests>=2.34.2            # HTTP para TRACES, eIDAS TSA, Hyperledger
 pypdf>=4.3.0                # Manipulación PDF para firma eIDAS
 pyotp>=2.9.0                # MFA TOTP
 redis>=5.0.1                # Rate limiting distribuido
