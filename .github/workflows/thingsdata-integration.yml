@@ -78,8 +78,13 @@ jobs:
     services:
       mosquitto:
         image: eclipse-mosquitto:2
+        # mosquitto_sub -C 1 espera recibir un mensaje, pero nadie publica en
+        # 'castuo/health' durante el arranque del servicio, por lo que el
+        # healthcheck siempre expiraba (exit 27) y el contenedor quedaba
+        # "unhealthy". mosquitto_pub solo valida que el broker acepta
+        # conexiones/publicaciones y termina con exito de inmediato.
         options: >-
-          --health-cmd="mosquitto_sub -h localhost -p 1883 -t 'castuo/health' -C 1 -W 1"
+          --health-cmd="mosquitto_pub -h localhost -p 1883 -t 'castuo/health' -m 'healthcheck'"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
