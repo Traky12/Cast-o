@@ -2,6 +2,7 @@
 .env
 .env.cloud
 .env.local
+.env.thingsdata
 
 # Terraform — estado y secretos locales (NUNCA commitear)
 hetzner_infra/terraform.tfvars
