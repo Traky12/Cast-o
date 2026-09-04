@@ -1,9 +1,17 @@
 # CHANGELOG
 
-## [Unreleased] - 2026-08-01
+## [Unreleased] - 2026-09-04
 
-- Merge fe9a1449e46f3e84ce0fe013375dd0b7938ba43c into e067bde4d081caf85c3af10b51160abef24c466a (0ba736c)
-- Revise README for Cast-o framework details (fe9a144)
+- Merge 4118ca68cc0914a132398532af6a50be6c99c6f3 into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (77bdc61)
+- Bump pytest from 7.4.4 to 9.0.3 in /requirements (4118ca6)
+- docs(evos): integrate castuo-evidence into ecosystem navigation (b01ab01)
+- docs: add negative assurance boundary (e3aabfc)
+- docs: add private cloud evidence boundary (4d0c0f7)
+- ci: align documentation and validation contracts (6c9e233)
+- ci: make hardening and Python validation CI-safe (0c86512)
+- chore: apply architecture governance and security baseline (5ccf164)
+- docs: rewrite README to align with ecosystem contract and evidence-first principles (8484ced)
+- Revise README for Cast-o framework details (#11) (f4ea214)
 - Create SECURITY.md for security policy and reporting (#5) (e067bde)
 - docs: actualizar resumen visual automatizado (cf1b175)
 - Add GitHub Actions workflow for Python package with Conda (d1b6e5c)
