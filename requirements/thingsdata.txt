@@ -10,7 +10,7 @@ docker-compose==1.29.2
 
 # HTTP & Async
 httpx==0.27.0
-aiohttp==3.9.3
+aiohttp==3.14.0
 
 # Retry Logic & Resilience
 tenacity==8.2.3
