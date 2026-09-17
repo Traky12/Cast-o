@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install -r api/requirements.txt -r requirements/dev.txt 'pytest<9' 'pytest-cov<7'
+          python -m pip install -r api/requirements.txt -r requirements/dev.txt
 
       - name: Run Python test suite with coverage
         env:
@@ -85,7 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@v0.20.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: fs
           scan-ref: .
