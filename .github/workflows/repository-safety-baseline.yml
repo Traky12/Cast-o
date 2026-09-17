@@ -1,0 +1,51 @@
+name: Repository Safety Baseline
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject tracked environment files
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden=0
+          while IFS= read -r -d '' f; do
+            case "$f" in
+              .env|.env.*|*.env|*.tfvars|*.tfvars.json)
+                case "$f" in
+                  *.example|*.sample) ;;
+                  *) echo "Forbidden tracked environment/variable file: $f"; forbidden=1;;
+                esac
+                ;;
+            esac
+          done < <(git ls-files -z)
+          if [ "$forbidden" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Scan for obvious credential assignments
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE '(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*=[[:space:]]*[^$#[:space:]][^[:space:]]*' -- ':!*.example' ':!docs/**'; then
+            echo "Potential credential assignment detected. Review before merge."
+            exit 1
+          fi
+
+      - name: Report repository status
+        shell: bash
+        run: |
+          echo "Safety baseline completed."
