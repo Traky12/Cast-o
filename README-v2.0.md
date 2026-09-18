@@ -210,4 +210,9 @@ Y con montaje de volumen:
 
 - `./agents:/app/agents:ro`
 
+## Promotion closure / Cierre de promoción
+
+The current CASTÚO posture remains **`PROMOTION = BLOCK` / `LOCAL_RESULT_NO_CLAIM`** until the bounded S-001A slice has an executable contract, portable evidence envelope, independent replay, human review and rollback evidence.
+
+La ruta priorizada, los gaps, los riesgos P0 y los gates de salida están documentados en [`docs/CASTUO_PROMOTION_CLOSURE_PLAN.md`](docs/CASTUO_PROMOTION_CLOSURE_PLAN.md). Este repositorio debe conservar estados evidence-scoped y no elevar `LOCAL`, `PENDING` o `EVIDENCE_REQUIRED` a claims de producción, independencia de proveedor o validación independiente.
 
