@@ -22,7 +22,11 @@ if ls logs/*.log > /dev/null 2>&1; then
 fi
 
 drift=0
-if [[ -n "$(git status --porcelain)" ]]; then
+# Nota: se ignoran ficheros sin seguimiento (--untracked-files=no) porque la
+# propia redireccion `> metrics.prom` de este script crea un fichero nuevo en
+# la raiz del repo antes de que se ejecute este bloque, lo que provocaba un
+# falso positivo de drift en cada ejecucion de CI.
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
   drift=1
 fi
 

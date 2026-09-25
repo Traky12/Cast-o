@@ -33,17 +33,27 @@ jobs:
       - name: Generate visual PDF summary
         run: ./scripts/generate-pdf.sh docs/RESUMEN-VISUAL-ESTADO.md visual-summary.pdf
 
-      - name: Commit summary markdown
+      - name: Commit summary markdown via pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- docs/RESUMEN-VISUAL-ESTADO.md; then
             echo "No visual summary changes to commit"
             exit 0
           fi
+          # main esta protegida (requiere PR + firmas + checks), por lo que un
+          # push directo (git push origin HEAD:main) es rechazado por GH013.
+          # En su lugar, publicamos el cambio en una rama y abrimos un PR.
+          branch="chore/visual-summary-${{ github.run_number }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
           git add docs/RESUMEN-VISUAL-ESTADO.md
           git commit -m "docs: actualizar resumen visual automatizado"
-          git push origin HEAD:main
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "docs: actualizar resumen visual automatizado" \
+            --body "Resumen visual regenerado automaticamente por el workflow Generate Visual Summary (run #${{ github.run_number }})."
 
       - name: Upload visual artifacts
         uses: actions/upload-artifact@v4
