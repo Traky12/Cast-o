@@ -21,8 +21,10 @@ if ls logs/*.log > /dev/null 2>&1; then
   count_mgt_errors=$( (grep -h -c "mgt.clearMarks" logs/*.log || true) | awk '{s+=$1} END {print s+0}')
 fi
 
+# metrics.prom es la salida de este mismo script (redirigida por el workflow):
+# no cuenta como drift del arbol versionado.
 drift=0
-if [[ -n "$(git status --porcelain)" ]]; then
+if [[ -n "$(git status --porcelain -- . ':(exclude)metrics.prom' ':(exclude)logs')" ]]; then
   drift=1
 fi
 
