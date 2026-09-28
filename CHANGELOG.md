@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-09-28
 
+- Merge a7a3314781b2f384f15d2cb0b363a9489c3c60db into d57936c6d94d839517beb1977503bb7e84a9cdc4 (2c28781)
+- fix(ci): docker compose v2 in docker-security; define test fallback app (a7a3314)
+- docs: actualizar changelog preview del PR (5638801)
 - Merge f14e6520cd0a405cd4734921009ad60ad29d456f into d57936c6d94d839517beb1977503bb7e84a9cdc4 (75fa92f)
 - fix(ci): repair failing workflows on main (CI-DEBT-004/005 and deploy/test deps) (f14e652)
 - fix: patch 121 open Dependabot alerts (2 critical, 36 high, 62 medium, 21 low) (d57936c)
