@@ -1,0 +1,42 @@
+id: CASTUO-REPOSITORY-CAST_O
+name: Cast-o
+class: CI
+visibility: PUBLIC
+owner: Traky12
+parent_system: CASTUO-SYSTEM
+lifecycle: ACTIVE
+scope: CI validation and release evidence
+current_state: CANDIDATE
+assurance_level: L0_CONTRACT_DEFINED
+evidence_state: EVIDENCE_PENDING
+production_claim: NOT_CLAIMED
+relationships:
+  upstream: []
+  downstream: [castuo-evolution]
+  peers: []
+claims_blocked:
+  - production
+  - certification
+  - independent_validation
+  - autonomous_authority
+  - commercial_validation
+  - federation
+metadata_source: CASTUO-REPOSITORY-STANDARD-V1.0
+repository: Cast-o
+purpose: CI validation and release evidence
+environment: STAGING
+implementation_state: CANDIDATE
+security_state: EVIDENCE_PENDING
+promotion_state: PROMOTION_BLOCKED
+claims_allowed:
+  - documented repository role within declared scope
+claims_blocked:
+  - production
+  - certification
+  - independent_validation
+  - autonomous_authority
+  - commercial_validation
+  - federation
+dependencies: []
+upstream: []
+downstream: [castuo-evolution]
