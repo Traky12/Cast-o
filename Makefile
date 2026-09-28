@@ -305,3 +305,12 @@ runbook-prepilot:
 security-hybrid-check:
 	@echo "[INFO] Ejecutando verificacion de seguridad hibrida (WAF/IDS/K8s)..."
 	bash scripts/security-hybrid-check.sh
+
+# CASTUO-REPOSITORY-STANDARD-V1.0
+castuo-conformance:
+	@python3 scripts/run_castuo_repository_conformance.py \
+		--standard-root $${CASTUO_STANDARD_ROOT:-../castuo-evolution} \
+		--repository-root . \
+		--output artifacts/castuo-repository-conformance.json
+
+.PHONY: castuo-conformance
