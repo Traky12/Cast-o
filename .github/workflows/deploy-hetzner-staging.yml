@@ -30,7 +30,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r api/requirements.txt
-          pip install pytest
+          pip install pytest jsonschema httpx
 
       - name: Run API tests
         run: python -m pytest tests/test_api.py -v
@@ -39,7 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: test-api
-    if: github.ref == 'refs/heads/main'
+    # Deploy only when explicitly enabled (repo variable) — no staging secrets are configured here.
+    if: github.ref == 'refs/heads/main' && vars.ENABLE_HETZNER_DEPLOY == 'true'
     steps:
       - name: Deploy with SSH
         uses: appleboy/ssh-action@v1.0.3
