@@ -33,17 +33,15 @@ jobs:
       - name: Generate visual PDF summary
         run: ./scripts/generate-pdf.sh docs/RESUMEN-VISUAL-ESTADO.md visual-summary.pdf
 
-      - name: Commit summary markdown
+      # main esta protegida por ruleset (GH013): el bot no puede pushear.
+      # El resumen se publica como artefacto + release asset, sin commit.
+      - name: Report summary drift
         run: |
           if git diff --quiet -- docs/RESUMEN-VISUAL-ESTADO.md; then
-            echo "No visual summary changes to commit"
-            exit 0
+            echo "No visual summary changes"
+          else
+            echo "::notice::docs/RESUMEN-VISUAL-ESTADO.md cambio; disponible como artefacto (no se commitea a main protegida)"
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/RESUMEN-VISUAL-ESTADO.md
-          git commit -m "docs: actualizar resumen visual automatizado"
-          git push origin HEAD:main
 
       - name: Upload visual artifacts
         uses: actions/upload-artifact@v4
