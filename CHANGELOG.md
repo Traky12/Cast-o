@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-09-28
 
+- Merge 99f7a838b14a0af27dda2e48caa7f4d30c22508d into d57936c6d94d839517beb1977503bb7e84a9cdc4 (841f189)
+- fix: tolerate dual import of EducationalResource; add test deps (CI-DEBT-003) (99f7a83)
+- docs: actualizar changelog preview del PR (f20817d)
 - Merge a7a3314781b2f384f15d2cb0b363a9489c3c60db into d57936c6d94d839517beb1977503bb7e84a9cdc4 (2c28781)
 - fix(ci): docker compose v2 in docker-security; define test fallback app (a7a3314)
 - docs: actualizar changelog preview del PR (5638801)
