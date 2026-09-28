@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-09-28
 
+- Merge 5c241365d61337d75fc3eb0fd21fdc3ff2fd4a46 into d57936c6d94d839517beb1977503bb7e84a9cdc4 (ee0f54c)
+- docs: license pending IP review; no external contributions without CLA (5c24136)
+- docs: actualizar changelog preview del PR (9b46ea1)
 - Merge 0a8a0d3ca625658a06a96ebd99ee9bdbf051843d into d57936c6d94d839517beb1977503bb7e84a9cdc4 (36e5385)
 - docs: P0 claims reconciliation — status taxonomy, license PENDING, real SECURITY.md (0a8a0d3)
 - fix: patch 121 open Dependabot alerts (2 critical, 36 high, 62 medium, 21 low) (d57936c)
