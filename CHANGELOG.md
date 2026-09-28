@@ -2,6 +2,9 @@
 
 ## [Unreleased] - 2026-09-28
 
+- Merge 6321eea0ce790b59c1f1b322e7af2eaedd7df3b4 into d57936c6d94d839517beb1977503bb7e84a9cdc4 (b8ba835)
+- fix(ci): install pytest-asyncio in Python validation (6321eea)
+- docs: actualizar changelog preview del PR (97b5114)
 - Merge 99f7a838b14a0af27dda2e48caa7f4d30c22508d into d57936c6d94d839517beb1977503bb7e84a9cdc4 (841f189)
 - fix: tolerate dual import of EducationalResource; add test deps (CI-DEBT-003) (99f7a83)
 - docs: actualizar changelog preview del PR (f20817d)
