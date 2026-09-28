@@ -42,7 +42,7 @@ jobs:
               python -m pip install -r "$req"
             fi
           done
-          python -m pip install flake8 pytest
+          python -m pip install flake8 pytest jsonschema httpx
 
       - name: Lint with flake8
         shell: bash
