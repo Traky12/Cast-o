@@ -18,6 +18,8 @@ except ModuleNotFoundError:  # pragma: no cover
 
 class EducationalResource(Base):
     __tablename__ = "educational_resources"
+    # Imported via both `models.*` and `api.models.*` (pytest pythonpath = . api); see CI-DEBT-003.
+    __table_args__ = {"extend_existing": True}
 
     if Column is not None:
         id = Column(Integer, primary_key=True, index=True)
