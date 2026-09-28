@@ -36,8 +36,11 @@ jobs:
       - name: Ejecutar reconciliacion (dry-run)
         id: reconcile
         env:
-          SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
-          TARGET_BRANCH: ${{ github.base_ref || 'main' }}
+          # CI-DEBT-002: a PR checkout has no local branch named after base_ref, so
+          # reconcile.sh failed with 'target_branch no existe: main'. Compare the
+          # checked-out HEAD against the remote-tracking ref instead.
+          SOURCE_BRANCH: HEAD
+          TARGET_BRANCH: origin/${{ github.base_ref || 'main' }}
         run: |
           mkdir -p artifacts
           rc=0
