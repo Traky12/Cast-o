@@ -43,6 +43,12 @@ targets, not contractual SLAs:
 - Systems not in this repository (for example the private `Castuo-system`
   deployment); report those through the repository that owns them.
 
+## Contributions and license
+
+External contributions are not accepted until a contributor licence agreement
+(CLA) or contribution policy is defined. No license is currently granted for
+this repository (license pending IP review).
+
 ## Secrets
 
 Secrets must never be committed. If you find a real credential in this

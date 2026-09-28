@@ -2,11 +2,13 @@
 
 ![Status](https://img.shields.io/badge/Status-Active%20Engineering-blue)
 ![Claims](https://img.shields.io/badge/Claims-see%20status%20table-informational)
-![License](https://img.shields.io/badge/License-PENDING-lightgrey)
+![License](https://img.shields.io/badge/License-Pending%20IP%20review-lightgrey)
 
 > **Automated testing and assurance tooling for CASTÚO-SYSTEM™. Performance benchmarking is a `TARGET`, not a current capability — see [§4](#4-claims-status).**
 
-> **License: `PENDING`.** No open-source license has been granted yet. Until a `LICENSE` file is published, default copyright applies (all rights reserved by the author). The previous AGPL-3.0 badge was removed because no license file backed it.
+> **License: pending IP review.** This repository is **not** open source: no license has been granted. Until a `LICENSE` file is published, default copyright applies (all rights reserved by the author). The previous AGPL-3.0 badge was removed because no license file backed it and no licensing decision has been taken.
+>
+> **Contributions:** external contributions are not accepted until a contributor licence agreement (CLA) or contribution policy is defined.
 
 ---
 
@@ -57,7 +59,7 @@ Every claim uses one status: `CURRENT` (implemented and verifiable) · `TARGET` 
 
 | Claim | Status | Evidence / limitation |
 |---|---|---|
-| Unit and integration test suite (`pytest`) | `CURRENT` (partial) | Commit `d57936c`, local run 2026-09-28 (Windows, Python 3.12): 463 passed, 3 failed, 7 errors, plus 1 collection error (`tests/test_router_hardening.py`). The `Python validation` workflow fails on `main` (flake8 E999: `test_e2e.py` is a bash script). |
+| Unit and integration test suite (`pytest`) | `CURRENT` (partial) | The suite is only partly executable. Last documented run — commit `d57936c`, 2026-09-28, local Windows, Python 3.12: 463 passed, 3 failed, 7 errors, and 1 file could not be loaded (`tests/test_router_hardening.py`). Stabilising the suite is pending. The `Python validation` workflow fails on `main` (flake8 E999: `test_e2e.py` is a bash script). |
 | CI/CD automation (GitHub Actions) | `CURRENT` (partial) | Several workflows run on schedule. Known reds on `main`: Agent Sync Hardening (drift false positive, fix in PR #27), Reconcile CI/CD, 48h Operativity Gate, docker-security. |
 | Docker Compose environments | `PENDING` | Compose files exist (IoT, cloud, HA, …); no recorded run evidence. |
 | Infrastructure as Code (Terraform, Kubernetes) | `PENDING` | 3 `.tf` files and K8s manifests exist; no `plan`/`apply` evidence. |
