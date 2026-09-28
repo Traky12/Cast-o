@@ -57,13 +57,13 @@ jobs:
         id: compose-validate
         run: |
           echo "✓ Validando docker-compose.yml..."
-          docker-compose config -f docker-compose.yml > /dev/null
+          docker compose -f docker-compose.yml config --quiet
           
           echo "✓ Validando docker-compose.cloud.yml..."
-          docker-compose config -f docker-compose.cloud.yml > /dev/null || true
+          docker compose -f docker-compose.cloud.yml config --quiet || true
           
           echo "✓ Validando docker-compose.iot.yml..."
-          docker-compose config -f docker-compose.iot.yml > /dev/null || true
+          docker compose -f docker-compose.iot.yml config --quiet || true
           
           echo "compose_valid=true" >> $GITHUB_OUTPUT
 
