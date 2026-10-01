@@ -25,12 +25,12 @@ jobs:
       SMTP_PASS: ${{ secrets.SMTP_PASS }}
       SMTP_PORT: ${{ secrets.SMTP_PORT }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: main
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
 
@@ -99,7 +99,7 @@ jobs:
           fi
 
       - name: Upload release note artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: merge-release-notes-${{ github.run_number }}
           path: |
@@ -119,7 +119,7 @@ jobs:
 
       - name: Notify by email
         if: ${{ env.SMTP_SERVER != '' && env.SMTP_USER != '' && env.SMTP_PASS != '' }}
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@4226df7daafa6fc901a43789c49bf7ab309066e7 # v3.11.0
         with:
           server_address: ${{ env.SMTP_SERVER }}
           server_port: ${{ env.SMTP_PORT || '587' }}
