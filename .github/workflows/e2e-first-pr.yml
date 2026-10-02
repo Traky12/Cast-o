@@ -5,9 +5,10 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
 
+# Read-only: the changelog preview is published as an artifact and in the job
+# summary. The workflow never commits or pushes to PR branches.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: e2e-first-pr-${{ github.event.pull_request.number }}
@@ -17,15 +18,15 @@ jobs:
   validate-pr:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
 
@@ -62,25 +63,24 @@ jobs:
         run: ./scripts/generate-changelog.sh CHANGELOG.md
 
       - name: Upload changelog artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: changelog-pr-${{ github.event.pull_request.number }}
           path: CHANGELOG.md
           retention-days: 30
 
-      - name: Commit generated changelog to branch
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+      - name: Publish changelog preview (read-only)
         run: |
-          if git diff --quiet -- CHANGELOG.md; then
-            echo "No changelog changes to commit"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "docs: actualizar changelog preview del PR"
-          TARGET_BRANCH="${GITHUB_HEAD_REF}"
-          git push origin HEAD:"$TARGET_BRANCH"
+          {
+            echo "## Changelog preview (not committed)"
+            echo
+            echo "Generated from this PR; download the \`changelog-pr-${{ github.event.pull_request.number }}\` artifact for the full file."
+            echo "Updating CHANGELOG.md in the repository is a human decision at merge/release time."
+            echo
+            echo '```diff'
+            git diff -- CHANGELOG.md | head -n 80
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Notify Slack
         if: ${{ failure() }}

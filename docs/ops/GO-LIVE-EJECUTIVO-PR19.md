@@ -1,5 +1,14 @@
 # CASTUO-SYSTEM PR19 - GO-LIVE EJECUTIVO
 
+> **Estado documental histórico — no constituye evidencia vigente de TRL 9, certificación, validación externa, producción ni conformidad.**
+>
+> Este documento refleja una hipótesis, sesión de trabajo, propuesta o estado interno histórico. El estado técnico actual de CASTÚO y sus limitaciones se rige por el README vigente, el registro de capacidades, los resultados de tests y los evidence packs verificables.
+>
+> Cualquier afirmación de madurez, operatividad, certificación, validación o preparación productiva debe considerarse pendiente de evidencia específica y revisión independiente.
+>
+> `document_status: historical` · `technical_maturity_claim: not_current` · `trl_claim: not_verified` · `certification_claim: not_verified` · `external_validation: not_verified` · `production_status: not_claimed` · `superseded_by: README.md` · `review_required: true` — índice: [`docs/HISTORICAL-CLAIMS-INDEX.md`](../HISTORICAL-CLAIMS-INDEX.md)
+
+
 Fecha: 2026-04-02
 Estado actual: Pre-Go controlado
 Alcance: activacion de PR 19 en produccion Hetzner con trazabilidad tecnica y criterio Go/No-Go auditable.

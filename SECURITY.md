@@ -1,21 +1,55 @@
 # Security Policy
 
-## Supported Versions
+## Scope
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Cast-o is testing and assurance tooling for CASTÚO-SYSTEM™. It is not a
+production service and publishes no versioned releases. This policy covers the
+code, workflows and configuration in this repository.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+## Supported versions
 
-## Reporting a Vulnerability
+| Version | Supported |
+|---|---|
+| `main` branch (latest commit) | :white_check_mark: |
+| Any other branch, fork or tag | :x: |
 
-Use this section to tell people how to report a vulnerability.
+There are no numbered releases yet. Security fixes are applied to `main` only.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+## Reporting a vulnerability
+
+Do **not** open a public issue for a vulnerability.
+
+Report it privately through GitHub:
+**Security → Report a vulnerability** on this repository
+(<https://github.com/Traky12/Cast-o/security/advisories/new>).
+
+Include the affected file or workflow, the steps to reproduce, and the impact
+you observed.
+
+Expectations. This is a single-maintainer project; the times below are
+targets, not contractual SLAs:
+
+- Acknowledgement: within 7 days.
+- Initial assessment (accepted / declined, with reasoning): within 30 days.
+- If accepted: a fix on `main` and, where relevant, a GitHub Security Advisory
+  crediting the reporter unless they prefer to stay anonymous.
+
+## Out of scope
+
+- Findings in third-party dependencies that are already tracked by Dependabot
+  alerts on this repository (they are handled through Dependabot updates).
+- Example or template files (`.env.example`, `.env.*.example`) that contain
+  placeholders, not real secrets.
+- Systems not in this repository (for example the private `Castuo-system`
+  deployment); report those through the repository that owns them.
+
+## Contributions and license
+
+External contributions are not accepted until a contributor licence agreement
+(CLA) or contribution policy is defined. No license is currently granted for
+this repository (license pending IP review).
+
+## Secrets
+
+Secrets must never be committed. If you find a real credential in this
+repository or its history, report it privately as above.
