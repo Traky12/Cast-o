@@ -52,17 +52,20 @@ jobs:
             visual-summary.pdf
           retention-days: 30
 
-      - name: Publish rolling visual summary release asset
-        uses: softprops/action-gh-release@v2
+      # Immutable releases are enabled on this repo, so a rolling release
+      # (visual-summary-latest) cannot have its asset replaced. Publish the PDF
+      # as a workflow artifact instead.
+      - name: Upload visual summary artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: visual-summary-latest
-          name: Visual Summary Latest
-          files: visual-summary.pdf
-          body: Resumen visual actualizado automaticamente.
+          name: visual-summary
+          path: visual-summary.pdf
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Notify Slack
         if: ${{ always() }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          ./scripts/notify-slack.sh "📊 Resumen visual generado\n\n📄 docs/RESUMEN-VISUAL-ESTADO.md actualizado\n📎 visual-summary.pdf publicado"
+          ./scripts/notify-slack.sh "📊 Resumen visual generado\n\n📄 docs/RESUMEN-VISUAL-ESTADO.md actualizado\n📎 visual-summary.pdf como artefacto del workflow"
