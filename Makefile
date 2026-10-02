@@ -6,7 +6,7 @@ PROFILES ?= core iot ai observability
 .PHONY: validate up smoke down phases agent-hardening reconcile-check e2e-validar-lote \
   hub-connectivity-check test-ai terraform-plan terraform-apply test-encryption \
 	test-blockchain validate-n8n test-all go-total baseline docker-audit docker-audit-all \
-	test-github-operativity test-github-certification test-github-evidence ctaex-compliance-check legal-compliance-check audit-package-exhaustive \
+	test-github-operativity test-github-certification test-github-evidence operativity-48h-check trl9-gate-status ctaex-compliance-check legal-compliance-check audit-package-exhaustive \
 	frontend-start frontend-init frontend-stop frontend-purge frontend-check frontend-open frontend-health \
 	docker-harden docker-verify-hardening init-castuo-persistence verify-operational-stack start-all-services \
 	runbook-prepilot security-hybrid-check
@@ -114,6 +114,29 @@ test-github-evidence:
 	@set -o pipefail; \
 	pytest -q test_github_integration_toggle.py | tee artifacts/operativity/github-operativity-latest.txt
 	@echo "[OK] Evidencia: artifacts/operativity/github-operativity-latest.txt"
+
+# CI-DEBT-001: targets called by .github/workflows/48h-operativity.yml.
+# They record the honest current state (NO-GO / TARGET) and emit no claim;
+# no runtime or field evidence is collected by CI.
+operativity-48h-check:
+	@mkdir -p artifacts/operativity/trl9
+	@stamp="$$(date +%Y%m%d-%H%M%S)"; \
+	file="artifacts/operativity/trl9/connection-48h-check-$$stamp.md"; \
+	{ echo "# 48h Operativity Evidence"; \
+	  echo; echo "- Operatividad tecnica 48h: NO-GO"; \
+	  echo "- Scope: CI only, no runtime or field evidence collected"; \
+	  echo "- Claim: NOT_CLAIMED"; \
+	} > "$$file"; \
+	echo "[INFO] Evidence written to $$file"
+
+trl9-gate-status:
+	@mkdir -p artifacts/operativity/trl9
+	@{ echo "# TRL9 Gate Status"; \
+	  echo; echo "- TRL 9 (certificacion externa): NO-GO"; \
+	  echo "- Status: TARGET (not current)"; \
+	  echo "- Independent certification: NOT_CLAIMED"; \
+	} > artifacts/operativity/trl9/go-nogo-status.md
+	@echo "[INFO] TRL9 remains TARGET / NO-GO; no certification claim emitted"
 
 ctaex-compliance-check:
 	@echo "[INFO] Ejecutando verificacion integral de cumplimiento CTAEX..."
