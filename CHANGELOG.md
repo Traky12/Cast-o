@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [Unreleased] - 2026-09-04
+
+- Merge ad2ccdb3a926e59e9cc8ada29b639458b4690e5e into b01ab0112b2a9ff02070e403ad70db8bda2d0ba8 (44f8dbd)
+- Bump python-dotenv from 1.0.0 to 1.2.2 in /requirements (ad2ccdb)
 ## [Unreleased] - 2026-09-28
 
 - Merge 6321eea0ce790b59c1f1b322e7af2eaedd7df3b4 into d57936c6d94d839517beb1977503bb7e84a9cdc4 (b8ba835)
