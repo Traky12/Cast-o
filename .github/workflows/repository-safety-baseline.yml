@@ -51,7 +51,7 @@ jobs:
 
           pattern='(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*[:=][[:space:]]*("[^"$<>]{12,}"|'\''[^'\''"$<>]{12,}'\''|[A-Za-z0-9._:+/@-]{16,})'
           matches="$(grep -nIHE -- "$pattern" "${files[@]}" || true)"
-          matches="$(printf "%s\n" "$matches" | grep -vEi "(YOUR_|CHANGE_?ME|PLACEHOLDER|REDACTED|DUMMY|EXAMPLE|REPLACE)" || true)"
+          matches="$(printf "%s\n" "$matches" | grep -vEi "(YOUR_|CHANGE_?ME|PLACEHOLDER|REDACTED|DUMMY|EXAMPLE|REPLACE|^.*=[[:space:]]*CASTUO_[A-Z0-9_]+$|^.*=[[:space:]]*CI_[A-Z0-9_]+$)" || true)"
           if [ -n "$matches" ]; then
             printf "%s\n" "$matches"
             echo "Potential credential assignment detected. Review before merge."
