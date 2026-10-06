@@ -214,7 +214,6 @@ jobs:
 
   security-scan:
     name: Security Scan
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs: validate-thingsdata-config
     steps:
