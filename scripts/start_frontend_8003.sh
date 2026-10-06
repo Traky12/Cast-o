@@ -92,7 +92,7 @@ docker run -d --name castuo-wordpress --network castuo-wp-net \
   -p "127.0.0.1:${FRONTEND_PORT}:80" \
   -e WORDPRESS_DB_HOST=castuo-mariadb:3306 \
   -e WORDPRESS_DB_USER="${WP_DB_USER}" \
-  -e WORDPRESS_DB_PASSWORD="${WP_DB_PASSWORD}" \
+  -e "WORDPRESS_DB_PASSWORD=$WP_DB_PASSWORD" \
   -e WORDPRESS_DB_NAME="${WP_DB_NAME}" \
   --health-cmd "curl -f http://127.0.0.1/wp-login.php || exit 1" \
   --health-interval 30s \
