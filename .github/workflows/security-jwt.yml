@@ -22,7 +22,7 @@ jobs:
           from datetime import datetime, timedelta
           from jose import jwt
           
-          SECRET_KEY = 'test-secret-key'
+          SECRET_KEY = 't' * 32
           ALGORITHM = 'HS256'
           
           # Generate token with 1h expiry
