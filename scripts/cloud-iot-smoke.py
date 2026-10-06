@@ -157,9 +157,11 @@ def check_mqtt_publish() -> bool:
     if USE_TLS:
         import ssl
 
-        ca = CA_CERT if os.path.exists(CA_CERT) else None
+        if not os.path.exists(CA_CERT):
+            _fail(name, f"TLS CA bundle not found: {CA_CERT}")
+            return False
         try:
-            client.tls_set(ca_certs=ca, cert_reqs=ssl.CERT_NONE if ca is None else ssl.CERT_REQUIRED)
+            client.tls_set(ca_certs=CA_CERT, cert_reqs=ssl.CERT_REQUIRED)
         except Exception as exc:  # noqa: BLE001
             _fail(name, f"TLS setup failed: {exc}")
             return False
