@@ -40,7 +40,13 @@ jobs:
 
       - name: Validate docker-compose.iot.yml
         run: |
+          set -euo pipefail
           echo "🔍 Validando docker-compose.iot.yml..."
+          export THINGSDATA_API_KEY="ci_placeholder_key"
+          export THINGSDATA_SECRET="ci_placeholder_secret"
+          export N8N_PASSWORD="ci_placeholder_n8n_password"
+          export POSTGRES_PASSWORD="ci_placeholder_postgres_password"
+          export GF_ADMIN_PASSWORD="ci_placeholder_grafana_password"
           docker compose -f docker-compose.iot.yml config > /dev/null
           echo "✅ docker-compose.iot.yml válido"
 
