@@ -12,6 +12,10 @@ Placa: ESP32 Wrover Module
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+#if __has_include("castuo_wifi_config.h")
+#include "castuo_wifi_config.h"
+#endif
+
 // ─── CONFIGURACIÓN DE PINES ───────────────────────────
 
 // Camera
