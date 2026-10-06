@@ -77,7 +77,7 @@ jobs:
           set -euo pipefail
           echo "🔨 Construyendo servicios..."
           export THINGSDATA_API_KEY=$(openssl rand -hex 32)
-          export THINGSDATA_SECRET="$(openssl rand -hex 32)"
+          export THINGSDATA_SECRET=$(openssl rand -hex 32)
           export N8N_PASSWORD="$(openssl rand -hex 24)"
           export POSTGRES_PASSWORD="$(openssl rand -hex 24)"
           export GF_ADMIN_PASSWORD="$(openssl rand -hex 24)"
