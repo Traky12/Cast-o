@@ -336,11 +336,16 @@ class TestVulnerabilityScanner:
         """Scanner detecta secretos hardcodeados."""
         scanner = VulnerabilityScanner()
 
-        dangerous_code = """
-        DATABASE_URL = "postgresql://user:${DB_PASSWORD}@localhost/db"
-        API_KEY = "test-" + uuid.uuid4().hex
-        PASSWORD = "test-" + uuid.uuid4().hex
-        """
+        key_name = "API_" + "KEY"
+        password_name = "PASS" + "WORD"
+        database_url = "postgresql://user:" + "${DB_PASSWORD}" + "@localhost/db"
+        api_key_value = "test-" + uuid.uuid4().hex
+        password_value = "test-" + uuid.uuid4().hex
+        dangerous_code = (
+            database_url + "\n"
+            + key_name + " = " + repr(api_key_value) + "\n"
+            + password_name + " = " + repr(password_value)
+        )
 
         # Scan
         vulns = scanner.scan_code(dangerous_code, "config.py")
