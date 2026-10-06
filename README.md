@@ -12,6 +12,14 @@
 
 ---
 
+## Architectural identity
+
+- **Architectural name:** `castuo-assurance-workbench`
+- **Role:** Testing, diagnostics, integration validation and assurance tooling.
+- **Boundary:** Engineering assurance support; no independent certification or production claim.
+- **Status:** `CURRENT` / partial by capability.
+- **Quality profile:** [`.castuo/repository-profile.yaml`](.castuo/repository-profile.yaml)
+
 ## 1. Purpose & Scope
 **Cast-o** is the quality assurance and performance engine of the ecosystem. It provides a unified environment to structure, automate, and validate the CASTÚO-SYSTEM ecosystem through tests, infrastructure-as-code, and integration tools.
 
