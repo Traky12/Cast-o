@@ -61,7 +61,7 @@ services:
     
     volumes:
       - ./infrastructure/thingsdata/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./infrastructure/thingsdata/passwords.txt:/mosquitto/config/passwords.txt:ro
+      - ./infrastructure/thingsdata/.runtime/passwords.txt:/mosquitto/config/passwords.txt:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_logs:/mosquitto/log
     
