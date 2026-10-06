@@ -171,10 +171,10 @@ run_cmd "docker run -d" \
   "--memory '$MARIADB_MEMORY'" \
   "--cpus '$MARIADB_CPUS'" \
   "--network $NETWORK_NAME" \
-  "--env MYSQL_ROOT_PASSWORD='$WP_DB_ROOT_PASSWORD'" \
+  "--env \"MYSQL_ROOT_PASSWORD=$WP_DB_ROOT_PASSWORD\"" \
   "--env MYSQL_DATABASE='$WP_DB_NAME'" \
   "--env MYSQL_USER='$WP_DB_USER'" \
-  "--env MYSQL_PASSWORD='$WP_DB_PASSWORD'" \
+  "--env \"MYSQL_PASSWORD=$WP_DB_PASSWORD\"" \
   "--health-cmd \"test -S /var/run/mysqld/mysqld.sock || exit 1\"" \
   "--health-interval 10s" \
   "--health-timeout 5s" \
@@ -215,7 +215,7 @@ run_cmd "docker run -d" \
   "--network $NETWORK_NAME" \
   "--env WORDPRESS_DB_HOST=castuo-mariadb" \
   "--env WORDPRESS_DB_USER='$WP_DB_USER'" \
-  "--env WORDPRESS_DB_PASSWORD='$WP_DB_PASSWORD'" \
+  "--env \"WORDPRESS_DB_PASSWORD=$WP_DB_PASSWORD\"" \
   "--env WORDPRESS_DB_NAME='$WP_DB_NAME'" \
   "--env WORDPRESS_CONFIG_EXTRA='define(\"WP_SITEURL\", \"http://localhost:$FRONTEND_PORT\"); define(\"WP_HOME\", \"http://localhost:$FRONTEND_PORT\");'" \
   "--publish 127.0.0.1:$FRONTEND_PORT:80" \
