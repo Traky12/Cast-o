@@ -70,10 +70,10 @@ if ! docker ps -a --format '{{.Names}}' | grep -qx 'castuo-mariadb'; then
     --restart unless-stopped \
     --memory 512m \
     --cpus 1 \
-    -e MYSQL_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD}" \
+    -e "MYSQL_ROOT_PASSWORD=$WP_DB_ROOT_PASSWORD" \
     -e MYSQL_DATABASE="${WP_DB_NAME}" \
     -e MYSQL_USER="${WP_DB_USER}" \
-    -e MYSQL_PASSWORD="${WP_DB_PASSWORD}" \
+    -e "MYSQL_PASSWORD=$WP_DB_PASSWORD" \
     --health-cmd "mysqladmin ping -h 127.0.0.1 -u root --password='${WP_DB_ROOT_PASSWORD}'" \
     --health-interval 10s \
     --health-timeout 5s \
