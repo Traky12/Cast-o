@@ -17,12 +17,12 @@ MARIADB_CPUS="${MARIADB_CPUS:-1}"
 FRONTEND_PORT="${FRONTEND_PORT:-5432}"
 WP_DB_NAME="${WP_DB_NAME:-wordpress}"
 WP_DB_USER="${WP_DB_USER:-wordpress}"
-WP_DB_PASSWORD="${WP_DB_PASSWORD:-wordpress}"
-WP_DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-castuo_root}"
+: "${WP_DB_PASSWORD:?WP_DB_PASSWORD must be set; refusing insecure default}"
+: "${WP_DB_ROOT_PASSWORD:?WP_DB_ROOT_PASSWORD must be set; refusing insecure default}"
 
 WP_SITE_TITLE="${WP_SITE_TITLE:-CASTUO Frontend}"
 WP_ADMIN_USER="${WP_ADMIN_USER:-castuo_admin}"
-WP_ADMIN_PASSWORD="${WP_ADMIN_PASSWORD:-CastuoAdmin!2026}"
+: "${WP_ADMIN_PASSWORD:?WP_ADMIN_PASSWORD must be set; refusing insecure default}"
 WP_ADMIN_EMAIL="${WP_ADMIN_EMAIL:-admin@castuo.local}"
 
 # Variables de imágenes (tags fijos para seguridad)
