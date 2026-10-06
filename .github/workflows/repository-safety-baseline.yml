@@ -40,11 +40,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git grep -nE '(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*=[[:space:]]*(["'\''])[^$#[:space:]]{8,}\1|((THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*=[[:space:]]*)[A-Za-z0-9_./:+-]{12,}' -- ':!*.example' ':!docs/**' ':!scripts/**' ':!tests/**'; then
+          mapfile -d '' files < <(
+            git ls-files -z |
+              grep -zEv '(^|/)(.env([^/]*|$)|.*.example)$|^docs/|^scripts/|^tests/|^.github/workflows/repository-safety-baseline.yml$'
+          )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No eligible files to scan."
+            exit 0
+          fi
+
+          pattern='(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*[:=][[:space:]]*("[^"$<>]{12,}"|'\''[^'\''"$<>]{12,}'\''|[A-Za-z0-9._:+/@-]{16,})'
+          if grep -nIHE -- "$pattern" "${files[@]}"; then
             echo "Potential credential assignment detected. Review before merge."
             exit 1
           fi
-
       - name: Report repository status
         shell: bash
         run: |
