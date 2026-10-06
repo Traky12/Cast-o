@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONTEND_PORT="${FRONTEND_PORT:-8083}"
-WP_DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-castuo_root}"
+: "${WP_DB_ROOT_PASSWORD:?WP_DB_ROOT_PASSWORD must be set; refusing insecure default}"
 
 log_info() { echo "[INFO] $*"; }
 log_ok() { echo "[OK] $*"; }
