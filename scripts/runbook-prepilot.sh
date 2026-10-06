@@ -240,7 +240,7 @@ main() {
   fi
 
   # 7) Persistencia
-  DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}"
+  DB_ROOT_PASSWORD=${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}
   if [[ -z "$DB_ROOT_PASSWORD" ]]; then
     echo "DB root password is required; refusing insecure default" >&2
     return 1
