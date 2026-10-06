@@ -48,7 +48,7 @@ echo "=== Verificación Operativa CASTUO-SYSTEM ==="
 
 # 1) MariaDB persistencia
 check_cmd "MariaDB corriendo" "docker ps --filter 'name=castuo-mariadb' --format '{{.Names}}' | grep -q castuo-mariadb"
-check_cmd "Conexión MariaDB (SHOW DATABASES)" "docker exec castuo-mariadb mariadb -uroot -p\"${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-castuo_root}}\" -e 'SHOW DATABASES;'"
+check_cmd "Conexión MariaDB (SHOW DATABASES)" "docker exec castuo-mariadb mariadb -uroot -p\"${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}}\" -e 'SHOW DATABASES;'"
 check_cmd "Tablas críticas castuo_system" "docker exec castuo-mariadb mariadb -uroot -p\"${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-castuo_root}}\" -e 'USE castuo_system; SHOW TABLES;'"
 
 # 2) Backend FastAPI
