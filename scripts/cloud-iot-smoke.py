@@ -152,7 +152,7 @@ def check_mqtt_publish() -> bool:
     client.on_publish = on_publish
 
     if MQTT_USERNAME:
-        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD or None)
+        client.username_pw_set(MQTT_USERNAME, mqtt_password or None)
 
     if USE_TLS:
         import ssl
