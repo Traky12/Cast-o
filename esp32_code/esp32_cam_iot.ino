@@ -368,7 +368,7 @@ void setup() {
   initCamera();
   
   // WiFi
-  WiFi.begin(SSID, PASSWORD);
+  WiFi.begin(SSID, wifi_password);
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
