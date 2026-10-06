@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-castuo_root}}"
+DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}"\n: "${DB_ROOT_PASSWORD:?DB root password must be provided; refusing insecure default}"
 FARM_UID="${FARM_UID:-farm-123e4567-e89b-12d3-a456-426614174000}"
 USER_UID="${USER_UID:-pilot-user-001}"
 LOTE_ID="${LOTE_ID:-lote-001-2026}"
