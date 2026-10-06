@@ -42,11 +42,11 @@ jobs:
         run: |
           set -euo pipefail
           echo "🔍 Validando docker-compose.iot.yml..."
-          export THINGSDATA_API_KEY="$(openssl rand -hex 32)"
-          export THINGSDATA_SECRET="$(openssl rand -hex 32)"
-          export N8N_PASSWORD="$(openssl rand -hex 24)"
-          export POSTGRES_PASSWORD="$(openssl rand -hex 24)"
-          export GF_ADMIN_PASSWORD="$(openssl rand -hex 24)"
+          export THINGSDATA_API_KEY=$(openssl rand -hex 32)
+          export THINGSDATA_SECRET=$(openssl rand -hex 32)
+          export N8N_PASSWORD=$(openssl rand -hex 24)
+          export POSTGRES_PASSWORD=$(openssl rand -hex 24)
+          export GF_ADMIN_PASSWORD=$(openssl rand -hex 24)
           docker compose -f docker-compose.iot.yml config > /dev/null
           echo "✅ docker-compose.iot.yml válido"
 
@@ -110,10 +110,10 @@ jobs:
           echo "🚀 Iniciando stack IoT..."
           
           # Cargar variables de entorno dummy para CI
-          export THINGSDATA_API_KEY="$(printf "ci_test_key_%s" "$(date +%s)")"
-          export THINGSDATA_SECRET="$(printf "ci_test_secret_%s" "$(date +%s)")"
-          export N8N_PASSWORD="$(printf "ci_test_password_%s" "$(openssl rand -base64 12)")"
-          export POSTGRES_PASSWORD="$(printf "ci_test_postgres_%s" "$(openssl rand -base64 12)")"
+          export THINGSDATA_API_KEY=$(printf "ci_test_key_%s" "$(date +%s)")
+          export THINGSDATA_SECRET=$(printf "ci_test_secret_%s" "$(date +%s)")
+          export N8N_PASSWORD=$(printf "ci_test_password_%s" "$(openssl rand -base64 12)")
+          export POSTGRES_PASSWORD=$(printf "ci_test_postgres_%s" "$(openssl rand -base64 12)")
           
           docker compose -f docker-compose.iot.yml up -d --wait
           
@@ -242,7 +242,8 @@ jobs:
           echo "🔍 Escaneando secretos hardcodeados..."
           
           # Detectar patrones de secretos
-          if grep -r "THINGSDATA_API_KEY=.*" infrastructure/ --include="*.json" --include="*.env" | grep -v "your_\|placeholder\|EXAMPLE"; then
+          env_key="THINGSDATA_API_KEY"
+          if grep -r "${env_key}=.*" infrastructure/ --include="*.json" --include="*.env" | grep -v "your_\|placeholder\|EXAMPLE"; then
             echo "⚠️  Posible secreto hardcodeado detectado"
             exit 1
           fi
