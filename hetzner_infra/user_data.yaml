@@ -35,11 +35,9 @@ runcmd:
   # Wait for k3s to be ready
   - sleep 30
   
-  # Create kubeconfig for external access (replace loopback with real public IP)
+  # Keep kubeconfig loopback-only; external access must use an explicit secured mechanism.
   - mkdir -p /root/.kube
   - cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
-  - PUBLIC_IP=$(curl -sf https://api64.ipify.org || hostname -I | awk '{print $1}')
-  - sed -i "s/127.0.0.1/$PUBLIC_IP/g" /root/.kube/config
   - chmod 600 /root/.kube/config
   
   # Mount data volume if available
@@ -70,31 +68,20 @@ runcmd:
   - /usr/local/bin/k3s kubectl apply -f /root/castuo-k8s/namespace.yaml || true
   - /usr/local/bin/k3s kubectl apply -f /root/castuo-k8s/configmap.yaml || true
   
-  # Start n8n in Docker (initial fallback before k8s deployment)
-  - docker run -d --name=n8n-init --restart=always -p 5678:5678 -v n8n_data:/home/node/.n8n -e NODE_ENV=production n8nio/n8n
+  # Do not start n8n/PostgreSQL with bootstrap credentials. Deploy them only through the secured Kubernetes manifests/secrets.
   
-  # Start PostgreSQL for TimescaleDB
-  - docker run -d --name=postgres-castuo --restart=always -p 5432:5432 -e POSTGRES_PASSWORD=castuo_secure_pwd_change_me -v /mnt/castuo-data/postgres:/var/lib/postgresql/data postgres:15-alpine
-  
-  # Start Prometheus for monitoring
-  - docker run -d --name=prometheus --restart=always -p 9090:9090 -v /mnt/castuo-data/prometheus:/prometheus prom/prometheus --config.file=/prometheus/prometheus.yml
+  # Monitoring services are deployed only through reviewed Kubernetes manifests.
   
   # Configure firewall (UFW)
   - ufw allow 22/tcp
   - ufw allow 80/tcp
   - ufw allow 443/tcp
-  - ufw allow 5678/tcp
-  - ufw allow 6443/tcp
   - ufw --force enable
   
   # Create system info snapshot
-  - PUBLIC_IP=$(curl -sf https://api64.ipify.org || hostname -I | awk '{print $1}')
   - echo "CASTUO-SYSTEM deployment initialized at $(date)" > /root/DEPLOYMENT_INFO.txt
-  - echo "Server IP: $PUBLIC_IP" >> /root/DEPLOYMENT_INFO.txt
   - echo "k3s installed and running" >> /root/DEPLOYMENT_INFO.txt
-  - echo "n8n available at http://$PUBLIC_IP:5678" >> /root/DEPLOYMENT_INFO.txt
-  - echo "PostgreSQL: localhost:5432" >> /root/DEPLOYMENT_INFO.txt
-  - echo "Prometheus: http://$PUBLIC_IP:9090" >> /root/DEPLOYMENT_INFO.txt
+  - echo "Kubernetes API remains loopback-only by default" >> /root/DEPLOYMENT_INFO.txt
 
 # Final message
 final_message: "CASTUO-SYSTEM infrastructure initialized successfully. Check /root/DEPLOYMENT_INFO.txt"
