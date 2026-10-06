@@ -47,3 +47,6 @@ Thumbs.db
 # Node (if applicable)
 node_modules/
 logs/
+
+# Thingsdata runtime environment (template is versioned separately)
+infrastructure/thingsdata/thingsdata.env
