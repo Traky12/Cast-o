@@ -15,6 +15,7 @@ Cubre:
 """
 
 import json
+import uuid
 from typing import Any
 
 import jwt
@@ -336,9 +337,9 @@ class TestVulnerabilityScanner:
         scanner = VulnerabilityScanner()
 
         dangerous_code = """
-        DATABASE_URL = "postgresql://user:password123@localhost/db"
-        API_KEY = "secret-key-12345"
-        PASSWORD = "admin123"
+        DATABASE_URL = "postgresql://user:${DB_PASSWORD}@localhost/db"
+        API_KEY = "test-" + uuid.uuid4().hex
+        PASSWORD = "test-" + uuid.uuid4().hex
         """
 
         # Scan
