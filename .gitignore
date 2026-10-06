@@ -47,3 +47,6 @@ Thumbs.db
 # Node (if applicable)
 node_modules/
 logs/
+
+# Local ESP32 provisioning header — never commit credentials
+esp32_code/castuo_wifi_config.h
