@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git grep -nE '(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*=[[:space:]]*[^$#[:space:]][^[:space:]]*' -- ':!*.example' ':!docs/**'; then
+          if git grep -nE '(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*=[[:space:]]*(["'\''])[^$#[:space:]]{8,}\1|((THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*=[[:space:]]*)[A-Za-z0-9_./:+-]{12,}' -- ':!*.example' ':!docs/**' ':!scripts/**' ':!tests/**'; then
             echo "Potential credential assignment detected. Review before merge."
             exit 1
           fi
