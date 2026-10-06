@@ -61,7 +61,7 @@ const char* SSID = "CASTUO_NETWORK";
 #ifndef CASTUO_BACKUP_AP_PASSWORD
 #define CASTUO_BACKUP_AP_PASSWORD ""
 #endif
-const char* PASSWORD = CASTUO_WIFI_PASSWORD;
+const char* wifi_password = CASTUO_WIFI_PASSWORD;
 const char* MQTT_SERVER = "localhost";
 const int MQTT_PORT = 1883;
 
