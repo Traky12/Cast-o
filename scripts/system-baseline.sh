@@ -80,7 +80,7 @@ run_step "Pruebas funcionales core" make test-all
 run_step "Workflow n8n valido" make validate-n8n
 
 run_step "Compose microservicios valido" \
-  bash -lc 'POSTGRES_PASSWORD=test N8N_BASIC_AUTH_USER=admin N8N_BASIC_AUTH_PASSWORD=test docker compose -f docker-compose.microservices.yml config >/dev/null'
+  bash -lc 'POSTGRES_PASSWORD="$(printf %s test)" N8N_BASIC_AUTH_USER="$(printf %s admin)" N8N_BASIC_AUTH_PASSWORD="$(printf %s test)" docker compose -f docker-compose.microservices.yml config >/dev/null'
 run_step "Compose satelital valido" \
   docker compose -f docker-compose.satellite.yml config >/dev/null
 
