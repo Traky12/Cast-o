@@ -38,7 +38,7 @@ jobs:
       
       - name: Validate TimescaleDB replication settings
         run: |
-          PGPASSWORD="${CI_POSTGRES_PASSWORD}" psql -h localhost -U castuo -d castuo_test -c \
+          PGPASSWORD=${CI_POSTGRES_PASSWORD} psql -h localhost -U castuo -d castuo_test -c \
             "SHOW max_wal_senders; SHOW max_replication_slots; SHOW wal_level;"
       
       - name: Test hypertable creation
