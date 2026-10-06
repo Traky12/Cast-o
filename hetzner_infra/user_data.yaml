@@ -74,7 +74,7 @@ runcmd:
   - docker run -d --name=n8n-init --restart=always -p 5678:5678 -v n8n_data:/home/node/.n8n -e NODE_ENV=production n8nio/n8n
   
   # Start PostgreSQL for TimescaleDB
-  - docker run -d --name=postgres-castuo --restart=always -p 5432:5432 --env POSTGRES_PASSWORD="$(cat /etc/castuo/secrets/postgres_password)" -v /mnt/castuo-data/postgres:/var/lib/postgresql/data postgres:15-alpine
+  - docker run -d --name=postgres-castuo --restart=always -p 5432:5432 --env POSTGRES_PASSWORD=$(cat /etc/castuo/secrets/postgres_password) -v /mnt/castuo-data/postgres:/var/lib/postgresql/data postgres:15-alpine
   
   # Start Prometheus for monitoring
   - docker run -d --name=prometheus --restart=always -p 9090:9090 -v /mnt/castuo-data/prometheus:/prometheus prom/prometheus --config.file=/prometheus/prometheus.yml
