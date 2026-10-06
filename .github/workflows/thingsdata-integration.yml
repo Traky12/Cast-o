@@ -69,14 +69,11 @@ jobs:
 
       - name: Build Thingsdata services
         run: |
+          set -euo pipefail
           echo "🔨 Construyendo servicios..."
-          docker compose -f docker-compose.iot.yml build --no-cache 2>&1 | tee build.log
-          
-          if grep -i "error" build.log; then
-            echo "❌ Error durante construcción"
-            exit 1
-          fi
+          docker compose -f docker-compose.iot.yml build --no-cache
           echo "✅ Build exitoso"
+
 
   integration-test-thingsdata:
     name: Integration Tests
