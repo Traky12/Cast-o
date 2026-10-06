@@ -88,14 +88,16 @@ generate_secrets() {
     echo -e "\n${BLUE}🔐 Generando secretos...${NC}"
     
     # Generar contraseña n8n si no existe
-    if ! grep -q "N8N_PASSWORD=" infrastructure/thingsdata/thingsdata.env; then
+    env_key="N8N_PASSWORD"
+    if ! grep -q "${env_key}=" infrastructure/thingsdata/thingsdata.env; then
         N8N_PASS=$(openssl rand -base64 24)
         echo "N8N_PASSWORD=${N8N_PASS}" >> infrastructure/thingsdata/thingsdata.env
         echo -e "${GREEN}✅ Contraseña n8n generada${NC}"
     fi
     
     # Generar contraseña PostgreSQL si no existe
-    if ! grep -q "POSTGRES_PASSWORD=" infrastructure/thingsdata/thingsdata.env; then
+    env_key="POSTGRES_PASSWORD"
+    if ! grep -q "${env_key}=" infrastructure/thingsdata/thingsdata.env; then
         POSTGRES_PASS=$(openssl rand -base64 24)
         echo "POSTGRES_PASSWORD=${POSTGRES_PASS}" >> infrastructure/thingsdata/thingsdata.env
         echo -e "${GREEN}✅ Contraseña PostgreSQL generada${NC}"
