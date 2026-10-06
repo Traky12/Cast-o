@@ -44,12 +44,17 @@ jobs:
           docker compose -f docker-compose.iot.yml config > /dev/null
           echo "✅ docker-compose.iot.yml válido"
 
-      - name: Check file permissions
+      - name: Check file permissions and secret-store policy
         run: |
-          echo "🔍 Verificando permisos..."
+          echo "🔍 Verificando permisos y política de secretos..."
           test -x scripts/thingsdata-setup.sh && echo "✅ thingsdata-setup.sh ejecutable"
           test -f infrastructure/thingsdata/mosquitto.conf && echo "✅ mosquitto.conf presente"
-          test -f infrastructure/thingsdata/passwords.txt && echo "✅ passwords.txt presente"
+          if git ls-files --error-unmatch infrastructure/thingsdata/passwords.txt >/dev/null 2>&1; then
+            echo "❌ MQTT credential store must never be tracked"
+            exit 1
+          fi
+          test ! -e infrastructure/thingsdata/passwords.txt && echo "✅ passwords.txt no está versionado"
+          grep -q 'infrastructure/thingsdata/.runtime/' .gitignore && echo "✅ runtime credential store ignorado"
 
   build-thingsdata-stack:
     name: Build IoT Stack
