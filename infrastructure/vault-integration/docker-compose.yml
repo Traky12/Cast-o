@@ -2,10 +2,10 @@ services:
   vault:
     image: hashicorp/vault:1.18
     ports:
-      - "8200:8200"
+      - "127.0.0.1:8200:8200"
     environment:
       VAULT_ADDR: "http://0.0.0.0:8200"
-      VAULT_DEV_ROOT_TOKEN_ID: "change-me-root-token"
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:?VAULT_DEV_ROOT_TOKEN_ID must be set}
     volumes:
       - vault_data:/vault/file
     cap_add:
