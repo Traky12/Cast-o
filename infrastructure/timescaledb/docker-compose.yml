@@ -6,9 +6,9 @@ services:
     environment:
       POSTGRES_DB: castuo_iot
       POSTGRES_USER: castuo
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
 
