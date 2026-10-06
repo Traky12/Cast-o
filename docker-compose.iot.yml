@@ -30,7 +30,6 @@ services:
     
     volumes:
       - ./infrastructure/thingsdata/thingsdata-config.json:/etc/thingsdata/config.json:ro
-      - ./infrastructure/thingsdata/thingsdata.env:/etc/thingsdata/.env:ro
       - thingsdata_data:/data/thingsdata
     
     networks:
@@ -55,9 +54,9 @@ services:
     container_name: castuo-mqtt-bridge
     
     ports:
-      - "1883:1883"    # MQTT plain
+      - "127.0.0.1:1883:1883"    # MQTT plain
       - "8883:8883"    # MQTT TLS
-      - "9001:9001"    # WebSocket
+      - "127.0.0.1:9001:9001"    # WebSocket
     
     volumes:
       - ./infrastructure/thingsdata/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
@@ -98,7 +97,7 @@ services:
       MQTT_BROKER_URL: "mqtt://mosquitto:1883"
     
     ports:
-      - "5678:5678"  # n8n UI
+      - "127.0.0.1:5678:5678"  # n8n UI
     
     volumes:
       - n8n_data:/home/node/.n8n
@@ -134,7 +133,7 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     
     ports:
-      - "5433:5432"  # Puerto diferente del PostgreSQL principal
+      - "127.0.0.1:5433:5432"  # Puerto diferente del PostgreSQL principal
     
     volumes:
       - postgres_iot_data:/var/lib/postgresql/data
@@ -163,7 +162,7 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     
     ports:
-      - "5434:5432"  # Puerto diferente
+      - "127.0.0.1:5434:5432"  # Puerto diferente
     
     volumes:
       - timescaledb_iot_data:/var/lib/postgresql/data
@@ -187,11 +186,11 @@ services:
     
     environment:
       GF_SECURITY_ADMIN_USER: "${GF_ADMIN_USER:-admin}"
-      GF_SECURITY_ADMIN_PASSWORD: "${GF_ADMIN_PASSWORD}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GF_ADMIN_PASSWORD:?GF_ADMIN_PASSWORD must be set}"
       GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-worldmap-panel"
     
     ports:
-      - "3001:3000"  # Grafana IoT (puerto diferente del principal)
+      - "127.0.0.1:3001:3000"  # Grafana IoT (puerto diferente del principal)
     
     volumes:
       - grafana_iot_data:/var/lib/grafana

@@ -12,6 +12,10 @@ Placa: ESP32 Wrover Module
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+#if __has_include("castuo_wifi_config.h")
+#include "castuo_wifi_config.h"
+#endif
+
 // ─── CONFIGURACIÓN DE PINES ───────────────────────────
 
 // Camera
@@ -54,8 +58,15 @@ DallasTemperature sensors(&oneWire);
 
 // IDs y configuración
 const char* ESP32_ID = "CAX21-MAIN";
-const char* SSID = "CASTUO_NETWORK";
-const char* PASSWORD = "SabiondaSoberana2024";
+#ifndef CASTUO_WIFI_SSID
+#define CASTUO_WIFI_SSID ""
+#endif
+#ifndef CASTUO_WIFI_PASSWORD
+#define CASTUO_WIFI_PASSWORD ""
+#endif
+
+const char* SSID = CASTUO_WIFI_SSID;
+const char* PASSWORD = CASTUO_WIFI_PASSWORD;
 const char* MQTT_SERVER = "localhost";
 const int MQTT_PORT = 1883;
 
@@ -375,8 +386,7 @@ void setup() {
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
   } else {
-    Serial.println("\n⚠️ WiFi Failed, starting softAP...");
-    WiFi.softAP("CASTUO-BACKUP-CAX21", "CastuwConnect2024");
+    Serial.println("\n⚠️ WiFi Failed; no unsecured fallback AP is started.");
   }
   
   // HTTP Server

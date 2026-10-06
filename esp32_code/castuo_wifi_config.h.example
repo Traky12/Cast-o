@@ -1,0 +1,1 @@
+// Copy to castuo_wifi_config.h in the local build environment; do not commit the real file.\n#define CASTUO_WIFI_SSID "<REDACTED>"\n#define CASTUO_WIFI_PASSWORD "<REDACTED>"\n
