@@ -48,5 +48,8 @@ Thumbs.db
 node_modules/
 logs/
 
+# Runtime-generated MQTT credential store (never commit)
+infrastructure/thingsdata/.runtime/
+
 # Thingsdata runtime environment (template is versioned separately)
 infrastructure/thingsdata/thingsdata.env
