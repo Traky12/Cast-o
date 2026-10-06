@@ -57,7 +57,11 @@ jobs:
           for f in vault_token iot_bearer wireless_logic_token mistral_key sabionda_key; do echo dummy > "secrets/$f"; done
 
       - name: Validate cloud gate
-        run: make validate ENV_FILE=.env.cloud PROFILES="core iot ai observability"
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: ci-dev-root-token
+        run: |
+          echo "VAULT_DEV_ROOT_TOKEN_ID=ci-dev-root-token" >> .env.cloud
+          make validate ENV_FILE=.env.cloud PROFILES="core iot ai observability"
 
       - name: Generate changelog preview
         run: ./scripts/generate-changelog.sh CHANGELOG.md
