@@ -42,7 +42,26 @@ jobs:
           set -euo pipefail
           mapfile -d '' files < <(
             git ls-files -z |
-              grep -zEv '(^|/)(.env([^/]*|$)|.*.example)$|^docs/|^scripts/|^tests/|^.github/workflows/repository-safety-baseline.yml$'
+              grep -zEv '(^|/)(\.env([^/]*|$)|.*\.example)$|^artifacts/|^docs/|^scripts/|^tests/|^\.github/workflows/repository-safety-baseline\.yml
+          )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No eligible files to scan."
+            exit 0
+          fi
+
+          pattern='(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*[:=][[:space:]]*("[^"$<>]{12,}"|'\''[^'\''"$<>]{12,}'\''|[A-Za-z0-9._:+/@-]{16,})'
+          matches="$(grep -nIHE -- "$pattern" "${files[@]}" || true)"
+          matches="$(printf "%s\n" "$matches" | grep -vEi "(YOUR_|CHANGE_?ME|PLACEHOLDER|REDACTED|DUMMY|EXAMPLE|REPLACE|(^|[[:space:]])CASTUO_[A-Z0-9_]*[[:space:]]*[:=][[:space:]]*CASTUO_[A-Z0-9_]+$|(^|[[:space:]])CI_[A-Z0-9_]*[[:space:]]*[:=])" || true)"
+          if [ -n "$matches" ]; then
+            printf "%s\n" "$matches"
+            echo "Potential credential assignment detected. Review before merge."
+            exit 1
+          fi
+      - name: Report repository status
+        shell: bash
+        run: |
+          echo "Safety baseline completed."
+
           )
           if [ "${#files[@]}" -eq 0 ]; then
             echo "No eligible files to scan."
