@@ -57,7 +57,7 @@ services:
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=castuo_db
       - DB_POSTGRESDB_USER=castuo
-      - DB_POSTGRESDB_PASSWORD=changeme_use_strong_password
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       - N8N_ENCRYPTION_KEY=encryption_key_for_dev_only_replace_in_prod
     depends_on:
       postgres:
