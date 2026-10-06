@@ -49,8 +49,8 @@ class TestSecretValidator:
     ) -> None:
         """Con todos los secretos, validación exitosa."""
         monkeypatch.setenv("ENV", "production")
-        monkeypatch.setenv("JWT_SECRET", "test-secret-key")
-        monkeypatch.setenv("DEVICE_JWT_SECRET", "device-secret")
+        monkeypatch.setenv("JWT_SECRET", "t"*32)
+        monkeypatch.setenv("DEVICE_JWT_SECRET", "d"*32)
 
         result = SecretValidator.validate()
         assert result["status"] == "secure"
