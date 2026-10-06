@@ -93,10 +93,10 @@ jobs:
           echo "🚀 Iniciando stack IoT..."
           
           # Cargar variables de entorno dummy para CI
-          export THINGSDATA_API_KEY="ci_test_key_$(date +%s)"
-          export THINGSDATA_SECRET="ci_test_secret_$(date +%s)"
-          export N8N_PASSWORD="ci_test_password_$(openssl rand -base64 12)"
-          export POSTGRES_PASSWORD="ci_test_postgres_$(openssl rand -base64 12)"
+          export THINGSDATA_API_KEY="$(printf "ci_test_key_%s" "$(date +%s)")"
+          export THINGSDATA_SECRET="$(printf "ci_test_secret_%s" "$(date +%s)")"
+          export N8N_PASSWORD="$(printf "ci_test_password_%s" "$(openssl rand -base64 12)")"
+          export POSTGRES_PASSWORD="$(printf "ci_test_postgres_%s" "$(openssl rand -base64 12)")"
           
           docker compose -f docker-compose.iot.yml up -d --wait
           
