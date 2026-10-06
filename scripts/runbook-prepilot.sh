@@ -240,7 +240,11 @@ main() {
   fi
 
   # 7) Persistencia
-  DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-castuo_root}}"
+  DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}"
+  if [[ -z "$DB_ROOT_PASSWORD" ]]; then
+    echo "DB root password is required; refusing insecure default" >&2
+    return 1
+  fi
 
   check_critical "MariaDB SHOW DATABASES" \
     "docker exec castuo-mariadb mariadb -uroot -p'$DB_ROOT_PASSWORD' -e 'SHOW DATABASES;'" \
