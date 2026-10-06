@@ -100,8 +100,8 @@ jobs:
           kubectl create secret generic castuo-secrets \
             --namespace castuo-system \
             --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
-            --from-literal=GAIACHAIN_PRIVATE_KEY="${{ secrets.GAIACHAIN_PRIVATE_KEY }}" \
-            --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --from-literal="GAIACHAIN_PRIVATE_KEY=${{ secrets.GAIACHAIN_PRIVATE_KEY }}" \
+            --from-literal="DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
             --save-config \
             --dry-run=client -o yaml | kubectl apply -f -
 
