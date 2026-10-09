@@ -33,8 +33,8 @@ def _cfg(key: str, default: str = "") -> str:
 
 
 CLOUD_ENDPOINT      = _cfg("CLOUD_TELEMETRY_ENDPOINT", "https://api.thingsdata.es/v1/ingest")
-CLOUD_API_KEY       = _cfg("THINGSDATA_API_KEY", "")
-CLOUD_SECRET        = _cfg("THINGSDATA_SECRET", "")
+cloud_api_key = _cfg("THINGSDATA_API_KEY", "")
+cloud_secret = _cfg("THINGSDATA_SECRET", "")
 CLOUD_TIMEOUT_S     = int(_cfg("CLOUD_TIMEOUT_SECONDS", "10"))
 CLOUD_ENABLED       = _cfg("CLOUD_ENABLED", "false").lower() in {"1", "true", "yes"}
 BACKUP_BUCKET       = _cfg("BACKUP_S3_BUCKET", "castuo-backups")
@@ -175,7 +175,7 @@ class CloudManager:
                 endpoint=CLOUD_ENDPOINT, latency_ms=0.0,
             )
 
-        if not CLOUD_ENABLED or not CLOUD_API_KEY:
+        if not CLOUD_ENABLED or not cloud_api_key:
             # Modo offline: log sin envío
             logger.info("Cloud OFFLINE — %d registros en buffer local", len(batch))
             # Reencolar para no perder datos
@@ -202,10 +202,10 @@ class CloudManager:
         ]
         payload_bytes = json.dumps(payload_obj, ensure_ascii=False).encode()
         ts_now = int(time.time())
-        signature = _sign_payload(payload_bytes, CLOUD_SECRET, ts_now)
+        signature = _sign_payload(payload_bytes, cloud_secret, ts_now)
 
         headers = {
-            "X-Api-Key": CLOUD_API_KEY,
+            "X-Api-Key": cloud_api_key,
             "X-Timestamp": str(ts_now),
             "X-Signature": signature,
             "Content-Type": "application/json",
@@ -306,7 +306,7 @@ class CloudManager:
     def health(self) -> dict[str, bool]:
         """Salud básica del componente cloud."""
         return {
-            "cloud_configured": bool(CLOUD_API_KEY),
+            "cloud_configured": bool(cloud_api_key),
             "cloud_enabled": CLOUD_ENABLED,
             "buffer_ok": self._buffer.size() < 900,  # límite de aviso al 90%
         }

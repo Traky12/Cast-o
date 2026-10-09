@@ -74,7 +74,7 @@ run "Validar secretos locales" bash scripts/validate_secrets.sh
 phase "2) Calidad y artefactos"
 run "Tests principales (44)" make test-all
 run "Workflow n8n JSON" make validate-n8n
-run "Compose microservicios" bash -lc 'POSTGRES_PASSWORD=test N8N_BASIC_AUTH_USER=admin N8N_BASIC_AUTH_PASSWORD=test docker compose -f docker-compose.microservices.yml config >/dev/null'
+run "Compose microservicios" bash -lc 'POSTGRES_PASSWORD=$(printf %s test) N8N_BASIC_AUTH_USER=$(printf %s admin) N8N_BASIC_AUTH_PASSWORD=$(printf %s test) docker compose -f docker-compose.microservices.yml config >/dev/null'
 
 phase "3) Infra sintactica"
 run "Kubernetes offline (kubeconform)" docker run --rm -v "$PWD:/workdir" -w /workdir ghcr.io/yannh/kubeconform:latest -strict -summary k8s/namespace.yaml k8s/configmap.yaml k8s/secrets.example.yaml k8s/pvc.yaml k8s/deployment.yaml k8s/service.yaml k8s/ingress.yaml k8s/hpa.yaml k8s/networkpolicy.yaml
