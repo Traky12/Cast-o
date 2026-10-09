@@ -7,7 +7,7 @@ PyJWT==2.15.1
 web3==7.15.0
 reportlab==4.4.10
 qrcode[pil]==8.1
-anthropic>=0.40.0
+anthropic>=1.11.0
 kafka-python>=2.0.2
 # ──────────────────────────────────────────────
 # Nuevas dependencias v3.1.1 — backbone operativo
