@@ -44,7 +44,7 @@ jobs:
           fi
 
       - name: Upload visual artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: visual-summary-${{ github.run_number }}
           path: |
@@ -56,7 +56,7 @@ jobs:
       # (visual-summary-latest) cannot have its asset replaced. Publish the PDF
       # as a workflow artifact instead.
       - name: Upload visual summary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: visual-summary
           path: visual-summary.pdf
