@@ -53,7 +53,7 @@ def _env(key: str, default: str = "") -> str:
 MQTT_HOST = _env("SMOKE_MQTT_HOST", "127.0.0.1")
 MQTT_PORT = int(_env("SMOKE_MQTT_PORT", "1883"))
 MQTT_USERNAME = _env("SMOKE_MQTT_USERNAME", "castuo")
-MQTT_PASSWORD = _env("SMOKE_MQTT_PASSWORD", "")
+mqtt_password = _env("SMOKE_MQTT_PASSWORD", "")
 TOPIC_PREFIX = _env("SMOKE_TOPIC_PREFIX", "castuo/sensors")
 API_URL = _env("SMOKE_API_URL", "http://127.0.0.1:8000").rstrip("/")
 BEARER = _env("SMOKE_BEARER", "")
@@ -152,7 +152,7 @@ def check_mqtt_publish() -> bool:
     client.on_publish = on_publish
 
     if MQTT_USERNAME:
-        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD or None)
+        client.username_pw_set(MQTT_USERNAME, mqtt_password or None)
 
     if USE_TLS:
         import ssl

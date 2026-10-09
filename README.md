@@ -1,21 +1,33 @@
-# 🧪 Cast-o — Automated Testing & Benchmarking
+# 🧪 Cast-o — Automated Testing & Assurance
 
 ![Status](https://img.shields.io/badge/Status-Active%20Engineering-blue)
-![Maturity](https://img.shields.io/badge/Maturity-Implementado-informational)
-![License](https://img.shields.io/badge/License-AGPL--3.0-yellow)
+![Claims](https://img.shields.io/badge/Claims-see%20status%20table-informational)
+![License](https://img.shields.io/badge/License-Pending%20IP%20review-lightgrey)
 
-> **Automated testing and performance benchmarking engine for CASTÚO-SYSTEM™**
+> **Automated testing and assurance tooling for CASTÚO-SYSTEM™. Performance benchmarking is a `TARGET`, not a current capability — see [§4](#4-claims-status).**
+
+> **License: pending IP review.** This repository is **not** open source: no license has been granted. Until a `LICENSE` file is published, default copyright applies (all rights reserved by the author). The previous AGPL-3.0 badge was removed because no license file backed it and no licensing decision has been taken.
+>
+> **Contributions:** external contributions are not accepted until a contributor licence agreement (CLA) or contribution policy is defined.
 
 ---
+
+## Architectural identity
+
+- **Architectural name:** `castuo-assurance-workbench`
+- **Role:** Testing, diagnostics, integration validation and assurance tooling.
+- **Boundary:** Engineering assurance support; no independent certification or production claim.
+- **Status:** `CURRENT` / partial by capability.
+- **Quality profile:** [`.castuo/repository-profile.yaml`](.castuo/repository-profile.yaml)
 
 ## 1. Purpose & Scope
 **Cast-o** is the quality assurance and performance engine of the ecosystem. It provides a unified environment to structure, automate, and validate the CASTÚO-SYSTEM ecosystem through tests, infrastructure-as-code, and integration tools.
 
 Its scope covers:
-- **Automated Testing:** Unit, integration, and E2E tests (`pytest`, Playwright).
+- **Automated Testing:** Unit and integration tests (`pytest`).
 - **Infrastructure Validation:** Terraform (Hetzner) and Kubernetes manifests.
 - **IoT & Edge Simulation:** ESP32 code and MQTT integration testing.
-- **Performance Benchmarking:** Regression detection and resource usage analysis.
+- **Performance Benchmarking (`TARGET`):** Regression detection and resource usage analysis — not implemented yet.
 - **CI/CD Support:** Reusable pipelines and hardening checklists.
 
 ---
@@ -32,9 +44,12 @@ Cast-o (Assurance)
      ├── CASTÚO-SYSTEM (Private Core)
      │      Execution engine
      │
-     └── castuo-evolution (Control Plane)
-            Policy & Governance SSOT
+     └── castuo-evolution (External surface)
+            Prepared external surface — not the current
+            GitHub authority nor a synchronised SSOT
 ```
+
+**Canonical authority:** `Castuo-system` (private) is the current authority for code, operational documentation and technical evolution. `castuo-evolution` is an external, prepared surface; it is not presented as the current GitHub authority or a synchronised source of truth.
 
 ---
 
@@ -47,12 +62,20 @@ Cast-o (Assurance)
 
 ---
 
-## 4. Engineering & Evidence
-Following the **Evidence-First** principle, Cast-o provides the raw data that supports maturity claims in the ecosystem.
-- **Implemented:** Unit and integration test suites, Docker environments, and IaC bases.
-- **Validated:** Performance benchmarking for core API endpoints and CI/CD automation.
+## 4. Claims status
+Every claim uses one status: `CURRENT` (implemented and verifiable) · `TARGET` (approved objective, not implemented) · `EXPERIMENTAL` (prototype, not consolidated) · `PENDING` (planned, or evidence incomplete) · `NOT_CLAIMED` (not implemented; not presented as a capability).
 
-Every test run generates a verifiable record linked to the target commit, federated in **CASTÚO-EVOLUTION**.
+| Claim | Status | Evidence / limitation |
+|---|---|---|
+| Unit and integration test suite (`pytest`) | `CURRENT` (partial) | The suite is only partly executable. Last documented run — commit `d57936c`, 2026-09-28, local Windows, Python 3.12: 463 passed, 3 failed, 7 errors, and 1 file could not be loaded (`tests/test_router_hardening.py`). Stabilising the suite is pending. The `Python validation` workflow fails on `main` (flake8 E999: `test_e2e.py` is a bash script). |
+| CI/CD automation (GitHub Actions) | `CURRENT` (partial) | Several workflows run on schedule. Known reds on `main`: Agent Sync Hardening (drift false positive, fix in PR #27), Reconcile CI/CD, 48h Operativity Gate, docker-security. |
+| Docker Compose environments | `PENDING` | Compose files exist (IoT, cloud, HA, …); no recorded run evidence. |
+| Infrastructure as Code (Terraform, Kubernetes) | `PENDING` | 3 `.tf` files and K8s manifests exist; no `plan`/`apply` evidence. |
+| Observability (Prometheus, Grafana) | `PENDING` | Configuration files exist; no deployment evidence from this repository. |
+| IoT / ESP32 / MQTT simulation | `EXPERIMENTAL` | Sample code present; not consolidated or tested end to end. |
+| Performance benchmarking | `TARGET` | No benchmark code, dataset, method or results in this repository. Per [`docs/CASTUO_ARCHITECTURE_GOVERNANCE.md`](docs/CASTUO_ARCHITECTURE_GOVERNANCE.md), a benchmark is valid only with dataset, version, environment and method. |
+| E2E browser tests (Playwright) | `NOT_CLAIMED` | Playwright is not present in this repository. |
+| Test records federated into CASTÚO-EVOLUTION | `NOT_CLAIMED` | No federation mechanism is implemented. |
 
 ---
 
@@ -61,14 +84,15 @@ Every test run generates a verifiable record linked to the target commit, federa
 git clone https://github.com/Traky12/Cast-o.git
 cd Cast-o
 cp .env.example .env
-docker compose up -d
-pytest tests/ -v
+pytest tests/ -v   # partial: see §4 for current failures
 ```
+
+`docker compose up -d` is `PENDING` verification (see §4).
 
 ---
 
 ## 6. Navigation
-[← Profile](https://github.com/Traky12) | [→ Evidence](https://github.com/Traky12/castuo-evidence) | [→ Governance](https://github.com/Traky12/castuo-evolution) | [→ Architecture Docs](docs/)
+[← Profile](https://github.com/Traky12) | [→ Evidence](https://github.com/Traky12/castuo-evidence) | [→ Governance scope](docs/CASTUO_ARCHITECTURE_GOVERNANCE.md) | [→ Architecture Docs](docs/)
 
 ---
 
@@ -98,4 +122,4 @@ A passing local test proves only the declared test scope. It does not prove fede
 
 This repository is part of the CASTÚO-SYSTEM private-cloud target architecture. Its repository scope does not by itself prove cloud provisioning, DNS, production operation, customer traction, financing, certification or independent validation. The service identity is a governed target boundary until a deployment record, access control, health check, observability, backup, restore, rollback, owner and dated Evidence Center record are published.
 
-The public state model is `DOCUMENTED` → `IMPLEMENTED_LOCAL` → `TESTED` → `VALIDATED` → `OPERATIONAL`. OpenClaw and n8n, where referenced, are optional compatibility adapters and not the sovereign governance control plane.\n
+Public claims use the status taxonomy in [§4](#4-claims-status). OpenClaw and n8n, where referenced, are optional third-party compatibility adapters and not the sovereign governance control plane.
