@@ -12,12 +12,12 @@ jobs:
   generate-summary:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: main
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
 
@@ -33,30 +33,18 @@ jobs:
       - name: Generate visual PDF summary
         run: ./scripts/generate-pdf.sh docs/RESUMEN-VISUAL-ESTADO.md visual-summary.pdf
 
-      - name: Commit summary markdown via pull request
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # main esta protegida por ruleset (GH013): el bot no puede pushear.
+      # El resumen se publica como artefacto + release asset, sin commit.
+      - name: Report summary drift
         run: |
           if git diff --quiet -- docs/RESUMEN-VISUAL-ESTADO.md; then
-            echo "No visual summary changes to commit"
-            exit 0
+            echo "No visual summary changes"
+          else
+            echo "::notice::docs/RESUMEN-VISUAL-ESTADO.md cambio; disponible como artefacto (no se commitea a main protegida)"
           fi
-          # main esta protegida (requiere PR + firmas + checks), por lo que un
-          # push directo (git push origin HEAD:main) es rechazado por GH013.
-          # En su lugar, publicamos el cambio en una rama y abrimos un PR.
-          branch="chore/visual-summary-${{ github.run_number }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$branch"
-          git add docs/RESUMEN-VISUAL-ESTADO.md
-          git commit -m "docs: actualizar resumen visual automatizado"
-          git push origin "$branch"
-          gh pr create --base main --head "$branch" \
-            --title "docs: actualizar resumen visual automatizado" \
-            --body "Resumen visual regenerado automaticamente por el workflow Generate Visual Summary (run #${{ github.run_number }})."
 
       - name: Upload visual artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: visual-summary-${{ github.run_number }}
           path: |
@@ -64,17 +52,20 @@ jobs:
             visual-summary.pdf
           retention-days: 30
 
-      - name: Publish rolling visual summary release asset
-        uses: softprops/action-gh-release@v2
+      # Immutable releases are enabled on this repo, so a rolling release
+      # (visual-summary-latest) cannot have its asset replaced. Publish the PDF
+      # as a workflow artifact instead.
+      - name: Upload visual summary artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: visual-summary-latest
-          name: Visual Summary Latest
-          files: visual-summary.pdf
-          body: Resumen visual actualizado automaticamente.
+          name: visual-summary
+          path: visual-summary.pdf
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Notify Slack
         if: ${{ always() }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          ./scripts/notify-slack.sh "📊 Resumen visual generado\n\n📄 docs/RESUMEN-VISUAL-ESTADO.md actualizado\n📎 visual-summary.pdf publicado"
+          ./scripts/notify-slack.sh "📊 Resumen visual generado\n\n📄 docs/RESUMEN-VISUAL-ESTADO.md actualizado\n📎 visual-summary.pdf como artefacto del workflow"

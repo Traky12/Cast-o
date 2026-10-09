@@ -2,6 +2,7 @@
 .env
 .env.cloud
 .env.local
+.env.thingsdata
 
 # Terraform — estado y secretos locales (NUNCA commitear)
 hetzner_infra/terraform.tfvars
@@ -46,3 +47,9 @@ Thumbs.db
 # Node (if applicable)
 node_modules/
 logs/
+
+# Runtime-generated MQTT credential store (never commit)
+infrastructure/thingsdata/.runtime/
+
+# Thingsdata runtime environment (template is versioned separately)
+infrastructure/thingsdata/thingsdata.env

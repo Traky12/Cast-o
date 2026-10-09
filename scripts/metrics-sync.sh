@@ -21,12 +21,10 @@ if ls logs/*.log > /dev/null 2>&1; then
   count_mgt_errors=$( (grep -h -c "mgt.clearMarks" logs/*.log || true) | awk '{s+=$1} END {print s+0}')
 fi
 
+# metrics.prom es la salida de este mismo script (redirigida por el workflow):
+# no cuenta como drift del arbol versionado.
 drift=0
-# Nota: se ignoran ficheros sin seguimiento (--untracked-files=no) porque la
-# propia redireccion `> metrics.prom` de este script crea un fichero nuevo en
-# la raiz del repo antes de que se ejecute este bloque, lo que provocaba un
-# falso positivo de drift en cada ejecucion de CI.
-if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+if [[ -n "$(git status --porcelain -- . ':(exclude)metrics.prom' ':(exclude)logs')" ]]; then
   drift=1
 fi
 

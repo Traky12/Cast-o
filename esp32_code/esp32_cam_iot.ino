@@ -55,7 +55,13 @@ DallasTemperature sensors(&oneWire);
 // IDs y configuración
 const char* ESP32_ID = "CAX21-MAIN";
 const char* SSID = "CASTUO_NETWORK";
-const char* PASSWORD = "SabiondaSoberana2024";
+#ifndef CASTUO_WIFI_PASSWORD
+#define CASTUO_WIFI_PASSWORD ""
+#endif
+#ifndef CASTUO_BACKUP_AP_PASSWORD
+#define CASTUO_BACKUP_AP_PASSWORD ""
+#endif
+const char* wifi_password = CASTUO_WIFI_PASSWORD;
 const char* MQTT_SERVER = "localhost";
 const int MQTT_PORT = 1883;
 
@@ -362,7 +368,7 @@ void setup() {
   initCamera();
   
   // WiFi
-  WiFi.begin(SSID, PASSWORD);
+  WiFi.begin(SSID, wifi_password);
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
@@ -376,7 +382,11 @@ void setup() {
     Serial.println(WiFi.localIP());
   } else {
     Serial.println("\n⚠️ WiFi Failed, starting softAP...");
-    WiFi.softAP("CASTUO-BACKUP-CAX21", "CastuwConnect2024");
+    if (strlen(CASTUO_BACKUP_AP_PASSWORD) >= 8) {
+    WiFi.softAP("CASTUO-BACKUP-CAX21", CASTUO_BACKUP_AP_PASSWORD);
+  } else {
+    Serial.println("\n⚠️ Backup AP disabled: CASTUO_BACKUP_AP_PASSWORD is not provisioned");
+  }
   }
   
   // HTTP Server
