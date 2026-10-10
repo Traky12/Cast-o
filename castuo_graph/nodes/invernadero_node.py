@@ -6,8 +6,12 @@ Sin escrituras externas → sin compensating action.
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from state import AgroState
-from tools import tool_validate_iot_readings, tool_log_elk
+try:
+    from ..state import AgroState
+    from ..tools import tool_validate_iot_readings, tool_log_elk
+except ImportError:
+    from state import AgroState
+    from tools import tool_validate_iot_readings, tool_log_elk
 
 
 async def invernadero_node(state: AgroState) -> AgroState:

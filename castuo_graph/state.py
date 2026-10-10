@@ -91,3 +91,10 @@ class AgroState(TypedDict):
     error_node: Optional[str]
     status: Literal["running", "completed", "failed", "compensating", "human_review"]
     next_action: Optional[str]
+
+    # ── Ejecución durable / trazabilidad ───────────────────────
+    thread_id: Optional[str]
+    run_id: Optional[str]
+    graph_version: Optional[str]
+    resumed_from_checkpoint: bool
+    recovery_state: Optional[Literal["cold_start", "running", "resumed", "completed", "failed"]]

@@ -6,8 +6,12 @@ TRACES es la primera escritura externa → genera compensating action.
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from state import AgroState
-from tools import tool_query_sigpac, tool_emit_traces_cert, tool_log_elk
+try:
+    from ..state import AgroState
+    from ..tools import tool_query_sigpac, tool_emit_traces_cert, tool_log_elk
+except ImportError:
+    from state import AgroState
+    from tools import tool_query_sigpac, tool_emit_traces_cert, tool_log_elk
 
 
 async def campo_node(state: AgroState) -> AgroState:

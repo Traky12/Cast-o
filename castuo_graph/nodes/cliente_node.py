@@ -6,8 +6,12 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import httpx
-from state import AgroState
-from tools import tool_update_woocommerce_order, tool_log_elk, SABIONDA_API
+try:
+    from ..state import AgroState
+    from ..tools import tool_update_woocommerce_order, tool_log_elk, SABIONDA_API
+except ImportError:
+    from state import AgroState
+    from tools import tool_update_woocommerce_order, tool_log_elk, SABIONDA_API
 
 
 async def cliente_node(state: AgroState) -> AgroState:

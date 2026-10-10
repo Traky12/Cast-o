@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test core.test.js",
     "test:js": "node --test core.test.js",
-    "validate:package": "node -e \"JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json OK')\""
+    "validate:package": "node -e \"JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json OK')\"",
+    "demo:offline": "node scripts/castuo-demo-offline.mjs"
   },
   "engines": {
     "node": ">=18"
