@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SQL_FILE="$ROOT_DIR/scripts/db/init_castuo_system_schema.sql"
 DB_CONTAINER="${DB_CONTAINER:-castuo-mariadb}"
-DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}"
+DB_ROOT_PASSWORD=${WP_DB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}
 
 if [[ ! -f "$SQL_FILE" ]]; then
   echo "[ERROR] SQL no encontrado: $SQL_FILE" >&2

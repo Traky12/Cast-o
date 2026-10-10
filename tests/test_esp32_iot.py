@@ -16,13 +16,23 @@ try:
     from main import app
 except ImportError:
     from routers.esp32_iot import router
+    app = None
+
+
+def create_test_app():
+    """Fallback app with only the ESP32 router (when main.app is not importable)."""
+    from fastapi import FastAPI
+
+    test_app = FastAPI()
+    test_app.include_router(router)
+    return test_app
 
 # ─── FIXTURES ────────────────────────────
 
 @pytest.fixture
 def client():
     """TestClient para FastAPI"""
-    test_app = app if hasattr(app, 'openapi') else create_test_app()
+    test_app = app if app is not None and hasattr(app, 'openapi') else create_test_app()
     return TestClient(test_app)
 
 @pytest.fixture

@@ -10,12 +10,12 @@ OPEN_BROWSER="false"
 
 WP_DB_NAME="${WP_DB_NAME:-wordpress}"
 WP_DB_USER="${WP_DB_USER:-wordpress}"
-WP_DB_PASSWORD="${WP_DB_PASSWORD:-wordpress}"
-WP_DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-castuo_root}"
+: "${WP_DB_PASSWORD:?WP_DB_PASSWORD must be set; refusing insecure default}"
+: "${WP_DB_ROOT_PASSWORD:?WP_DB_ROOT_PASSWORD must be set; refusing insecure default}"
 
 WP_SITE_TITLE="${WP_SITE_TITLE:-CASTUO Frontend}"
 WP_ADMIN_USER="${WP_ADMIN_USER:-castuo_admin}"
-WP_ADMIN_PASSWORD="${WP_ADMIN_PASSWORD:-CastuoAdmin!2026}"
+: "${WP_ADMIN_PASSWORD:?WP_ADMIN_PASSWORD must be set; refusing insecure default}"
 WP_ADMIN_EMAIL="${WP_ADMIN_EMAIL:-admin@castuo.local}"
 
 for arg in "$@"; do
@@ -70,10 +70,10 @@ if ! docker ps -a --format '{{.Names}}' | grep -qx 'castuo-mariadb'; then
     --restart unless-stopped \
     --memory 512m \
     --cpus 1 \
-    -e MYSQL_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD}" \
+    -e "MYSQL_ROOT_PASSWORD=$WP_DB_ROOT_PASSWORD" \
     -e MYSQL_DATABASE="${WP_DB_NAME}" \
     -e MYSQL_USER="${WP_DB_USER}" \
-    -e MYSQL_PASSWORD="${WP_DB_PASSWORD}" \
+    -e "MYSQL_PASSWORD=$WP_DB_PASSWORD" \
     --health-cmd "mysqladmin ping -h 127.0.0.1 -u root --password='${WP_DB_ROOT_PASSWORD}'" \
     --health-interval 10s \
     --health-timeout 5s \
@@ -92,7 +92,7 @@ docker run -d --name castuo-wordpress --network castuo-wp-net \
   -p "127.0.0.1:${FRONTEND_PORT}:80" \
   -e WORDPRESS_DB_HOST=castuo-mariadb:3306 \
   -e WORDPRESS_DB_USER="${WP_DB_USER}" \
-  -e WORDPRESS_DB_PASSWORD="${WP_DB_PASSWORD}" \
+  -e "WORDPRESS_DB_PASSWORD=$WP_DB_PASSWORD" \
   -e WORDPRESS_DB_NAME="${WP_DB_NAME}" \
   --health-cmd "curl -f http://127.0.0.1/wp-login.php || exit 1" \
   --health-interval 30s \

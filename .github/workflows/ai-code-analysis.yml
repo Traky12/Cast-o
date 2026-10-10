@@ -16,7 +16,7 @@ jobs:
     outputs:
       analysis: ${{ steps.claude-analysis.outputs.analysis }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
@@ -59,7 +59,7 @@ jobs:
     outputs:
       docs: ${{ steps.mistral-docs.outputs.docs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Generate docs with Mistral
         id: mistral-docs
@@ -100,7 +100,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Post analysis comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const claudeAnalysis = `${{ needs.analyze-with-claude.outputs.analysis || 'No disponible' }}`;

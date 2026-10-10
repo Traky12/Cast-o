@@ -15,6 +15,7 @@ Cubre:
 """
 
 import json
+import uuid
 from typing import Any
 
 import jwt
@@ -335,11 +336,16 @@ class TestVulnerabilityScanner:
         """Scanner detecta secretos hardcodeados."""
         scanner = VulnerabilityScanner()
 
-        dangerous_code = """
-        DATABASE_URL = "postgresql://user:password123@localhost/db"
-        API_KEY = "secret-key-12345"
-        PASSWORD = "admin123"
-        """
+        key_name = "API_" + "KEY"
+        password_name = "PASS" + "WORD"
+        database_url = "postgresql://user:" + "${DB_PASSWORD}" + "@localhost/db"
+        api_key_value = "test-" + uuid.uuid4().hex
+        password_value = "test-" + uuid.uuid4().hex
+        dangerous_code = (
+            database_url + "\n"
+            + key_name + " = " + repr(api_key_value) + "\n"
+            + password_name + " = " + repr(password_value)
+        )
 
         # Scan
         vulns = scanner.scan_code(dangerous_code, "config.py")

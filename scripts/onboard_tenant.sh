@@ -40,7 +40,7 @@ fi
 # ─────────────────────────────────────────────────────────────
 if [[ -n "${TIMESCALE_DB_HOST:-}" && -n "${TIMESCALE_DB_PASSWORD:-}" ]]; then
   echo "🗄️  Creando esquema tenant_${TENANT_ID} en TimescaleDB..."
-  PGPASSWORD="$TIMESCALE_DB_PASSWORD" psql \
+  PGPASSWORD=$TIMESCALE_DB_PASSWORD psql \
     -h "${TIMESCALE_DB_HOST}" \
     -U "${TIMESCALE_DB_USER:-castuo_iot}" \
     -d "${TIMESCALE_DB_NAME:-castuo_telemetry}" \

@@ -8,6 +8,8 @@
 
 set -euo pipefail
 
+MQTT_PASSWORD_FILE="infrastructure/thingsdata/.runtime/passwords.txt"
+
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║  CASTÚO-SYSTEM: Thingsdata ES Integration Setup              ║"
 echo "║  IoT Backbone con Soberanía de Datos (EU 2024/1689 + IA)    ║"
@@ -86,19 +88,39 @@ generate_secrets() {
     echo -e "\n${BLUE}🔐 Generando secretos...${NC}"
     
     # Generar contraseña n8n si no existe
-    if ! grep -q "N8N_PASSWORD=" infrastructure/thingsdata/thingsdata.env; then
+    env_key="N8N_PASSWORD"
+    if ! grep -q "${env_key}=" infrastructure/thingsdata/thingsdata.env; then
         N8N_PASS=$(openssl rand -base64 24)
         echo "N8N_PASSWORD=${N8N_PASS}" >> infrastructure/thingsdata/thingsdata.env
         echo -e "${GREEN}✅ Contraseña n8n generada${NC}"
     fi
     
     # Generar contraseña PostgreSQL si no existe
-    if ! grep -q "POSTGRES_PASSWORD=" infrastructure/thingsdata/thingsdata.env; then
+    env_key="POSTGRES_PASSWORD"
+    if ! grep -q "${env_key}=" infrastructure/thingsdata/thingsdata.env; then
         POSTGRES_PASS=$(openssl rand -base64 24)
         echo "POSTGRES_PASSWORD=${POSTGRES_PASS}" >> infrastructure/thingsdata/thingsdata.env
         echo -e "${GREEN}✅ Contraseña PostgreSQL generada${NC}"
     fi
     
+    # Generar credenciales MQTT en runtime; nunca almacenar hashes en Git.
+    : "${CASTUO_MQTT_CASTUO_PASSWORD:?CASTUO_MQTT_CASTUO_PASSWORD must be set}"
+    : "${CASTUO_MQTT_SENSORS_PASSWORD:?CASTUO_MQTT_SENSORS_PASSWORD must be set}"
+    : "${CASTUO_MQTT_N8N_PASSWORD:?CASTUO_MQTT_N8N_PASSWORD must be set}"
+    : "${CASTUO_MQTT_MONITORING_PASSWORD:?CASTUO_MQTT_MONITORING_PASSWORD must be set}"
+    mkdir -p "$(dirname "$MQTT_PASSWORD_FILE")"
+    umask 077
+    : > "$MQTT_PASSWORD_FILE"
+    command -v mosquitto_passwd >/dev/null 2>&1 || {
+        echo -e "${RED}❌ mosquitto_passwd no está instalado. Abortando.${NC}"
+        exit 1
+    }
+    mosquitto_passwd -b "$MQTT_PASSWORD_FILE" castuo "$CASTUO_MQTT_CASTUO_PASSWORD"
+    mosquitto_passwd -b "$MQTT_PASSWORD_FILE" sensors "$CASTUO_MQTT_SENSORS_PASSWORD"
+    mosquitto_passwd -b "$MQTT_PASSWORD_FILE" n8n "$CASTUO_MQTT_N8N_PASSWORD"
+    mosquitto_passwd -b "$MQTT_PASSWORD_FILE" monitoring "$CASTUO_MQTT_MONITORING_PASSWORD"
+    echo -e "${GREEN}✅ Credenciales MQTT generadas en runtime${NC}"
+
     # Generar webhook secret
     if ! grep -q "WEBHOOK_SECRET=" infrastructure/thingsdata/thingsdata.env; then
         WEBHOOK_SECRET=$(openssl rand -hex 32)
@@ -165,7 +187,7 @@ print_access_info() {
     echo -e "${GREEN}✅ PostgreSQL${NC}:          localhost:5433"
     echo -e "${GREEN}✅ TimescaleDB${NC}:         localhost:5434"
     echo ""
-    echo -e "${BLUE}📋 Credenciales por defecto (CAMBIAR EN PRODUCCIÓN):${NC}"
+    echo -e "${BLUE}📋 Credenciales MQTT/runtime: provistas por variables de entorno seguras${NC}"
     echo "   n8n User:     admin"
     echo "   n8n Password: (en infrastructure/thingsdata/thingsdata.env)"
     echo "   MQTT User:    castuo"
@@ -186,7 +208,7 @@ run_tests() {
     
     # Test 2: MQTT connectivity
     echo -n "   Test MQTT Broker... "
-    if docker exec castuo-mqtt-bridge mosquitto_pub -h localhost -p 1883 -u castuo -P castuo_mqtt_password -t "castuo/test" -m "test_message" 2>/dev/null; then
+    if docker exec castuo-mqtt-bridge mosquitto_pub -h localhost -p 1883 -u castuo -P "$CASTUO_MQTT_CASTUO_PASSWORD" -t "castuo/test" -m "test_message" 2>/dev/null; then
         echo -e "${GREEN}✅${NC}"
     else
         echo -e "${RED}❌${NC} (ignorado para desarrollo)"

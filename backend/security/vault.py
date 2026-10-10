@@ -38,7 +38,7 @@ def read_secret(name: str) -> str:
     Usage:
         key = read_secret("GAIACHAIN_API_KEY")
         # In prod: set GAIACHAIN_API_KEY_FILE=/run/secrets/gaiachain_api_key
-        # In dev:  set GAIACHAIN_API_KEY=localkey  (never commit the value)
+        # In dev:  configure GAIACHAIN_API_KEY through the secret manager (never commit the value)
     """
     file_path = os.getenv(f"{name}_FILE", "")
     if file_path:

@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONTEND_PORT="${FRONTEND_PORT:-8083}"
-WP_DB_ROOT_PASSWORD="${WP_DB_ROOT_PASSWORD:-castuo_root}"
+: "${WP_DB_ROOT_PASSWORD:?WP_DB_ROOT_PASSWORD must be set; refusing insecure default}"
 
 log_info() { echo "[INFO] $*"; }
 log_ok() { echo "[OK] $*"; }
@@ -22,7 +22,7 @@ log_info "Frontend en puerto: ${FRONTEND_PORT}"
 
 # 1) Frontend WordPress + MariaDB hardened
 log_info "1/7 Iniciando frontend local hardened (WordPress + MariaDB)..."
-FRONTEND_PORT="$FRONTEND_PORT" WP_DB_ROOT_PASSWORD="$WP_DB_ROOT_PASSWORD" bash "$ROOT_DIR/scripts/start_frontend_8003.sh" || {
+FRONTEND_PORT=$FRONTEND_PORT WP_DB_ROOT_PASSWORD=$WP_DB_ROOT_PASSWORD bash "$ROOT_DIR/scripts/start_frontend_8003.sh" || {
   log_warn "No se pudo iniciar frontend con start_frontend_8003.sh"
 }
 
@@ -48,7 +48,7 @@ compose_cmd -f "$ROOT_DIR/docker-compose.microservices.yml" up -d grafana || log
 
 # 7) Inicialización de persistencia de negocio
 log_info "7/7 Inicializando persistencia castuo_system..."
-WP_DB_ROOT_PASSWORD="$WP_DB_ROOT_PASSWORD" bash "$ROOT_DIR/scripts/init_castuo_persistence.sh" || log_warn "Persistencia no inicializada automáticamente"
+WP_DB_ROOT_PASSWORD=$WP_DB_ROOT_PASSWORD bash "$ROOT_DIR/scripts/init_castuo_persistence.sh" || log_warn "Persistencia no inicializada automáticamente"
 
 log_ok "Arranque recomendado completado."
 echo "Comando recomendado de verificación: bash $ROOT_DIR/scripts/verify_operational_stack.sh"

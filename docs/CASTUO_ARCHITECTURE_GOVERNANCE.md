@@ -3,9 +3,10 @@
 ## Repository role
 
 - **Role:** TOOLING
-- **Function:** Tests, benchmarks y regresión
+- **Function:** Tests y regresión; benchmarking = `TARGET` (no implementado)
 - **Repository visibility:** PUBLIC_TEMPLATE
-- **Control plane:** [`castuo-evolution`](https://github.com/Traky12/castuo-evolution)
+- **Canonical authority:** `Castuo-system` (private) — current authority for code, operational documentation and technical evolution
+- **`castuo-evolution`:** prepared external surface; not the current GitHub authority nor a synchronised SSOT
 - **Public evidence index:** [`Traky12/Traky12`](https://github.com/Traky12/Traky12)
 - **Evidence Center:** [`evidence-center`](https://github.com/Traky12/Traky12/tree/main/evidence-center)
 
@@ -19,9 +20,17 @@ A README, template, fork, commit or green workflow is evidence of an artifact or
 
 Every promoted capability must identify: repository, commit/tag, environment, owner, policy version, protocol, baseline, KPI definitions, raw results, artifact hashes, reviewer, decision and reassessment triggers.
 
-## Minimum states
+## Claim status taxonomy
 
-`DOCUMENTED` → `IMPLEMENTED` → `TESTED` → `VALIDATED` → `PILOT` → `OPERATIONAL`
+| Status | Meaning |
+|---|---|
+| `CURRENT` | Implemented and verifiable (commit, test, result, artifact, hash or release) |
+| `TARGET` | Approved objective, not implemented yet |
+| `EXPERIMENTAL` | Prototype or proof, not consolidated |
+| `PENDING` | Planned work, or evidence incomplete |
+| `NOT_CLAIMED` | Not implemented; must not be presented as a capability |
+
+Words such as "validated", "production", "federated", "complete", "secure" or "ready for…" require concrete evidence: commit, test, result, artifact, hash or release.
 
 A model, provider, key, tenant, schema, dataset, chain or environment change activates `REASSESSMENT_REQUIRED`.
 
