@@ -1,0 +1,21 @@
+{
+  "report_id": "CASTO-BOUND-ASSURANCE-001",
+  "scope": "bounded offline continuity demonstration",
+  "claims_tested": 1,
+  "results": {
+    "passed": 1,
+    "failed": 0,
+    "unverified": 0,
+    "critical_findings": 0
+  },
+  "evidence_artifact": "artifacts/bounded-assurance/offline-demo/evidence-pack.json",
+  "replay": "PASS",
+  "limitations": [
+    "SIMULATION_ONLY fixture",
+    "local execution only",
+    "not certification",
+    "not field or production evidence"
+  ],
+  "promotion_effect": "BLOCKED",
+  "claim_boundary": "SIMULATION_ONLY"
+}

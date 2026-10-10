@@ -24,14 +24,24 @@ from typing import Literal
 
 from langgraph.graph import END, START, StateGraph
 
-from ethical_guard import ethical_guard_node
-from nodes.campo_node import campo_node
-from nodes.cliente_node import cliente_node
-from nodes.invernadero_node import invernadero_node
-from nodes.procesado_node import procesado_node
-from nodes.reporte_node import reporte_node
-from state import AgroState
-from tools import execute_compensations, tool_log_elk
+try:
+    from .ethical_guard import ethical_guard_node
+    from .nodes.campo_node import campo_node
+    from .nodes.cliente_node import cliente_node
+    from .nodes.invernadero_node import invernadero_node
+    from .nodes.procesado_node import procesado_node
+    from .nodes.reporte_node import reporte_node
+    from .state import AgroState
+    from .tools import execute_compensations, tool_log_elk
+except ImportError:  # ejecución directa desde castuo_graph/
+    from ethical_guard import ethical_guard_node
+    from nodes.campo_node import campo_node
+    from nodes.cliente_node import cliente_node
+    from nodes.invernadero_node import invernadero_node
+    from nodes.procesado_node import procesado_node
+    from nodes.reporte_node import reporte_node
+    from state import AgroState
+    from tools import execute_compensations, tool_log_elk
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -172,7 +182,7 @@ def route_after_cliente(state: AgroState) -> Literal["reporte", "error_handler"]
 # Construcción del grafo
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_graph() -> StateGraph:
+def build_graph(checkpointer=None) -> StateGraph:
     graph = StateGraph(AgroState)
 
     # Nodos con captura de errores
@@ -196,7 +206,7 @@ def build_graph() -> StateGraph:
     graph.add_edge("error_handler", END)
     graph.add_edge("human_review",  END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
 
 
 # Instancia global
@@ -247,12 +257,8 @@ async def health():
     }
 
 
-@app.post("/langgraph/run")
-async def run_graph(initial_state: dict):
-    """
-    Ejecuta el grafo completo con el estado inicial proporcionado.
-    Usado por n8n, sensores IoT y la CLI de SABIONDA.
-    """
+def build_initial_state(initial_state: dict) -> AgroState:
+    """Normaliza la entrada externa al contrato completo de AgroState."""
     defaults: AgroState = {
         "lote_id": initial_state.get("lote_id", ""),
         "operador_nif": initial_state.get("operador_nif", ""),
@@ -295,6 +301,16 @@ async def run_graph(initial_state: dict):
         "destino": initial_state.get("destino", "mercado_local"),
         "destino_pais": initial_state.get("destino_pais", "ES"),
     }
+    return defaults
+
+
+@app.post("/langgraph/run")
+async def run_graph(initial_state: dict):
+    """
+    Ejecuta el grafo completo con el estado inicial proporcionado.
+    Usado por n8n, sensores IoT y la CLI de SABIONDA.
+    """
+    defaults = build_initial_state(initial_state)
     final_state = await agro_graph.ainvoke(defaults)
     return {
         "status": final_state.get("status"),
@@ -305,3 +321,55 @@ async def run_graph(initial_state: dict):
         "error": final_state.get("error"),
         "compensations_executed": final_state.get("compensations_executed", []),
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Runtime durable opt-in: local/staging only until AuthN/AuthZ and remote gates
+# ─────────────────────────────────────────────────────────────────────────────
+from fastapi import Header, HTTPException
+
+
+def _durable_runtime():
+    if os.getenv("CASTUO_DURABLE_API_ENABLED", "0") != "1":
+        raise HTTPException(status_code=503, detail="durable_runtime_disabled_local_only")
+    try:
+        from durable_runtime import DurableAgentRuntime
+    except ImportError:
+        from .durable_runtime import DurableAgentRuntime
+    return DurableAgentRuntime()
+
+
+@app.post("/langgraph/durable/run")
+async def run_durable(
+    initial_state: dict,
+    x_idempotency_key: str | None = Header(default=None),
+):
+    if not x_idempotency_key:
+        raise HTTPException(status_code=400, detail="x-idempotency-key-required")
+    runtime = _durable_runtime()
+    thread_id = initial_state.get("thread_id") or x_idempotency_key
+    return await runtime.run(initial_state, thread_id=thread_id)
+
+
+@app.post("/langgraph/durable/resume/{thread_id}")
+async def resume_durable(
+    thread_id: str,
+    values: dict | None = None,
+    x_idempotency_key: str | None = Header(default=None),
+):
+    if not x_idempotency_key:
+        raise HTTPException(status_code=400, detail="x-idempotency-key-required")
+    runtime = _durable_runtime()
+    try:
+        return await runtime.resume(thread_id, values or {})
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/langgraph/durable/state/{thread_id}")
+async def durable_state(thread_id: str):
+    runtime = _durable_runtime()
+    try:
+        return await runtime.state(thread_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

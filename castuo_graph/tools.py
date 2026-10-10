@@ -20,7 +20,10 @@ from typing import Any, Dict, Optional, Tuple
 
 import httpx
 
-from state import CompensatingAction, SensorReading
+try:
+    from .state import CompensatingAction, SensorReading
+except ImportError:
+    from state import CompensatingAction, SensorReading
 
 
 # ─── Secret resolver (inline — castuo_graph runs isolated, no backend/ path) ─
