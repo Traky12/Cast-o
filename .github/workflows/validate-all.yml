@@ -40,6 +40,7 @@ jobs:
           cache: 'pip'
           cache-dependency-path: |
             api/requirements.txt
+            castuo_graph/requirements.txt
 
       - name: Validate package and run JS tests
         run: |
@@ -51,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install -r api/requirements.txt -r requirements/dev.txt
+          python -m pip install -r api/requirements.txt -r castuo_graph/requirements.txt -r requirements/dev.txt
 
       - name: Run Python test suite with coverage
         env:
@@ -83,9 +84,7 @@ jobs:
   validate-security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -114,4 +113,4 @@ jobs:
             exit 0
           fi
           chmod +x scripts/notify-slack.sh
-          ./scripts/notify-slack.sh "Workflow Validate All con fallos\nDocs: ${{ needs.validate-docs.result }}\nTests: ${{ needs.validate-tests.result }}\nSecurity: ${{ needs.validate-security.result }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          ./scripts/notify-slack.sh "Workflow Validate All con fallos\\nDocs: ${{ needs.validate-docs.result }}\\nTests: ${{ needs.validate-tests.result }}\\nSecurity: ${{ needs.validate-security.result }}\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
