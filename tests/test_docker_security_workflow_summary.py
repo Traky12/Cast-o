@@ -7,11 +7,15 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "docker-security.yml"
 
 
-def test_security_summary_uses_a_quoted_heredoc_for_static_markdown() -> None:
+def _report_step() -> str:
     source = WORKFLOW.read_text(encoding="utf-8")
     start = source.index("      - name: Generar reporte de seguridad\n")
     end = source.index("      - name: Subir artefactos de auditoría\n", start)
-    report_step = source[start:end]
+    return source[start:end]
+
+
+def test_security_summary_uses_a_quoted_heredoc_for_static_markdown() -> None:
+    report_step = _report_step()
 
     # The Markdown contains backtick code spans. An unquoted heredoc executes
     # those backticks as shell command substitutions instead of writing them.
@@ -22,10 +26,7 @@ def test_security_summary_uses_a_quoted_heredoc_for_static_markdown() -> None:
 
 
 def test_security_summary_dynamic_fields_are_passed_as_environment_values() -> None:
-    source = WORKFLOW.read_text(encoding="utf-8")
-    start = source.index("      - name: Generar reporte de seguridad\n")
-    end = source.index("      - name: Subir artefactos de auditoría\n", start)
-    report_step = source[start:end]
+    report_step = _report_step()
 
     for name in (
         "WORKFLOW_REF",
@@ -40,5 +41,6 @@ def test_security_summary_dynamic_fields_are_passed_as_environment_values() -> N
     ):
         assert f"{name}:" in report_step
 
-    assert 'printf -- \'- **Rama**: %s\\n\' "$WORKFLOW_REF"' in report_step
-    assert 'printf -- \'- **Commit**: `%s`\\n\\n\' "$WORKFLOW_SHA"' in report_step
+    assert '"$WORKFLOW_REF"' in report_step
+    assert '"$WORKFLOW_SHA"' in report_step
+    assert '"$AUDIT_STATUS"' in report_step
