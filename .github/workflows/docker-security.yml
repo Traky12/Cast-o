@@ -136,31 +136,31 @@ jobs:
             printf '### Verificación de Dockerfiles\n'
             printf -- '- Dockerfiles escaneados: %s\n\n' "$DOCKERFILES_SCANNED"
             cat <<'EOF'
-## Acciones Recomendadas
-
-### Si hay fallos en auditoría strict:
-1. Hacer hardening local: `make docker-harden`
-2. Auditar resultados: `make docker-verify-hardening`
-3. Buscar contenedores problemáticos en el reporte completo
-
-### Si hay tags :latest:
-1. Especificar versiones exactas (ej: `wordpress:6.5` no `wordpress:latest`)
-2. Actualizar docker-compose.yml
-3. Usar `docker image inspect IMAGE:TAG` para verificar disponibilidad
-
-### Si Dockerfiles sin USER:
-1. Añadir `USER nobody` o `USER appuser` (non-root)
-2. Crear usuario en fase anterior si es necesario
-
-## Referencia
-- Hardening Script: `scripts/docker-harden.sh`
-- Auditoría Script: `scripts/docker-audit.sh`
-- Makefile: `make docker-harden`, `make docker-verify-hardening`
-- CI/CD Workflow: `.github/workflows/docker-security.yml`
-
----
-*Auditoría realizada por GitHub Actions*
-EOF
+          ## Acciones Recomendadas
+          
+          ### Si hay fallos en auditoría strict:
+          1. Hacer hardening local: `make docker-harden`
+          2. Auditar resultados: `make docker-verify-hardening`
+          3. Buscar contenedores problemáticos en el reporte completo
+          
+          ### Si hay tags :latest:
+          1. Especificar versiones exactas (ej: `wordpress:6.5` no `wordpress:latest`)
+          2. Actualizar docker-compose.yml
+          3. Usar `docker image inspect IMAGE:TAG` para verificar disponibilidad
+          
+          ### Si Dockerfiles sin USER:
+          1. Añadir `USER nobody` o `USER appuser` (non-root)
+          2. Crear usuario en fase anterior si es necesario
+          
+          ## Referencia
+          - Hardening Script: `scripts/docker-harden.sh`
+          - Auditoría Script: `scripts/docker-audit.sh`
+          - Makefile: `make docker-harden`, `make docker-verify-hardening`
+          - CI/CD Workflow: `.github/workflows/docker-security.yml`
+          
+          ---
+          *Auditoría realizada por GitHub Actions*
+          EOF
           } > artifacts/docker-security/SECURITY-SUMMARY.md
           cat artifacts/docker-security/SECURITY-SUMMARY.md
 
