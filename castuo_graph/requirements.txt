@@ -1,5 +1,6 @@
 langgraph>=0.4.5,<0.5.0
 langgraph-checkpoint-sqlite==2.0.11
+aiosqlite<0.22  # LangGraph checkpoint SQLite still relies on threading.Thread.is_alive()
 langchain-core>=0.3.0
 httpx>=0.28.1
 fastapi==0.115.12
