@@ -22,12 +22,12 @@ jobs:
         run: |
           set -euo pipefail
           forbidden=0
-          while IFS= read -r -d '' f; do
-            case "$f" in
+          while IFS= read -r -d '' file; do
+            case "$file" in
               .env|.env.*|*.env|*.tfvars|*.tfvars.json)
-                case "$f" in
+                case "$file" in
                   *.example|*.sample) ;;
-                  *) echo "Forbidden tracked environment/variable file: $f"; forbidden=1;;
+                  *) printf 'Forbidden tracked environment/variable file: %s\n' "$file"; forbidden=1 ;;
                 esac
                 ;;
             esac
@@ -36,47 +36,65 @@ jobs:
             exit 1
           fi
 
-      - name: Scan for obvious credential assignments
+      - name: Scan tracked text for obvious credential assignments
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' files < <(
-            git ls-files -z |
-              grep -zEv '(^|/)(\.env([^/]*|$)|.*\.example)$|^artifacts/|^docs/|^scripts/|^tests/|^\.github/workflows/repository-safety-baseline\.yml
-          )
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No eligible files to scan."
-            exit 0
-          fi
+          python3 - <<'PY'
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
 
-          pattern='(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*[:=][[:space:]]*("[^"$<>]{12,}"|'\''[^'\''"$<>]{12,}'\''|[A-Za-z0-9._:+/@-]{16,})'
-          matches="$(grep -nIHE -- "$pattern" "${files[@]}" || true)"
-          matches="$(printf "%s\n" "$matches" | grep -vEi "(YOUR_|CHANGE_?ME|PLACEHOLDER|REDACTED|DUMMY|EXAMPLE|REPLACE|(^|[[:space:]])CASTUO_[A-Z0-9_]*[[:space:]]*[:=][[:space:]]*CASTUO_[A-Z0-9_]+$|(^|[[:space:]])CI_[A-Z0-9_]*[[:space:]]*[:=])" || true)"
-          if [ -n "$matches" ]; then
-            printf "%s\n" "$matches"
-            echo "Potential credential assignment detected. Review before merge."
-            exit 1
-          fi
+          names = r"(?:THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)"
+          value = r"""(?P<quoted>"[^"\n]{12,}"|'[^'\n]{12,}')|(?P<bare>[A-Za-z0-9._:+/@-]{16,})"""
+          assignment = re.compile(r"\b" + names + r"\b\s*[:=]\s*(?:" + value + r")", re.IGNORECASE)
+          ignored = re.compile(
+              r"(YOUR_|CHANGE_?ME|PLACEHOLDER|REDACTED|DUMMY|EXAMPLE|REPLACE|"
+              r"^\$|^os\.environ|^environ\.get|^settings\.|^castuo_[a-z0-9_]+$|"
+              r"^ci_[a-z0-9_]+$|^test_|^fake_|^(none|null)$)",
+              re.IGNORECASE,
+          )
+          excluded_parts = {"docs", "artifacts"}
+          excluded_suffixes = (".example", ".sample")
+          findings = []
+
+          paths = subprocess.run(
+              ["git", "ls-files", "-z"], check=True, capture_output=True
+          ).stdout.split(b"\0")
+          for raw_path in paths:
+              if not raw_path:
+                  continue
+              path = raw_path.decode("utf-8", errors="surrogateescape")
+              parts = Path(path).parts
+              if excluded_parts.intersection(parts):
+                  continue
+              if path == ".github/workflows/repository-safety-baseline.yml":
+                  continue
+              if path.endswith(excluded_suffixes):
+                  continue
+              try:
+                  data = Path(path).read_text(encoding="utf-8")
+              except (OSError, UnicodeError):
+                  continue
+              for line_number, line in enumerate(data.splitlines(), 1):
+                  for match in assignment.finditer(line):
+                      raw_value = match.group("quoted") or match.group("bare") or ""
+                      token = raw_value[1:-1] if raw_value[:1] in {"'", '"'} else raw_value
+                      if ignored.search(token):
+                          continue
+                      # Do not print the candidate value; only identify its location.
+                      findings.append(f"{path}:{line_number}: {match.group(0).split('=')[0].split(':')[0].strip()}")
+
+          if findings:
+              print("Potential credential assignments detected (values suppressed):")
+              for finding in findings:
+                  print(f"  {finding}")
+              sys.exit(1)
+
+          print("No obvious hard-coded credential assignments found.")
+          PY
+
       - name: Report repository status
         shell: bash
-        run: |
-          echo "Safety baseline completed."
-
-          )
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No eligible files to scan."
-            exit 0
-          fi
-
-          pattern='(THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)[[:space:]]*[:=][[:space:]]*("[^"$<>]{12,}"|'\''[^'\''"$<>]{12,}'\''|[A-Za-z0-9._:+/@-]{16,})'
-          matches="$(grep -nIHE -- "$pattern" "${files[@]}" || true)"
-          matches="$(printf "%s\n" "$matches" | grep -vEi "(YOUR_|CHANGE_?ME|PLACEHOLDER|REDACTED|DUMMY|EXAMPLE|REPLACE|^.*=[[:space:]]*CASTUO_[A-Z0-9_]+$|^.*=[[:space:]]*CI_[A-Z0-9_]+$)" || true)"
-          if [ -n "$matches" ]; then
-            printf "%s\n" "$matches"
-            echo "Potential credential assignment detected. Review before merge."
-            exit 1
-          fi
-      - name: Report repository status
-        shell: bash
-        run: |
-          echo "Safety baseline completed."
+        run: echo "Repository safety baseline completed."
