@@ -104,59 +104,64 @@ jobs:
 
       - name: Generar reporte de seguridad
         if: always()
+        env:
+          WORKFLOW_REF: ${{ github.ref }}
+          WORKFLOW_EVENT: ${{ github.event_name }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          AUDIT_STATUS: ${{ steps.audit-strict.outcome }}
+          AUDIT_EXIT_CODE: ${{ steps.audit-strict.outputs.audit_exit_code || 'N/A' }}
+          COMPOSE_STATUS: ${{ steps.compose-validate.outcome }}
+          COMPOSE_VALID: ${{ steps.compose-validate.outputs.compose_valid }}
+          IMAGES_HAVE_LATEST: ${{ steps.image-check.outputs.images_have_latest }}
+          DOCKERFILES_SCANNED: ${{ steps.dockerfile-check.outputs.dockerfiles_scanned }}
         run: |
-          cat > artifacts/docker-security/SECURITY-SUMMARY.md <<EOF
-          # Docker Security Audit Summary
-          
-          ## Ejecución
-          - **Fecha**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          - **Rama**: ${{ github.ref }}
-          - **Evento**: ${{ github.event_name }}
-          - **Commit**: ${{ github.sha }}
-          
-          ## Resultados de Auditoría
-          
-          ### Control de Auditoría Docker (Strict Mode)
-          - Status: ${{ steps.audit-strict.outcome }}
-          - Exit Code: ${{ steps.audit-strict.outputs.audit_exit_code || 'N/A' }}
-          
-          ### Validación docker-compose
-          - Status: ${{ steps.compose-validate.outcome }}
-          - Archivos validados: 3 (main, cloud, iot)
-          - Válidos: ${{ steps.compose-validate.outputs.compose_valid }}
-          
-          ### Verificación de Tags
-          - Imágenes con :latest: ${{ steps.image-check.outputs.images_have_latest }}
-          
-          ### Verificación de Dockerfiles
-          - Dockerfiles escaneados: ${{ steps.dockerfile-check.outputs.dockerfiles_scanned }}
-          
-          ## Acciones Recomendadas
-          
-          ### Si hay fallos en auditoría strict:
-          1. Hacer hardening local: `make docker-harden`
-          2. Auditar resultados: `make docker-verify-hardening`
-          3. Buscar contenedores problemáticos en el reporte completo
-          
-          ### Si hay tags :latest:
-          1. Especificar versiones exactas (ej: `wordpress:6.5` no `wordpress:latest`)
-          2. Actualizar docker-compose.yml
-          3. Usar `docker image inspect IMAGE:TAG` para verificar disponibilidad
-          
-          ### Si Dockerfiles sin USER:
-          1. Añadir `USER nobody` o `USER appuser` (non-root)
-          2. Crear usuario en fase anterior si es necesario
-          
-          ## Referencia
-          - Hardening Script: `scripts/docker-harden.sh`
-          - Auditoría Script: `scripts/docker-audit.sh`
-          - Makefile: `make docker-harden`, `make docker-verify-hardening`
-          - CI/CD Workflow: `.github/workflows/docker-security.yml`
-          
-          ---
-          *Auditoría realizada por GitHub Actions*
-          EOF
-          
+          set -euo pipefail
+          {
+            printf '# Docker Security Audit Summary\n\n'
+            printf '## Ejecución\n'
+            printf -- '- **Fecha**: %s\n' "$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            printf -- '- **Rama**: %s\n' "$WORKFLOW_REF"
+            printf -- '- **Evento**: %s\n' "$WORKFLOW_EVENT"
+            printf -- '- **Commit**: `%s`\n\n' "$WORKFLOW_SHA"
+            printf '## Resultados de Auditoría\n\n'
+            printf '### Control de Auditoría Docker (Strict Mode)\n'
+            printf -- '- Status: %s\n' "$AUDIT_STATUS"
+            printf -- '- Exit Code: %s\n\n' "$AUDIT_EXIT_CODE"
+            printf '### Validación docker-compose\n'
+            printf -- '- Status: %s\n' "$COMPOSE_STATUS"
+            printf -- '- Archivos validados: 3 (main, cloud, iot)\n'
+            printf -- '- Válidos: %s\n\n' "$COMPOSE_VALID"
+            printf '### Verificación de Tags\n'
+            printf -- '- Imágenes con :latest: %s\n\n' "$IMAGES_HAVE_LATEST"
+            printf '### Verificación de Dockerfiles\n'
+            printf -- '- Dockerfiles escaneados: %s\n\n' "$DOCKERFILES_SCANNED"
+            cat <<'EOF'
+## Acciones Recomendadas
+
+### Si hay fallos en auditoría strict:
+1. Hacer hardening local: `make docker-harden`
+2. Auditar resultados: `make docker-verify-hardening`
+3. Buscar contenedores problemáticos en el reporte completo
+
+### Si hay tags :latest:
+1. Especificar versiones exactas (ej: `wordpress:6.5` no `wordpress:latest`)
+2. Actualizar docker-compose.yml
+3. Usar `docker image inspect IMAGE:TAG` para verificar disponibilidad
+
+### Si Dockerfiles sin USER:
+1. Añadir `USER nobody` o `USER appuser` (non-root)
+2. Crear usuario en fase anterior si es necesario
+
+## Referencia
+- Hardening Script: `scripts/docker-harden.sh`
+- Auditoría Script: `scripts/docker-audit.sh`
+- Makefile: `make docker-harden`, `make docker-verify-hardening`
+- CI/CD Workflow: `.github/workflows/docker-security.yml`
+
+---
+*Auditoría realizada por GitHub Actions*
+EOF
+          } > artifacts/docker-security/SECURITY-SUMMARY.md
           cat artifacts/docker-security/SECURITY-SUMMARY.md
 
       - name: Subir artefactos de auditoría
