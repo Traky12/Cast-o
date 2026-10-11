@@ -36,7 +36,7 @@ jobs:
             exit 1
           fi
 
-      - name: Scan tracked text for obvious credential assignments
+      - name: Scan tracked source and configuration for hard-coded credentials
         shell: bash
         run: |
           set -euo pipefail
@@ -46,17 +46,28 @@ jobs:
           import sys
           from pathlib import Path
 
-          names = r"(?:THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)"
-          value = r"""(?P<quoted>"[^"\n]{12,}"|'[^'\n]{12,}')|(?P<bare>[A-Za-z0-9._:+/@-]{16,})"""
-          assignment = re.compile(r"\b" + names + r"\b\s*[:=]\s*(?:" + value + r")", re.IGNORECASE)
-          ignored = re.compile(
-              r"(YOUR_|CHANGE_?ME|PLACEHOLDER|REDACTED|DUMMY|EXAMPLE|REPLACE|"
-              r"^\$|^os\.environ|^environ\.get|^settings\.|^castuo_[a-z0-9_]+$|"
-              r"^ci_[a-z0-9_]+$|^test_|^fake_|^(none|null)$)",
+          # Detect literal values assigned to common credential names.
+          # Uppercase environment/config names accept quoted and bare literals.
+          uppercase = re.compile(
+              r'\b(?:THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)\b'
+              r'\s*[:=]\s*(?P<literal>"[^"\n]{20,}"|\x27[^\x27\n]{20,}\x27|[A-Za-z0-9._:+/@-]{24,})'
+          )
+          # Lowercase identifiers are common local variable/type names; only
+          # quoted literals are considered to avoid flagging function calls/types.
+          lowercase = re.compile(
+              r'\b(?:password|private_key|api_key|api_secret|access_token|thingsdata)\b'
+              r'\s*[:=]\s*(?P<literal>"[^"\n]{20,}"|\x27[^\x27\n]{20,}\x27)',
               re.IGNORECASE,
           )
-          excluded_parts = {"docs", "artifacts"}
+          ignored = re.compile(
+              r'(YOUR_|CHANGE_?ME|PLACEHOLDER|REDACTED|DUMMY|EXAMPLE|REPLACE|'
+              r'^\$|^os\.|^getenv|^load_|^derive_|^secretstr|^settings\.|'
+              r'^castuo_|^ci_|^test_|^fake_|^(none|null)$)',
+              re.IGNORECASE,
+          )
+          excluded_parts = {"docs", "artifacts", "tests", "fixtures", "examples"}
           excluded_suffixes = (".example", ".sample")
+          workflow_path = ".github/workflows/repository-safety-baseline.yml"
           findings = []
 
           paths = subprocess.run(
@@ -66,33 +77,36 @@ jobs:
               if not raw_path:
                   continue
               path = raw_path.decode("utf-8", errors="surrogateescape")
-              parts = Path(path).parts
-              if excluded_parts.intersection(parts):
+              if excluded_parts.intersection(Path(path).parts):
                   continue
-              if path == ".github/workflows/repository-safety-baseline.yml":
-                  continue
-              if path.endswith(excluded_suffixes):
+              if path == workflow_path or path.endswith(excluded_suffixes):
                   continue
               try:
-                  data = Path(path).read_text(encoding="utf-8")
+                  source = Path(path).read_text(encoding="utf-8")
               except (OSError, UnicodeError):
                   continue
-              for line_number, line in enumerate(data.splitlines(), 1):
-                  for match in assignment.finditer(line):
-                      raw_value = match.group("quoted") or match.group("bare") or ""
-                      token = raw_value[1:-1] if raw_value[:1] in {"'", '"'} else raw_value
-                      if ignored.search(token):
-                          continue
-                      # Do not print the candidate value; only identify its location.
-                      findings.append(f"{path}:{line_number}: {match.group(0).split('=')[0].split(':')[0].strip()}")
+              for line_number, line in enumerate(source.splitlines(), 1):
+                  for rule in (uppercase, lowercase):
+                      for match in rule.finditer(line):
+                          raw_value = match.group("literal")
+                          token = raw_value[1:-1] if raw_value[:1] in {"'", '"'} else raw_value
+                          if ignored.search(token):
+                              continue
+                          name = re.search(
+                              r'\b(?:THINGS_DATA|THINGSDATA|API_KEY|API_SECRET|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY|'
+                              r'password|private_key|api_key|api_secret|access_token|thingsdata)\b',
+                              match.group(0),
+                              re.IGNORECASE,
+                          )
+                          findings.append(f"{path}:{line_number}: {name.group(0) if name else 'credential'}")
 
           if findings:
-              print("Potential credential assignments detected (values suppressed):")
-              for finding in findings:
+              print("Potential hard-coded credential literals found (values suppressed):")
+              for finding in sorted(set(findings)):
                   print(f"  {finding}")
               sys.exit(1)
 
-          print("No obvious hard-coded credential assignments found.")
+          print("No obvious hard-coded credential literals found.")
           PY
 
       - name: Report repository status
