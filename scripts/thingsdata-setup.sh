@@ -96,16 +96,16 @@ generate_secrets() {
     fi
     
     # Generar contraseña PostgreSQL si no existe
-    if ! grep -q "POSTGRES_PASSWORD=" infrastructure/thingsdata/thingsdata.env; then
+    if ! grep -q "POSTGRES_PASSWORD=" "$ENV_FILE"; then
         POSTGRES_PASS=$(openssl rand -base64 24)
-        echo "POSTGRES_PASSWORD=${POSTGRES_PASS}" >> infrastructure/thingsdata/thingsdata.env
+        echo "POSTGRES_PASSWORD=${POSTGRES_PASS}" >> "$ENV_FILE"
         echo -e "${GREEN}✅ Contraseña PostgreSQL generada${NC}"
     fi
     
     # Generar webhook secret
-    if ! grep -q "WEBHOOK_SECRET=" infrastructure/thingsdata/thingsdata.env; then
+    if ! grep -q "WEBHOOK_SECRET=" "$ENV_FILE"; then
         WEBHOOK_SECRET=$(openssl rand -hex 32)
-        echo "WEBHOOK_SECRET=${WEBHOOK_SECRET}" >> infrastructure/thingsdata/thingsdata.env
+        echo "WEBHOOK_SECRET=${WEBHOOK_SECRET}" >> "$ENV_FILE"
         echo -e "${GREEN}✅ Webhook secret generado${NC}"
     fi
 }
@@ -115,7 +115,7 @@ start_containers() {
     
     # Cargar variables de entorno
     set -a
-    source infrastructure/thingsdata/thingsdata.env
+    source "$ENV_FILE"
     set +a
     
     # Iniciar stack IoT
@@ -168,11 +168,11 @@ print_access_info() {
     echo -e "${GREEN}✅ PostgreSQL${NC}:          localhost:5433"
     echo -e "${GREEN}✅ TimescaleDB${NC}:         localhost:5434"
     echo ""
-    echo -e "${BLUE}📋 Credenciales por defecto (CAMBIAR EN PRODUCCIÓN):${NC}"
+    echo -e "${BLUE}📋 Credenciales locales generadas (no se muestran por pantalla):${NC}"
     echo "   n8n User:     admin"
-    echo "   n8n Password: (en infrastructure/thingsdata/thingsdata.env)"
+    echo "   n8n Password: (valor local en $ENV_FILE)"
     echo "   MQTT User:    castuo"
-    echo "   Grafana:      admin / (en infrastructure/thingsdata/thingsdata.env)"
+    echo "   Grafana:      admin / (valor local en $ENV_FILE)"
     echo ""
 }
 
@@ -209,7 +209,7 @@ run_tests() {
 show_next_steps() {
     echo -e "\n${BLUE}📌 PRÓXIMOS PASOS:${NC}"
     echo "   1. Registrarse en https://thingsdata.es"
-    echo "   2. Actualizar THINGSDATA_API_KEY en infrastructure/thingsdata/thingsdata.env"
+    echo "   2. Añadir THINGSDATA_API_KEY al archivo local $ENV_FILE"
     echo "   3. Configurar SIM Pool (tamaño: SIM_POOL variable)"
     echo "   4. Crear workflows en n8n para ingestión automática"
     echo "   5. Desplegar en AWS/Hetzner con docker compose -f docker-compose.iot.yml"
