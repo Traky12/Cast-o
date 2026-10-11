@@ -1,7 +1,8 @@
-langgraph>=0.4.5,<0.5.0
-langgraph-checkpoint-sqlite==2.0.11
-aiosqlite<0.22  # LangGraph checkpoint SQLite still relies on threading.Thread.is_alive()
-langchain-core>=0.3.0
+langgraph==1.0.10
+langgraph-checkpoint-sqlite==3.1.1
+# Keep aiosqlite below 0.22 until this checkpointer version is validated against its new Connection API.
+aiosqlite==0.21.0
+langchain-core>=1.0.0,<2.0.0
 httpx>=0.28.1
 fastapi==0.115.12
 uvicorn==0.34.2
