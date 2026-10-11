@@ -40,6 +40,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: |
             api/requirements.txt
+            requirements/dev.txt
+            castuo_graph/requirements.txt
 
       - name: Validate package and run JS tests
         run: |
@@ -51,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install -r api/requirements.txt -r requirements/dev.txt
+          python -m pip install -r api/requirements.txt -r requirements/dev.txt -r castuo_graph/requirements.txt
 
       - name: Run Python test suite with coverage
         env:
