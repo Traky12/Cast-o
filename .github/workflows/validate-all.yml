@@ -8,15 +8,16 @@ on:
 
 concurrency:
   group: validate-all-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel stale PR runs; don't abort main/manual security confirmation.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   validate-docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Validate documentation
@@ -26,6 +27,7 @@ jobs:
 
   validate-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -73,6 +75,7 @@ jobs:
         with:
           name: coverage-report
           path: artifacts/coverage.xml
+          retention-days: 7
 
       - name: Validate local cloud contract
         shell: bash
@@ -84,6 +87,10 @@ jobs:
 
   validate-security:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Trivy filesystem scan
@@ -103,6 +110,7 @@ jobs:
   notify-failure:
     if: ${{ always() && (needs.validate-docs.result != 'success' || needs.validate-tests.result != 'success' || needs.validate-security.result != 'success') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [validate-docs, validate-tests, validate-security]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
