@@ -67,7 +67,7 @@ Every claim uses one status: `CURRENT` (implemented and verifiable) · `TARGET` 
 
 | Claim | Status | Evidence / limitation |
 |---|---|---|
-| Unit and integration test suite (`pytest`) | `CURRENT` (partial) | The suite is only partly executable. Last documented run — commit `d57936c`, 2026-09-28, local Windows, Python 3.12: 463 passed, 3 failed, 7 errors, and 1 file could not be loaded (`tests/test_router_hardening.py`). Stabilising the suite is pending. The `Python validation` workflow fails on `main` (flake8 E999: `test_e2e.py` is a bash script). |
+| Unit and integration test suite (`pytest`) | `CURRENT` (partial) | The suite is only partly executable. Last documented run — commit `d57936c`, 2026-09-28, local Windows, Python 3.12: 463 passed, 3 failed, 7 errors, and 1 file could not be loaded (`tests/test_router_hardening.py`). Stabilising the suite is pending. `main` has a tracked lint defect: a Bash E2E wrapper uses the `.py` extension (issue [#34](https://github.com/Traky12/Cast-o/issues/34)); a proposed fix renames it to `.sh` and removes the linter exception. Keep this as unresolved until the PR is merged and the workflow passes on the resulting SHA. |
 | CI/CD automation (GitHub Actions) | `CURRENT` (partial) | Several workflows run on schedule. Known reds on `main`: Agent Sync Hardening (drift false positive, fix in PR #27), Reconcile CI/CD, 48h Operativity Gate, docker-security. |
 | Docker Compose environments | `PENDING` | Compose files exist (IoT, cloud, HA, …); no recorded run evidence. |
 | Infrastructure as Code (Terraform, Kubernetes) | `PENDING` | 3 `.tf` files and K8s manifests exist; no `plan`/`apply` evidence. |
