@@ -13,7 +13,7 @@ kafka-python>=2.0.2
 # Nuevas dependencias v3.1.1 — backbone operativo
 # ──────────────────────────────────────────────
 psycopg2-binary>=2.9.9      # TimescaleDB / PostgreSQL
-prometheus-client>=0.20.0   # Métricas Prometheus
+prometheus-client>=0.26.0   # Métricas Prometheus
 requests>=2.32.0            # HTTP para TRACES, eIDAS TSA, Hyperledger
 pypdf>=4.3.0                # Manipulación PDF para firma eIDAS
 pyotp>=2.9.0                # MFA TOTP
