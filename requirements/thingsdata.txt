@@ -51,5 +51,5 @@ mock==5.1.0
 # Code Quality (development)
 black==26.10.1
 flake8==7.0.0
-pylint==3.0.3
+pylint==4.0.9
 mypy==2.4.0
