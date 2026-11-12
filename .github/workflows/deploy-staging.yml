@@ -8,13 +8,12 @@ on:
       - "config/schemas/**"
       - "docker-compose*.yml"
       - ".github/workflows/deploy-staging.yml"
+  # Sin filtro de rutas en pull_request: el ruleset de main exige un despliegue
+  # correcto al entorno `staging` en TODO PR; con filtro, los PR que solo tocan
+  # workflows/docs (p. ej. bumps de Dependabot de GitHub Actions) no lo generan
+  # y quedan imposibles de fusionar.
   pull_request:
     branches: [ "main" ]
-    paths:
-      - "api/**"
-      - "config/schemas/**"
-      - "docker-compose*.yml"
-      - ".github/workflows/deploy-staging.yml"
   workflow_dispatch:
 
 concurrency:
