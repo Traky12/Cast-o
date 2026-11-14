@@ -104,33 +104,38 @@ jobs:
 
       - name: Generar reporte de seguridad
         if: always()
+        env:
+          WORKFLOW_REF: ${{ github.ref }}
+          WORKFLOW_EVENT: ${{ github.event_name }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          AUDIT_STATUS: ${{ steps.audit-strict.outcome }}
+          AUDIT_EXIT_CODE: ${{ steps.audit-strict.outputs.audit_exit_code || 'N/A' }}
+          COMPOSE_STATUS: ${{ steps.compose-validate.outcome }}
+          COMPOSE_VALID: ${{ steps.compose-validate.outputs.compose_valid }}
+          IMAGES_HAVE_LATEST: ${{ steps.image-check.outputs.images_have_latest }}
+          DOCKERFILES_SCANNED: ${{ steps.dockerfile-check.outputs.dockerfiles_scanned }}
         run: |
-          cat > artifacts/docker-security/SECURITY-SUMMARY.md <<EOF
-          # Docker Security Audit Summary
-          
-          ## Ejecución
-          - **Fecha**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          - **Rama**: ${{ github.ref }}
-          - **Evento**: ${{ github.event_name }}
-          - **Commit**: ${{ github.sha }}
-          
-          ## Resultados de Auditoría
-          
-          ### Control de Auditoría Docker (Strict Mode)
-          - Status: ${{ steps.audit-strict.outcome }}
-          - Exit Code: ${{ steps.audit-strict.outputs.audit_exit_code || 'N/A' }}
-          
-          ### Validación docker-compose
-          - Status: ${{ steps.compose-validate.outcome }}
-          - Archivos validados: 3 (main, cloud, iot)
-          - Válidos: ${{ steps.compose-validate.outputs.compose_valid }}
-          
-          ### Verificación de Tags
-          - Imágenes con :latest: ${{ steps.image-check.outputs.images_have_latest }}
-          
-          ### Verificación de Dockerfiles
-          - Dockerfiles escaneados: ${{ steps.dockerfile-check.outputs.dockerfiles_scanned }}
-          
+          set -euo pipefail
+          {
+            printf '# Docker Security Audit Summary\n\n'
+            printf '## Ejecución\n'
+            printf -- '- **Fecha**: %s\n' "$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            printf -- '- **Rama**: %s\n' "$WORKFLOW_REF"
+            printf -- '- **Evento**: %s\n' "$WORKFLOW_EVENT"
+            printf -- '- **Commit**: `%s`\n\n' "$WORKFLOW_SHA"
+            printf '## Resultados de Auditoría\n\n'
+            printf '### Control de Auditoría Docker (Strict Mode)\n'
+            printf -- '- Status: %s\n' "$AUDIT_STATUS"
+            printf -- '- Exit Code: %s\n\n' "$AUDIT_EXIT_CODE"
+            printf '### Validación docker-compose\n'
+            printf -- '- Status: %s\n' "$COMPOSE_STATUS"
+            printf -- '- Archivos validados: 3 (main, cloud, iot)\n'
+            printf -- '- Válidos: %s\n\n' "$COMPOSE_VALID"
+            printf '### Verificación de Tags\n'
+            printf -- '- Imágenes con :latest: %s\n\n' "$IMAGES_HAVE_LATEST"
+            printf '### Verificación de Dockerfiles\n'
+            printf -- '- Dockerfiles escaneados: %s\n\n' "$DOCKERFILES_SCANNED"
+            cat <<'EOF'
           ## Acciones Recomendadas
           
           ### Si hay fallos en auditoría strict:
@@ -156,7 +161,7 @@ jobs:
           ---
           *Auditoría realizada por GitHub Actions*
           EOF
-          
+          } > artifacts/docker-security/SECURITY-SUMMARY.md
           cat artifacts/docker-security/SECURITY-SUMMARY.md
 
       - name: Subir artefactos de auditoría
