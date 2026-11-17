@@ -1,0 +1,18 @@
+d4e6c2926355f05233245ca6f0d4ad107dabf6f6	2026-09-19T23:38:59+02:00	fix(repo): untrack .coverage and vendored goldfish zip archive
+515c9f4ad1ae63d2da3476d23853c30b261d16d5	2026-09-04T15:55:18Z	docs: master de completacion de repositorio 2026-09-04
+8d0f2f3da3f15a2021cc815f9e99d2e63ff11e32	2026-09-04T15:52:08Z	ci(security): anadir workflow Repository Safety Baseline
+0e4feceea6adb432ce0a1a3560aafefcdd72969a	2026-09-04T15:49:46Z	security(repo): retirar .env.thingsdata del control de versiones
+b72b81a30203a3cb8db8ac2012e6408ce455f653	2026-09-04T15:32:55Z	chore(repo): normalizar fin de linea con .gitattributes
+b01ab0112b2a9ff02070e403ad70db8bda2d0ba8	2026-08-19T04:20:49Z	docs(evos): integrate castuo-evidence into ecosystem navigation
+e3aabfcdc870d3166109a22287e2fcf325306632	2026-08-15T23:41:43Z	docs: add negative assurance boundary
+4d0c0f7c5c423dbb2a997126df87a51a0245d6ee	2026-08-15T23:04:05Z	docs: add private cloud evidence boundary
+6c9e233852f52d45546bf9aed6a2979c12a66125	2026-08-15T22:28:44Z	ci: align documentation and validation contracts
+0c86512d37343faf4f72d25cb89fb0dc1a191e43	2026-08-15T22:26:51Z	ci: make hardening and Python validation CI-safe
+5ccf1648f75fe123238dcafcb04a9dd4aef3abad	2026-08-15T20:55:46Z	chore: apply architecture governance and security baseline
+8484ced56ddafb9b465349bcccda29dc123240d0	2026-08-15T03:39:41Z	docs: rewrite README to align with ecosystem contract and evidence-first principles
+f4ea2149ae4bdf531bd68e7809c065c7e1999c5d	2026-08-01T22:43:54+02:00	Revise README for Cast-o framework details (#11)
+e067bde4d081caf85c3af10b51160abef24c466a	2026-06-07T00:00:12+02:00	Create SECURITY.md for security policy and reporting (#5)
+cf1b175198df2fd4611484452e65be434ec03950	2026-05-18T11:46:10Z	docs: actualizar resumen visual automatizado
+d1b6e5c1cc724c8db298b91b371aeaba3d5790df	2026-05-12T20:51:39+02:00	Add GitHub Actions workflow for Python package with Conda
+c4309d425e6ae88a222a4810278a45011a327504	2026-05-12T18:20:27Z	docs: actualizar quick reference automatizado
+67cc765e8f2023aeee77e84cc35b5ff4c328ba2e	2026-05-12T20:20:03+02:00	Initial commit
